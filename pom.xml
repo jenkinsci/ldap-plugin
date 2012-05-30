@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.467-SNAPSHOT</version>
+    <version>1.468-SNAPSHOT</version>
   </parent>
 
   <artifactId>ldap</artifactId>
@@ -12,39 +12,12 @@
 
   <url>http://wiki.jenkins-ci.org/display/JENKINS/LDAP+Plugin</url>
 
-  <dependencies>
-    <dependency>
-      <!-- for JRE requirement check annotation -->
-      <groupId>org.codehaus.mojo</groupId>
-      <artifactId>animal-sniffer-annotations</artifactId>
-      <version>1.7</version>
-      <scope>provided</scope>
-      <optional>true</optional><!-- no need to have this at runtime -->
-    </dependency>
-  </dependencies>
-
   <build>
     <plugins>
       <plugin>
-        <!-- make sure our code doesn't have 1.6 dependencies except where we know it -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>1.7</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>test</phase>
-            <configuration>
-              <signature>
-                <groupId>org.codehaus.mojo.signature</groupId>
-                <artifactId>java15</artifactId>
-                <version>1.0</version>
-              </signature>
-            </configuration>
-          </execution>
-        </executions>
+        <!-- details defined in the parent POM -->
       </plugin>
       <plugin>
         <groupId>org.codehaus.gmaven</groupId>
@@ -80,7 +53,8 @@
             <version>1.8.0</version>
           </dependency>
         </dependencies>
-      </plugin>    </plugins>
+      </plugin>
+    </plugins>
   </build>
 
   <scm>
