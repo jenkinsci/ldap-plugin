@@ -358,7 +358,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             File override = new File(Jenkins.getInstance().getRootDir(), fileName);
             builder.parse(
                     override.exists() ? new AutoCloseInputStream(new FileInputStream(override)) :
-                    Jenkins.getInstance().servletContext.getResourceAsStream("/WEB-INF/security/"+ fileName),binding);
+                        getClass().getResourceAsStream(fileName), binding);
         } catch (FileNotFoundException e) {
             throw new Error("Failed to load "+fileName,e);
         }
