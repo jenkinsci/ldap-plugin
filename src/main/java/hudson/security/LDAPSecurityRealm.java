@@ -352,7 +352,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         Binding binding = new Binding();
         binding.setVariable("instance", this);
 
-        BeanBuilder builder = new BeanBuilder();
+        BeanBuilder builder = new BeanBuilder(Jenkins.getInstance().pluginManager.uberClassLoader);
         String fileName = "LDAPBindSecurityRealm.groovy";
         try {
             File override = new File(Jenkins.getInstance().getRootDir(), fileName);
