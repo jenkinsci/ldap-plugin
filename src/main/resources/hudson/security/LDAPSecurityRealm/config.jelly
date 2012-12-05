@@ -54,7 +54,7 @@ THE SOFTWARE.
       />
     </f:entry>
     <f:entry title="${%Disable Ldap Email Resolver}">
-      <f:checkbox name="ldap.disableMailAdressResolver" checked="${instance.disableMailAdressResolver}"></f:checkbox>
+      <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
     </f:entry>
   </f:advanced>
 </j:jelly>

@@ -293,7 +293,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
-    public final boolean disableMailAdressResolver;
+    public final boolean disableMailAddressResolver;
 
     @DataBoundConstructor
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
@@ -307,12 +307,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         userSearch = fixEmptyAndTrim(userSearch);
         this.userSearch = userSearch!=null ? userSearch : "uid={0}";
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
-        this.disableMailAdressResolver = false;
+        this.disableMailAddressResolver = false;
     }
 
     @DataBoundConstructor
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
-                             boolean disableMailAdressResolver) {
+                             boolean disableMailAddressResolver) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -323,7 +323,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         userSearch = fixEmptyAndTrim(userSearch);
         this.userSearch = userSearch!=null ? userSearch : "uid={0}";
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
-        this.disableMailAdressResolver = disableMailAdressResolver;
+        this.disableMailAddressResolver = disableMailAddressResolver;
     }
 
     public String getServerUrl() {
@@ -490,7 +490,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
             if(!(realm instanceof LDAPSecurityRealm))
                 return null;
-            if (((LDAPSecurityRealm)realm).disableMailAdressResolver) {
+            if (((LDAPSecurityRealm)realm).disableMailAddressResolver) {
                 LOGGER.info( "LDAPSecurityRealm MailAddressResolver is disabled" );
                 return null;
             }
