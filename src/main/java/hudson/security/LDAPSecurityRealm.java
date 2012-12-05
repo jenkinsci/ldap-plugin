@@ -1,7 +1,8 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe,
+ *    Olivier Lamy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -289,6 +290,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     private transient LdapTemplate ldapTemplate;
 
+    /**
+     * @since 1.2
+     */
+    public final boolean disableMailAdressResolver;
+
     @DataBoundConstructor
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
         this.server = server.trim();
@@ -301,6 +307,23 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         userSearch = fixEmptyAndTrim(userSearch);
         this.userSearch = userSearch!=null ? userSearch : "uid={0}";
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
+        this.disableMailAdressResolver = false;
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
+                             boolean disableMailAdressResolver) {
+        this.server = server.trim();
+        this.managerDN = fixEmpty(managerDN);
+        this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
+        this.inhibitInferRootDN = inhibitInferRootDN;
+        if(!inhibitInferRootDN && fixEmptyAndTrim(rootDN)==null) rootDN= fixNull(inferRootDN(server));
+        this.rootDN = rootDN.trim();
+        this.userSearchBase = fixNull(userSearchBase).trim();
+        userSearch = fixEmptyAndTrim(userSearch);
+        this.userSearch = userSearch!=null ? userSearch : "uid={0}";
+        this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
+        this.disableMailAdressResolver = disableMailAdressResolver;
     }
 
     public String getServerUrl() {
@@ -467,6 +490,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
             if(!(realm instanceof LDAPSecurityRealm))
                 return null;
+            if (((LDAPSecurityRealm)realm).disableMailAdressResolver) {
+                LOGGER.info( "LDAPSecurityRealm MailAddressResolver is disabled" );
+                return null;
+            }
             try {
                 LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails.loadUserByUsername(u.getId());
                 Attribute mail = details.getAttributes().get("mail");

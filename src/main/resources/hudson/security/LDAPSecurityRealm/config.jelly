@@ -53,5 +53,8 @@ THE SOFTWARE.
       checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=password&amp;server='+encodeURIComponent(this.form.elements['ldap.server'].value)+'&amp;managerDN='+encodeURIComponent(this.form.elements['ldap.managerDN'].value)+'&amp;managerPassword='+encodeURIComponent(this.value)" 
       />
     </f:entry>
+    <f:entry title="${%Disable Ldap Email Resolver}">
+      <f:checkbox name="ldap.disableMailAdressResolver" checked="${instance.disableMailAdressResolver}"></f:checkbox>
+    </f:entry>
   </f:advanced>
 </j:jelly>
