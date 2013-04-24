@@ -307,7 +307,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * The {@link UserDetails} cache.
      */
-    private transient Map<String,CacheEntry<UserDetails>> userDetailsCache = null;
+    private transient Map<String,CacheEntry<LdapUserDetails>> userDetailsCache = null;
 
     /**
      * The group details cache.
@@ -435,25 +435,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        if (cache != null) {
-            final CacheEntry<UserDetails> cached;
-            synchronized (this) {
-                cached = (userDetailsCache != null) ? userDetailsCache.get(username) : null;
-            }
-            if (cached != null && cached.isValid()) {
-                return cached.getValue();
-            }
-        }
-        UserDetails userDetails = getSecurityComponents().userDetails.loadUserByUsername(username);
-        if (cache != null) {
-            synchronized (this) {
-                if (userDetailsCache == null) {
-                    userDetailsCache = new CacheMap<String, UserDetails>(cache.getSize());
-                }
-                userDetailsCache.put(username, new CacheEntry<UserDetails>(cache.getTtl(), userDetails));
-            }
-        }
-        return userDetails;
+        return getSecurityComponents().userDetails.loadUserByUsername(username);
     }
 
     @Override
@@ -520,6 +502,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
             try {
+                SecurityRealm securityRealm =
+                        Jenkins.getInstance() == null ? null : Jenkins.getInstance().getSecurityRealm();
+                if (securityRealm instanceof LDAPSecurityRealm
+                        && securityRealm.getSecurityComponents().userDetails == this) {
+                    LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
+                    if (ldapSecurityRealm.cache != null) {
+                        final CacheEntry<LdapUserDetails> cached;
+                        synchronized (ldapSecurityRealm) {
+                            cached = (ldapSecurityRealm.userDetailsCache != null) ? ldapSecurityRealm.userDetailsCache
+                                    .get(username) : null;
+                        }
+                        if (cached != null && cached.isValid()) {
+                            return cached.getValue();
+                        }
+                    }
+                }
                 LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
                 // LdapUserSearch does not populate granted authorities (group search).
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
@@ -542,6 +540,21 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                     ldapUser = user.createUserDetails();
                 }
+                if (securityRealm instanceof LDAPSecurityRealm
+                        && securityRealm.getSecurityComponents().userDetails == this) {
+                    LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
+                    if (ldapSecurityRealm.cache != null) {
+                        synchronized (ldapSecurityRealm) {
+                            if (ldapSecurityRealm.userDetailsCache == null) {
+                                ldapSecurityRealm.userDetailsCache =
+                                        new CacheMap<String, LdapUserDetails>(ldapSecurityRealm.cache.getSize());
+                            }
+                            ldapSecurityRealm.userDetailsCache.put(username,
+                                    new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(), ldapUser));
+                        }
+                    }
+                }
+
                 return ldapUser;
             } catch (LdapDataAccessException e) {
                 LOGGER.log(Level.WARNING, "Failed to search LDAP for username="+username,e);
