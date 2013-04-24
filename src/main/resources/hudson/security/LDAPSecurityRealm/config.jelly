@@ -56,5 +56,39 @@ THE SOFTWARE.
     <f:entry title="${%Disable Ldap Email Resolver}">
       <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
     </f:entry>
+    <f:optionalBlock name="ldap.cache" title="${%Enable cache}" checked="${instance.cache != null}">
+      <f:entry title="${%Cache size}">
+        <f:radio name="ldap.cache.size" value="10" checked="${instance.cacheSize == 10}" title="10"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="20" checked="${instance.cacheSize == 20 or instance.cacheSize == null}" title="20"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="50" checked="${instance.cacheSize == 50}" title="50"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="100" checked="${instance.cacheSize == 100}" title="100"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="200" checked="${instance.cacheSize == 200}" title="200"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="500" checked="${instance.cacheSize == 500}" title="500"/>
+        <st:nbsp />
+        <f:radio name="ldap.cache.size" value="1000" checked="${instance.cacheSize == 1000}" title="1000"/>
+      </f:entry>
+      <f:entry title="${%Cache TTL}">
+          <f:radio name="ldap.cache.ttl" value="30" checked="${instance.cacheTTL == 30}" title="${%30 sec}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="60" checked="${instance.cacheTTL == 60}" title="${%1 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="120" checked="${instance.cacheTTL == 120}" title="${%2 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="300" checked="${instance.cacheTTL == 300 or instance.cacheTTL == null}" title="${%5 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="600" checked="${instance.cacheTTL == 600}" title="${%10 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="900" checked="${instance.cacheTTL == 900}" title="${%15 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="1800" checked="${instance.cacheTTL == 1800}" title="${%30 min}"/>
+          <st:nbsp />
+          <f:radio name="ldap.cache.ttl" value="3600" checked="${instance.cacheTTL == 3600}" title="${%1 hour}"/>
+      </f:entry>
+    </f:optionalBlock>
   </f:advanced>
 </j:jelly>

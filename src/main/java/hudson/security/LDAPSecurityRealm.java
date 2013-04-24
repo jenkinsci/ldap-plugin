@@ -78,7 +78,10 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -295,24 +298,35 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     public final boolean disableMailAddressResolver;
 
-    @DataBoundConstructor
+    /**
+     * The cache configuration
+     * @since 1.3
+     */
+    private final CacheConfiguration cache;
+
+    /**
+     * The {@link UserDetails} cache.
+     */
+    private transient Map<String,CacheEntry<UserDetails>> userDetailsCache = null;
+
+    /**
+     * The group details cache.
+     */
+    private transient Map<String,CacheEntry<Set<String>>> groupDetailsCache = null;
+
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
-        this.server = server.trim();
-        this.managerDN = fixEmpty(managerDN);
-        this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
-        this.inhibitInferRootDN = inhibitInferRootDN;
-        if(!inhibitInferRootDN && fixEmptyAndTrim(rootDN)==null) rootDN= fixNull(inferRootDN(server));
-        this.rootDN = rootDN.trim();
-        this.userSearchBase = fixNull(userSearchBase).trim();
-        userSearch = fixEmptyAndTrim(userSearch);
-        this.userSearch = userSearch!=null ? userSearch : "uid={0}";
-        this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
-        this.disableMailAddressResolver = false;
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN, false);
+    }
+
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
+                             boolean disableMailAddressResolver) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN,
+                                     disableMailAddressResolver, null);
     }
 
     @DataBoundConstructor
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
-                             boolean disableMailAddressResolver) {
+                             boolean disableMailAddressResolver, CacheConfiguration cache) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -324,10 +338,23 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.userSearch = userSearch!=null ? userSearch : "uid={0}";
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
         this.disableMailAddressResolver = disableMailAddressResolver;
+        this.cache = cache;
     }
 
     public String getServerUrl() {
         return addPrefix(server);
+    }
+
+    public CacheConfiguration getCache() {
+        return cache;
+    }
+
+    public Integer getCacheSize() {
+        return cache == null ? null : cache.getSize();
+    }
+
+    public Integer getCacheTTL() {
+        return cache == null ? null : cache.getTtl();
     }
 
     /**
@@ -408,15 +435,58 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return getSecurityComponents().userDetails.loadUserByUsername(username);
+        if (cache != null) {
+            final CacheEntry<UserDetails> cached;
+            synchronized (this) {
+                cached = (userDetailsCache != null) ? userDetailsCache.get(username) : null;
+            }
+            if (cached != null && cached.isValid()) {
+                return cached.getValue();
+            }
+        }
+        UserDetails userDetails = getSecurityComponents().userDetails.loadUserByUsername(username);
+        if (cache != null) {
+            synchronized (this) {
+                if (userDetailsCache == null) {
+                    userDetailsCache = new CacheMap<String, UserDetails>(cache.getSize());
+                }
+                userDetailsCache.put(username, new CacheEntry<UserDetails>(cache.getTtl(), userDetails));
+            }
+        }
+        return userDetails;
     }
 
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+        Set<String> cachedGroups;
+        if (cache != null) {
+            final CacheEntry<Set<String>> cached;
+            synchronized (this) {
+                cached = groupDetailsCache != null ? groupDetailsCache.get(groupname) : null;
+            }
+            if (cached != null && cached.isValid()) {
+                cachedGroups = cached.getValue();
+            } else {
+                cachedGroups = null;
+            }
+        } else {
+            cachedGroups = null;
+        }
+
         // TODO: obtain a DN instead so that we can obtain multiple attributes later
         String searchBase = groupSearchBase != null ? groupSearchBase : "";
-        final Set<String> groups = (Set<String>)ldapTemplate.searchForSingleAttributeValues(searchBase, GROUP_SEARCH,
-                new String[]{groupname}, "cn");
+        final Set<String> groups = cachedGroups != null
+                ? cachedGroups
+                : (Set<String>) ldapTemplate
+                        .searchForSingleAttributeValues(searchBase, GROUP_SEARCH, new String[]{groupname}, "cn");
+        if (cache != null && cachedGroups == null && !groups.isEmpty()) {
+            synchronized (this) {
+                if (groupDetailsCache == null) {
+                    groupDetailsCache = new CacheMap<String, Set<String>>(cache.getSize());
+                }
+                groupDetailsCache.put(groupname, new CacheEntry<Set<String>>(cache.getTtl(), groups));
+            }
+        }
 
         if(groups.isEmpty())
             throw new UsernameNotFoundException(groupname);
@@ -651,4 +721,63 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     public static String GROUP_SEARCH = System.getProperty(LDAPSecurityRealm.class.getName()+".groupSearch",
             "(& (cn={0}) (| (objectclass=groupOfNames) (objectclass=groupOfUniqueNames) (objectclass=posixGroup)))");
+
+    public static class CacheConfiguration {
+        private final int size;
+        private final int ttl;
+
+        @DataBoundConstructor
+        public CacheConfiguration(int size, int ttl) {
+            this.size = Math.max(10, Math.min(size, 1000));
+            this.ttl = Math.max(30, Math.min(ttl, 3600));
+        }
+
+        public int getSize() {
+            return size;
+        }
+
+        public int getTtl() {
+            return ttl;
+        }
+    }
+
+    private static class CacheEntry<T> {
+        private final long expires;
+        private final T value;
+
+        public CacheEntry(int ttlSeconds, T value) {
+            this.expires = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(ttlSeconds);
+            this.value = value;
+        }
+
+        public T getValue() {
+            return value;
+        }
+
+        public boolean isValid() {
+            return System.currentTimeMillis() < expires;
+        }
+    }
+
+    /**
+     * While we could use Guava's CacheBuilder the method signature changes make using it problematic.
+     * Safer to roll our own and ensure compatibility across as wide a range of Jenkins versions as possible.
+     *
+     * @param <K> Key type
+     * @param <V> Cache entry type
+     */
+    private static class CacheMap<K, V> extends LinkedHashMap<K, CacheEntry<V>> {
+
+        private final int cacheSize;
+
+        public CacheMap(int cacheSize) {
+            super(cacheSize + 1); // prevent realloc when hitting cache size limit
+            this.cacheSize = cacheSize;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, CacheEntry<V>> eldest) {
+            return size() > cacheSize || eldest.getValue() == null || !eldest.getValue().isValid();
+        }
+    }
 }
