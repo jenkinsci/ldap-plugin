@@ -43,6 +43,12 @@ THE SOFTWARE.
     <f:entry title="${%Group search base}" help="/help/security/ldap/groupSearchBase.html">
       <f:textbox name="ldap.groupSearchBase" value="${instance.groupSearchBase}" />
     </f:entry>
+    <f:entry title="${%Group search filter}" help="/plugin/ldap/help-groupSearchFilter.html">
+      <f:textbox name="ldap.groupSearchFilter" value="${instance.groupSearchFilter}" />
+    </f:entry>
+    <f:entry title="${%Group membership filter}" help="/plugin/ldap/help-groupMembershipFilter.html">
+      <f:textbox name="ldap.groupMembershipFilter" value="${instance.groupMembershipFilter}" />
+    </f:entry>
     <f:entry title="${%Manager DN}" help="/help/security/ldap/managerDN.html">
       <f:textbox name="ldap.managerDN" value="${instance.managerDN}" autocomplete="off"
       checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=managerDN&amp;server='+encodeURIComponent(this.form.elements['ldap.server'].value)+'&amp;managerDN='+encodeURIComponent(this.value)+'&amp;managerPassword='+encodeURIComponent(this.form.elements['ldap.managerPassword'].value)"
@@ -56,7 +62,7 @@ THE SOFTWARE.
     <f:entry title="${%Disable Ldap Email Resolver}">
       <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
     </f:entry>
-    <f:optionalBlock name="ldap.cache" title="${%Enable cache}" checked="${instance.cache != null}">
+    <f:optionalBlock name="ldap.cache" title="${%Enable cache}" checked="${instance.cache != null}" help="/plugin/ldap/help-cache.html">
       <f:entry title="${%Cache size}">
         <f:radio name="ldap.cache.size" value="10" checked="${instance.cacheSize == 10}" title="10"/>
         <st:nbsp />

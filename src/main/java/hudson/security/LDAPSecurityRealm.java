@@ -262,6 +262,23 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     public final String groupSearchBase;
 
+    /**
+     * Query to locate an entry that identifies the group, given the group name string. If non-null it will override
+     * the default specified by {@link #GROUP_SEARCH}
+     *
+     * @since 1.5
+     */
+    public final String groupSearchFilter;
+
+    /**
+     * Query to locate the group entries that a user belongs to, given the user object. <code>{0}</code>
+     * is the user's full DN while {1} is the username. If non-null it will override the default specified in
+     * {@code LDAPBindSecurityRealm.groovy}
+     *
+     * @since 1.5
+     */
+    public final String groupMembershipFilter;
+
     /*
         Other configurations that are needed:
 
@@ -314,19 +331,35 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     private transient Map<String,CacheEntry<Set<String>>> groupDetailsCache = null;
 
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN, false);
     }
 
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
                              boolean disableMailAddressResolver) {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN,
                                      disableMailAddressResolver, null);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
                              boolean disableMailAddressResolver, CacheConfiguration cache) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, null, null, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -337,6 +370,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         userSearch = fixEmptyAndTrim(userSearch);
         this.userSearch = userSearch!=null ? userSearch : "uid={0}";
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
+        this.groupSearchFilter = fixEmptyAndTrim(groupSearchFilter);
+        this.groupMembershipFilter = fixEmptyAndTrim(groupMembershipFilter);
         this.disableMailAddressResolver = disableMailAddressResolver;
         this.cache = cache;
     }
@@ -355,6 +390,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     public Integer getCacheTTL() {
         return cache == null ? null : cache.getTtl();
+    }
+
+    public String getGroupMembershipFilter() {
+        return groupMembershipFilter;
+    }
+
+    public String getGroupSearchFilter() {
+        return groupSearchFilter;
     }
 
     /**
@@ -416,6 +459,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         ldapTemplate = new LdapTemplate(findBean(InitialDirContextFactory.class, appContext));
 
+        if (groupMembershipFilter != null) {
+            AuthoritiesPopulatorImpl authoritiesPopulator = findBean(AuthoritiesPopulatorImpl.class, appContext);
+            authoritiesPopulator.setGroupSearchFilter(groupMembershipFilter);
+        }
+
         return new SecurityComponents(
             findBean(AuthenticationManager.class, appContext),
             new LDAPUserDetailsService(appContext));
@@ -457,10 +505,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         // TODO: obtain a DN instead so that we can obtain multiple attributes later
         String searchBase = groupSearchBase != null ? groupSearchBase : "";
+        String searchFilter = groupSearchFilter != null ? groupSearchFilter : GROUP_SEARCH;
         final Set<String> groups = cachedGroups != null
                 ? cachedGroups
                 : (Set<String>) ldapTemplate
-                        .searchForSingleAttributeValues(searchBase, GROUP_SEARCH, new String[]{groupname}, "cn");
+                        .searchForSingleAttributeValues(searchBase, searchFilter, new String[]{groupname}, "cn");
         if (cache != null && cachedGroups == null && !groups.isEmpty()) {
             synchronized (this) {
                 if (groupDetailsCache == null) {
