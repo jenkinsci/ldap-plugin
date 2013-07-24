@@ -217,8 +217,8 @@ import java.util.regex.Pattern;
  */
 public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
-     * LDAP server name, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389".
+     * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
+     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
      */
     public final String server;
 
@@ -377,7 +377,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public String getServerUrl() {
-        return addPrefix(server);
+        StringBuilder buf = new StringBuilder();
+        boolean first = true;
+        for (String s: server.split("\\s+")) {
+            if (s.trim().length() == 0) continue;
+            if (first) first = false; else buf.append(' ');
+            buf.append(addPrefix(s));
+        }
+        return buf.toString();
     }
 
     public CacheConfiguration getCache() {
@@ -413,7 +420,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 props.put(Context.SECURITY_CREDENTIALS,getManagerPassword());
             }
             props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-            props.put(Context.PROVIDER_URL, getServerUrl()+'/');
+            props.put(Context.PROVIDER_URL, toProviderUrl(getServerUrl(), ""));
 
             DirContext ctx = new InitialDirContext(props);
             Attributes atts = ctx.getAttributes("");
@@ -433,12 +440,26 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
+    private static String toProviderUrl(String serverUrl, String rootDN) {
+        StringBuilder buf = new StringBuilder();
+        boolean first = true;
+        for (String s: serverUrl.split("\\s+")) {
+            if (s.trim().length() == 0) continue;
+            if (first) first = false; else buf.append(' ');
+            s = addPrefix(s);
+            buf.append(s);
+            if (!s.endsWith("/")) buf.append('/');
+            buf.append(fixNull(rootDN));
+        }
+        return buf.toString();
+    }
+
     public String getManagerPassword() {
         return Scrambler.descramble(managerPassword);
     }
 
     public String getLDAPURL() {
-        return getServerUrl()+'/'+ fixNull(rootDN);
+        return toProviderUrl(getServerUrl(), fixNull(rootDN));
     }
 
     public SecurityComponents createSecurityComponents() {
@@ -729,14 +750,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     props.put(Context.SECURITY_CREDENTIALS,managerPassword);
                 }
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-                props.put(Context.PROVIDER_URL, addPrefix(server)+'/');
+                props.put(Context.PROVIDER_URL, toProviderUrl(server, ""));
 
                 DirContext ctx = new InitialDirContext(props);
                 ctx.getAttributes("");
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
-                Matcher m = Pattern.compile("(ldaps://)?([^:]+)(?:\\:(\\d+))?").matcher(server.trim());
+                Matcher m = Pattern.compile("(ldaps?://)?([^:]+)(?:\\:(\\d+))?(\\s+(ldaps?://)?([^:]+)(?:\\:(\\d+))?)*").matcher(server.trim());
                 if(!m.matches())
                     return FormValidation.error(Messages.LDAPSecurityRealm_SyntaxOfServerField());
 
