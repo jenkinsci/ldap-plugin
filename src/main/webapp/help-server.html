@@ -1,0 +1,13 @@
+<div>
+    Specify the name of the LDAP server host name(s) (like <tt>ldap.sun.com</tt>).
+    If your LDAP server uses a port other than 389 (which is the standard for LDAP),
+    you can also append a port number here, like <tt>ldap.acme.org:1389</tt>.
+    To connect to LDAP over SSL (AKA LDAPS), specify it with the <tt>ldaps://</tt> protocol,
+    like <tt>ldaps://ldap.acme.org</tt> or <tt>ldaps://ldap.acme.org:1636</tt> (if
+    the port is other than the default 636).
+    <br/>
+    Where there are multiple redundant servers separate them by spaces, if the first
+    named server is not available then requests will be attempted by each of the
+    named servers in order. NOTE: This is to support LDAP server fail-over, once an any
+    answer has been received from a server, that answer is taken as definitive
+</div>

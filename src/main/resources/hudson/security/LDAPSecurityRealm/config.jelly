@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:entry title="${%Server}" help="/help/security/ldap/server.html">
+	<f:entry title="${%Server}" help="/plugin/ldap/help-server.html">
 	  <f:textbox name="ldap.server" value="${instance.server}"
             checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=server&amp;server='+encodeURIComponent(this.value)+'&amp;managerDN='+encodeURIComponent(this.form.elements['ldap.managerDN'].value)+'&amp;managerPassword='+encodeURIComponent(this.form.elements['ldap.managerPassword'].value)"/>
 	</f:entry>
