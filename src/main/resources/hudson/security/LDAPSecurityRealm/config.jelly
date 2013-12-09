@@ -96,5 +96,9 @@ THE SOFTWARE.
           <f:radio name="ldap.cache.ttl" value="3600" checked="${instance.cacheTTL == 3600}" title="${%1 hour}"/>
       </f:entry>
     </f:optionalBlock>
+
+    <f:entry title="${%Environment Properties}" help="/plugin/ldap/help-envprop.html">
+      <f:repeatableProperty field="environmentProperties" />
+    </f:entry>
   </f:advanced>
 </j:jelly>

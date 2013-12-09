@@ -29,6 +29,8 @@ import hudson.Extension;
 import static hudson.Util.fixNull;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixEmpty;
+
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import jenkins.model.Jenkins;
 import hudson.model.User;
@@ -72,13 +74,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -331,6 +336,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     private transient Map<String,CacheEntry<Set<String>>> groupDetailsCache = null;
 
+    private final Map<String,String> extraEnvVars;
+
     /**
      * @deprecated retained for backwards binary compatibility.
      */
@@ -358,8 +365,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, null, null, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, null);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -374,6 +389,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.groupMembershipFilter = fixEmptyAndTrim(groupMembershipFilter);
         this.disableMailAddressResolver = disableMailAddressResolver;
         this.cache = cache;
+        this.extraEnvVars = environmentProperties == null || environmentProperties.length == 0
+                ? null
+                : EnvironmentProperty.toMap(Arrays.asList(environmentProperties));
     }
 
     public String getServerUrl() {
@@ -405,6 +423,24 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     public String getGroupSearchFilter() {
         return groupSearchFilter;
+    }
+
+    public Map<String,String> getExtraEnvVars() {
+        return extraEnvVars == null || extraEnvVars.isEmpty()
+                ? Collections.<String,String>emptyMap()
+                : Collections.unmodifiableMap(extraEnvVars);
+    }
+
+    public EnvironmentProperty[] getEnvironmentProperties() {
+        if (extraEnvVars == null || extraEnvVars.isEmpty()) {
+            return new EnvironmentProperty[0];
+        }
+        EnvironmentProperty[] result = new EnvironmentProperty[extraEnvVars.size()];
+        int i = 0;
+        for (Map.Entry<String,String> entry: extraEnvVars.entrySet()) {
+            result[i++] = new EnvironmentProperty(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     /**
@@ -861,6 +897,45 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         protected boolean removeEldestEntry(Map.Entry<K, CacheEntry<V>> eldest) {
             return size() > cacheSize || eldest.getValue() == null || !eldest.getValue().isValid();
+        }
+    }
+
+    public static class EnvironmentProperty extends AbstractDescribableImpl<EnvironmentProperty> implements Serializable {
+        private final String name;
+        private final String value;
+
+        @DataBoundConstructor
+        public EnvironmentProperty(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public static Map<String,String> toMap(List<EnvironmentProperty> properties) {
+            if (properties != null) {
+                final Map<String, String> result = new LinkedHashMap<String, String>();
+                for (EnvironmentProperty property:properties) {
+                    result.put(property.getName(), property.getValue());
+                }
+                return result;
+            }
+            return null;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<EnvironmentProperty> {
+
+            @Override
+            public String getDisplayName() {
+                return null;
+            }
         }
     }
 }

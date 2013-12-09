@@ -45,7 +45,11 @@ initialDirContextFactory(DefaultInitialDirContextFactory, instance.getLDAPURL() 
     managerDn = instance.managerDN;
     managerPassword = instance.getManagerPassword();
   }
-  extraEnvVars = [(Context.REFERRAL):"follow"];
+  extraEnvVars = [
+          (Context.REFERRAL):"follow",
+          "com.sun.jndi.ldap.connect.timeout":"30000", // timeout if no connection after 30 seconds
+          "com.sun.jndi.ldap.read.timeout":"60000" // timeout if no response after 60 seconds
+  ] + instance.getExtraEnvVars();
 }
 
 ldapUserSearch(FilterBasedLdapUserSearch, instance.userSearchBase, instance.userSearch, initialDirContextFactory) {
