@@ -32,12 +32,14 @@ import static hudson.Util.fixEmpty;
 
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.FormValidation;
 import hudson.util.Scrambler;
 import hudson.util.spring.BeanBuilder;
+import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.AcegiSecurityException;
@@ -58,6 +60,7 @@ import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.io.input.AutoCloseInputStream;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.springframework.dao.DataAccessException;
@@ -221,6 +224,8 @@ import java.util.regex.Pattern;
  * @since 1.166
  */
 public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
+    private static final String DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME = "displayname";
+    private static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
@@ -338,6 +343,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private final Map<String,String> extraEnvVars;
 
+    private final String displayNameAttributeName;
+
+    private final String mailAddressAttributeName;
+
     /**
      * @deprecated retained for backwards binary compatibility.
      */
@@ -373,8 +382,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, null);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -392,6 +409,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.extraEnvVars = environmentProperties == null || environmentProperties.length == 0
                 ? null
                 : EnvironmentProperty.toMap(Arrays.asList(environmentProperties));
+        this.displayNameAttributeName = StringUtils.defaultString(fixEmptyAndTrim(displayNameAttributeName),
+                DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
+        this.mailAddressAttributeName = StringUtils.defaultString(fixEmptyAndTrim(mailAddressAttributeName),
+                DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
     }
 
     public String getServerUrl() {
@@ -498,6 +519,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return toProviderUrl(getServerUrl(), fixNull(rootDN));
     }
 
+    public String getDisplayNameAttributeName() {
+        return StringUtils.defaultString(displayNameAttributeName, DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
+    }
+
+    public String getMailAddressAttributeName() {
+        return StringUtils.defaultString(mailAddressAttributeName, DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+    }
+
     public SecurityComponents createSecurityComponents() {
         Binding binding = new Binding();
         binding.setVariable("instance", this);
@@ -522,7 +551,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         return new SecurityComponents(
-            findBean(AuthenticationManager.class, appContext),
+            new LDAPAuthenticationManager(findBean(AuthenticationManager.class, appContext)),
             new LDAPUserDetailsService(appContext));
     }
 
@@ -531,8 +560,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-        return (UserDetails) getSecurityComponents().manager.authenticate(
-          new UsernamePasswordAuthenticationToken(username, password)).getPrincipal();
+        return updateUserDetails((UserDetails) getSecurityComponents().manager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password)).getPrincipal());
     }
 
     /**
@@ -540,7 +569,46 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return getSecurityComponents().userDetails.loadUserByUsername(username);
+        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(username));
+    }
+
+    public Authentication updateUserDetails(Authentication authentication) {
+        updateUserDetails((UserDetails) authentication.getPrincipal());
+        return authentication;
+    }
+
+    public UserDetails updateUserDetails(UserDetails userDetails) {
+        if (userDetails instanceof LdapUserDetails) {
+            updateUserDetails((LdapUserDetails)userDetails);
+        }
+        return userDetails;
+    }
+
+    public LdapUserDetails updateUserDetails(LdapUserDetails d) {
+        hudson.model.User u = hudson.model.User.get(d.getUsername());
+        try {
+            Attribute attribute = d.getAttributes().get(getDisplayNameAttributeName());
+            String displayName = attribute == null ? null : (String) attribute.get();
+            if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName())) {
+                u.setFullName(displayName);
+            }
+        } catch (NamingException e) {
+            LOGGER.log(Level.FINEST, "Could not retrieve display name attribute", e);
+        }
+        if (!disableMailAddressResolver) {
+            try {
+                Attribute attribute = d.getAttributes().get(getMailAddressAttributeName());
+                String mailAddress = attribute == null ? null : (String) attribute.get();
+                if (StringUtils.isNotBlank(mailAddress)) {
+                    u.addProperty(new Mailer.UserProperty(mailAddress));
+                }
+            } catch (NamingException e) {
+                LOGGER.log(Level.FINEST, "Could not retrieve email address attribute", e);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to associate the e-mail address", e);
+            }
+        }
+        return d;
     }
 
     @Override
@@ -584,6 +652,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return groups.iterator().next();
             }
         };
+    }
+
+    private class LDAPAuthenticationManager implements AuthenticationManager {
+
+        private final AuthenticationManager delegate;
+
+        private LDAPAuthenticationManager(AuthenticationManager delegate) {
+            this.delegate = delegate;
+        }
+
+        public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+            return updateUserDetails(delegate.authenticate(authentication));
+        }
     }
 
     public static class LDAPUserDetailsService implements UserDetailsService {
@@ -656,7 +737,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                         new CacheMap<String, LdapUserDetails>(ldapSecurityRealm.cache.getSize());
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
-                                    new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(), ldapUser));
+                                    new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
+                                            ldapSecurityRealm.updateUserDetails(ldapUser)));
                         }
                     }
                 }
@@ -685,7 +767,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
             try {
                 LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails.loadUserByUsername(u.getId());
-                Attribute mail = details.getAttributes().get("mail");
+                Attribute mail = details.getAttributes().get(((LDAPSecurityRealm)realm).getMailAddressAttributeName());
                 if(mail==null)  return null;    // not found
                 return (String)mail.get();
             } catch (UsernameNotFoundException e) {

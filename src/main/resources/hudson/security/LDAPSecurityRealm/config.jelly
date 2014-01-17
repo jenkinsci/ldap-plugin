@@ -59,6 +59,12 @@ THE SOFTWARE.
       checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=password&amp;server='+encodeURIComponent(this.form.elements['ldap.server'].value)+'&amp;managerDN='+encodeURIComponent(this.form.elements['ldap.managerDN'].value)+'&amp;managerPassword='+encodeURIComponent(this.value)" 
       />
     </f:entry>
+    <f:entry title="${%Display Name LDAP attribute}" help="/plugin/ldap/help-displayNameAttributeName.html">
+      <f:textbox name="ldap.displayNameAttributeName" value="${instance.displayNameAttributeName}"/>
+    </f:entry>
+    <f:entry title="${%Email Address LDAP attribute}" help="/plugin/ldap/help-mailAddressAttributeName.html">
+      <f:textbox name="ldap.mailAddressAttributeName" value="${instance.mailAddressAttributeName}"/>
+    </f:entry>
     <f:entry title="${%Disable Ldap Email Resolver}">
       <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
     </f:entry>
