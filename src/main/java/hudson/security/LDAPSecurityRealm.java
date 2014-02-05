@@ -326,6 +326,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public final boolean disableMailAddressResolver;
 
     /**
+     * @since TODO
+     */
+    public final boolean disablePrefixedRoleCreation;
+
+    /**
      * The cache configuration
      * @since 1.3
      */
@@ -390,8 +395,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
 
-    @DataBoundConstructor
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null, false);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, boolean disablePrefixedRoleCreation) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
@@ -405,6 +415,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.groupSearchFilter = fixEmptyAndTrim(groupSearchFilter);
         this.groupMembershipFilter = fixEmptyAndTrim(groupMembershipFilter);
         this.disableMailAddressResolver = disableMailAddressResolver;
+        this.disablePrefixedRoleCreation = disablePrefixedRoleCreation;
         this.cache = cache;
         this.extraEnvVars = environmentProperties == null || environmentProperties.length == 0
                 ? null
@@ -794,11 +805,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         String rolePrefix = "ROLE_";
         boolean convertToUpperCase = true;
 
-        public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase) {
+        private boolean disablePrefixedRoleCreation;
+
+        public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase, boolean disablePrefixedRoleCreation) {
             super(initialDirContextFactory, fixNull(groupSearchBase));
 
             super.setRolePrefix("");
             super.setConvertToUpperCase(false);
+            this.disablePrefixedRoleCreation = disablePrefixedRoleCreation;
         }
 
         @Override
@@ -835,10 +849,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (GrantedAuthority ga : names) {
                 String role = ga.getAuthority();
 
-                // backward compatible name mangling
-                if (convertToUpperCase)
-                    role = role.toUpperCase();
-                r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                if (!disablePrefixedRoleCreation) {
+                    // backward compatible name mangling
+                    if (convertToUpperCase)
+                        role = role.toUpperCase();
+                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                }
             }
 
             return r;

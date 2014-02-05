@@ -68,6 +68,9 @@ THE SOFTWARE.
     <f:entry title="${%Disable Ldap Email Resolver}">
       <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
     </f:entry>
+    <f:entry title="${%Disable Backward Compatibility for Roles}" help="/plugin/ldap/help-disablePrefixedRoleCreation.html">
+      <f:checkbox name="ldap.disablePrefixedRoleCreation" checked="${instance.disablePrefixedRoleCreation}"></f:checkbox>
+    </f:entry>
     <f:optionalBlock name="ldap.cache" title="${%Enable cache}" checked="${instance.cache != null}" help="/plugin/ldap/help-cache.html">
       <f:entry title="${%Cache size}">
         <f:radio name="ldap.cache.size" value="10" checked="${instance.cacheSize == 10}" title="10"/>
