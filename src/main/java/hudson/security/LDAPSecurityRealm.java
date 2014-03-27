@@ -226,6 +226,8 @@ import java.util.regex.Pattern;
 public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private static final String DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME = "displayname";
     private static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
+    private static final boolean FORCE_USERNAME_LOWERCASE =
+            Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceUsernameLowercase");
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
@@ -561,7 +563,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     @Override
     protected UserDetails authenticate(String username, String password) throws AuthenticationException {
         return updateUserDetails((UserDetails) getSecurityComponents().manager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)).getPrincipal());
+                new UsernamePasswordAuthenticationToken(FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username, password)).getPrincipal());
     }
 
     /**
@@ -569,7 +571,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(username));
+        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(
+                FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username));
     }
 
     public Authentication updateUserDetails(Authentication authentication) {
@@ -585,7 +588,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public LdapUserDetails updateUserDetails(LdapUserDetails d) {
-        hudson.model.User u = hudson.model.User.get(d.getUsername());
+        hudson.model.User u = hudson.model.User.get(
+                FORCE_USERNAME_LOWERCASE ? d.getUsername().toLowerCase() : d.getUsername());
         try {
             Attribute attribute = d.getAttributes().get(getDisplayNameAttributeName());
             String displayName = attribute == null ? null : (String) attribute.get();
