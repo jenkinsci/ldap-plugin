@@ -23,88 +23,51 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:entry title="${%Server}" help="/plugin/ldap/help-server.html">
-	  <f:textbox name="ldap.server" value="${instance.server}"
-            checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=server&amp;server='+encodeURIComponent(this.value)+'&amp;managerDN='+encodeURIComponent(this.form.elements['ldap.managerDN'].value)+'&amp;managerPassword='+encodeURIComponent(this.form.elements['ldap.managerPassword'].value)"/>
-	</f:entry>
-  <f:advanced>
-    <f:entry title="${%root DN}" help="/help/security/ldap/rootDN.html">
-      <f:textbox name="ldap.rootDN" value="${instance.rootDN}" />
-      <f:checkbox name="ldap.inhibitInferRootDN" checked="${instance.inhibitInferRootDN}"
-        title="${%Allow blank rootDN}"/>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry field="server" title="${%Server}">
+        <f:textbox/>
     </f:entry>
-    <f:entry title="${%User search base}" help="/help/security/ldap/userSearchBase.html">
-      <f:textbox name="ldap.userSearchBase" value="${instance.userSearchBase}" />
-    </f:entry>
-    <f:entry title="${%User search filter}" help="/help/security/ldap/userSearchFilter.html">
-      <f:textbox name="ldap.userSearch" value="${instance.userSearch}" />
-    </f:entry>
-    <f:entry title="${%Group search base}" help="/help/security/ldap/groupSearchBase.html">
-      <f:textbox name="ldap.groupSearchBase" value="${instance.groupSearchBase}" />
-    </f:entry>
-    <f:entry title="${%Group search filter}" help="/plugin/ldap/help-groupSearchFilter.html">
-      <f:textbox name="ldap.groupSearchFilter" value="${instance.groupSearchFilter}" />
-    </f:entry>
-    <f:entry title="${%Group membership filter}" help="/plugin/ldap/help-groupMembershipFilter.html">
-      <f:textbox name="ldap.groupMembershipFilter" value="${instance.groupMembershipFilter}" />
-    </f:entry>
-    <f:entry title="${%Manager DN}" help="/help/security/ldap/managerDN.html">
-      <f:textbox name="ldap.managerDN" value="${instance.managerDN}" autocomplete="off"
-      checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=managerDN&amp;server='+encodeURIComponent(this.form.elements['ldap.server'].value)+'&amp;managerDN='+encodeURIComponent(this.value)+'&amp;managerPassword='+encodeURIComponent(this.form.elements['ldap.managerPassword'].value)"
-      />
-    </f:entry>
-    <f:entry title="${%Manager Password}" help="/help/security/ldap/managerPassword.html">
-      <f:password name="ldap.managerPassword" value="${instance.managerPassword}" autocomplete="off"
-      checkUrl="'${rootURL}/securityRealms/LDAPSecurityRealm/serverCheck?field=password&amp;server='+encodeURIComponent(this.form.elements['ldap.server'].value)+'&amp;managerDN='+encodeURIComponent(this.form.elements['ldap.managerDN'].value)+'&amp;managerPassword='+encodeURIComponent(this.value)" 
-      />
-    </f:entry>
-    <f:entry title="${%Display Name LDAP attribute}" help="/plugin/ldap/help-displayNameAttributeName.html">
-      <f:textbox name="ldap.displayNameAttributeName" value="${instance.displayNameAttributeName}"/>
-    </f:entry>
-    <f:entry title="${%Email Address LDAP attribute}" help="/plugin/ldap/help-mailAddressAttributeName.html">
-      <f:textbox name="ldap.mailAddressAttributeName" value="${instance.mailAddressAttributeName}"/>
-    </f:entry>
-    <f:entry title="${%Disable Ldap Email Resolver}">
-      <f:checkbox name="ldap.disableMailAddressResolver" checked="${instance.disableMailAddressResolver}"></f:checkbox>
-    </f:entry>
-    <f:optionalBlock name="ldap.cache" title="${%Enable cache}" checked="${instance.cache != null}" help="/plugin/ldap/help-cache.html">
-      <f:entry title="${%Cache size}">
-        <f:radio name="ldap.cache.size" value="10" checked="${instance.cacheSize == 10}" title="10"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="20" checked="${instance.cacheSize == 20 or instance.cacheSize == null}" title="20"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="50" checked="${instance.cacheSize == 50}" title="50"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="100" checked="${instance.cacheSize == 100}" title="100"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="200" checked="${instance.cacheSize == 200}" title="200"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="500" checked="${instance.cacheSize == 500}" title="500"/>
-        <st:nbsp />
-        <f:radio name="ldap.cache.size" value="1000" checked="${instance.cacheSize == 1000}" title="1000"/>
-      </f:entry>
-      <f:entry title="${%Cache TTL}">
-          <f:radio name="ldap.cache.ttl" value="30" checked="${instance.cacheTTL == 30}" title="${%30 sec}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="60" checked="${instance.cacheTTL == 60}" title="${%1 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="120" checked="${instance.cacheTTL == 120}" title="${%2 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="300" checked="${instance.cacheTTL == 300 or instance.cacheTTL == null}" title="${%5 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="600" checked="${instance.cacheTTL == 600}" title="${%10 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="900" checked="${instance.cacheTTL == 900}" title="${%15 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="1800" checked="${instance.cacheTTL == 1800}" title="${%30 min}"/>
-          <st:nbsp />
-          <f:radio name="ldap.cache.ttl" value="3600" checked="${instance.cacheTTL == 3600}" title="${%1 hour}"/>
-      </f:entry>
-    </f:optionalBlock>
-
-    <f:entry title="${%Environment Properties}" help="/plugin/ldap/help-envprop.html">
-      <f:repeatableProperty field="environmentProperties" />
-    </f:entry>
-  </f:advanced>
+    <f:advanced>
+        <f:entry field="rootDN" title="${%root DN}">
+            <f:textbox/>
+        </f:entry>
+        <f:entry field="inhibitInferRootDN">
+            <f:checkbox title="${%Allow blank rootDN}"/>
+        </f:entry>
+        <f:entry field="userSearchBase" title="${%User search base}">
+            <f:textbox/>
+        </f:entry>
+        <f:entry field="userSearch" title="${%User search filter}">
+            <f:textbox default="${descriptor.DEFAULT_USER_SEARCH}"/>
+        </f:entry>
+        <f:entry field="groupSearchBase" title="${%Group search base}">
+            <f:textbox/>
+        </f:entry>
+        <f:entry field="groupSearchFilter" title="${%Group search filter}">
+            <f:textbox/>
+        </f:entry>
+        <f:entry field="groupMembershipFilter" title="${%Group membership filter}">
+            <f:textbox/>
+        </f:entry>
+        <f:entry field="managerDN" title="${%Manager DN}">
+            <f:textbox autocomplete="off"/>
+        </f:entry>
+        <f:entry field="managerPassword" title="${%Manager Password}">
+            <f:password autocomplete="off"/>
+        </f:entry>
+        <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
+            <f:textbox default="${descriptor.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME}"/>
+        </f:entry>
+        <f:entry field="mailAddressAttributeName" title="${%Email Address LDAP attribute}">
+            <f:textbox default="${descriptor.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME}"/>
+        </f:entry>
+        <f:entry field="disableMailAddressResolver">
+            <f:checkbox title="${%Disable Ldap Email Resolver}"/>
+        </f:entry>
+        <f:optionalProperty field="cache" title="${%Enable cache}"/>
+        <f:entry field="environmentProperties" title="${%Environment Properties}">
+            <!-- TODO JENKINS-22910 must repeat the field attr: -->
+            <f:repeatableProperty field="environmentProperties"/>
+        </f:entry>
+    </f:advanced>
 </j:jelly>

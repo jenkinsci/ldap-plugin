@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 The MIT License
 
-Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi
+Copyright 2014 Jesse Glick.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +24,11 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:entry field="name" title="${%Name}">
-	  <f:textbox/>
-	</f:entry>
-	<f:entry field="value" title="${%Value}">
-	  <f:textbox/>
-	</f:entry>
-  <f:entry title="">
-     <div align="right">
-       <!-- TODO as of 1.532 this should be pulled up into the parent config.jelly -->
-       <f:repeatableDeleteButton />
-     </div>
-   </f:entry>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry field="size" title="${%Cache size}">
+        <f:select default="20"/>
+    </f:entry>
+    <f:entry field="ttl" title="${%Cache TTL}">
+        <f:select default="300"/>
+    </f:entry>
 </j:jelly>

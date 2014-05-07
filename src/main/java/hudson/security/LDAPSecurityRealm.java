@@ -26,53 +26,18 @@ package hudson.security;
 
 import groovy.lang.Binding;
 import hudson.Extension;
-import static hudson.Util.fixNull;
-import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixEmpty;
-
+import static hudson.Util.fixEmptyAndTrim;
+import static hudson.Util.fixNull;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import hudson.tasks.Mailer;
-import jenkins.model.Jenkins;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
+import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import hudson.util.Scrambler;
 import hudson.util.spring.BeanBuilder;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.AcegiSecurityException;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapDataAccessException;
-import org.acegisecurity.ldap.LdapTemplate;
-import org.acegisecurity.ldap.LdapUserSearch;
-import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.providers.ldap.populator.DefaultLdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.UserDetailsService;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
-import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
-import org.apache.commons.collections.map.LRUMap;
-import org.apache.commons.io.input.AutoCloseInputStream;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.springframework.dao.DataAccessException;
-import org.springframework.web.context.WebApplicationContext;
-
-import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttributes;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -94,7 +59,40 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
+import jenkins.model.Jenkins;
+import org.acegisecurity.AcegiSecurityException;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.AuthenticationException;
+import org.acegisecurity.AuthenticationManager;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.GrantedAuthorityImpl;
+import org.acegisecurity.ldap.InitialDirContextFactory;
+import org.acegisecurity.ldap.LdapDataAccessException;
+import org.acegisecurity.ldap.LdapTemplate;
+import org.acegisecurity.ldap.LdapUserSearch;
+import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
+import org.acegisecurity.providers.ldap.populator.DefaultLdapAuthoritiesPopulator;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UserDetailsService;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
+import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.io.input.AutoCloseInputStream;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.springframework.dao.DataAccessException;
+import org.springframework.web.context.WebApplicationContext;
 
 /**
  * {@link SecurityRealm} implementation that uses LDAP for authentication.
@@ -213,19 +211,17 @@ import java.util.regex.Pattern;
  *
  * <dt><a href="http://www.ietf.org/rfc/rfc2256.txt">RFC 2256</a>
  * <dd>
- * Defines the meaning of several key datatypes used in the schemas with some explanations. 
+ * Defines the meaning of several key datatypes used in the schemas with some explanations.
  *
  * <dt><a href="http://msdn.microsoft.com/en-us/library/ms675085(VS.85).aspx">Active Directory schema</a>
  * <dd>
  * More navigable schema list, including core and MS extensions specific to Active Directory.
  * </dl>
- * 
+ *
  * @author Kohsuke Kawaguchi
  * @since 1.166
  */
 public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
-    private static final String DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME = "displayname";
-    private static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
     private static final boolean FORCE_USERNAME_LOWERCASE =
             Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceUsernameLowercase");
     /**
@@ -402,7 +398,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.rootDN = rootDN.trim();
         this.userSearchBase = fixNull(userSearchBase).trim();
         userSearch = fixEmptyAndTrim(userSearch);
-        this.userSearch = userSearch!=null ? userSearch : "uid={0}";
+        this.userSearch = userSearch!=null ? userSearch : DescriptorImpl.DEFAULT_USER_SEARCH;
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
         this.groupSearchFilter = fixEmptyAndTrim(groupSearchFilter);
         this.groupMembershipFilter = fixEmptyAndTrim(groupMembershipFilter);
@@ -412,9 +408,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 ? null
                 : EnvironmentProperty.toMap(Arrays.asList(environmentProperties));
         this.displayNameAttributeName = StringUtils.defaultString(fixEmptyAndTrim(displayNameAttributeName),
-                DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
+                DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
         this.mailAddressAttributeName = StringUtils.defaultString(fixEmptyAndTrim(mailAddressAttributeName),
-                DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+                DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
     }
 
     public String getServerUrl() {
@@ -522,11 +518,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public String getDisplayNameAttributeName() {
-        return StringUtils.defaultString(displayNameAttributeName, DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
+        return StringUtils.defaultString(displayNameAttributeName, DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
     }
 
     public String getMailAddressAttributeName() {
-        return StringUtils.defaultString(mailAddressAttributeName, DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+        return StringUtils.defaultString(mailAddressAttributeName, DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
     }
 
     public SecurityComponents createSecurityComponents() {
@@ -851,14 +847,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
+
+        public static final String DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME = "displayname";
+        public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
+        public static final String DEFAULT_USER_SEARCH = "uid={0}";
+
         public String getDisplayName() {
             return Messages.LDAPSecurityRealm_DisplayName();
         }
 
-        public FormValidation doServerCheck(
-                @QueryParameter final String server,
-        		@QueryParameter final String managerDN,
-        		@QueryParameter final String managerPassword) {
+        // note that this works better in 1.528+ (JENKINS-19124)
+        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter String managerPassword) {
+            String server = value;
 
             if(!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
@@ -927,7 +927,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public static String GROUP_SEARCH = System.getProperty(LDAPSecurityRealm.class.getName()+".groupSearch",
             "(& (cn={0}) (| (objectclass=groupOfNames) (objectclass=groupOfUniqueNames) (objectclass=posixGroup)))");
 
-    public static class CacheConfiguration {
+    public static class CacheConfiguration extends AbstractDescribableImpl<CacheConfiguration> {
         private final int size;
         private final int ttl;
 
@@ -943,6 +943,40 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public int getTtl() {
             return ttl;
+        }
+
+        @Extension public static class DescriptorImpl extends Descriptor<CacheConfiguration> {
+
+            @Override public String getDisplayName() {
+                return "";
+            }
+
+            public ListBoxModel doFillSizeItems() {
+                ListBoxModel m = new ListBoxModel();
+                m.add("10");
+                m.add("20");
+                m.add("50");
+                m.add("100");
+                m.add("200");
+                m.add("500");
+                m.add("1000");
+                return m;
+            }
+
+            public ListBoxModel doFillTtlItems() {
+                ListBoxModel m = new ListBoxModel();
+                // TODO use Messages (not that there were any translations before)
+                m.add("30 sec", "30");
+                m.add("1 min", "60");
+                m.add("2 min", "120");
+                m.add("5 min", "300");
+                m.add("10 min", "600");
+                m.add("15 min", "900");
+                m.add("30 min", "1800");
+                m.add("1 hour", "3600");
+                return m;
+            }
+
         }
     }
 
