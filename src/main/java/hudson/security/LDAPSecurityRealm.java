@@ -37,6 +37,7 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Scrambler;
+import hudson.util.Secret;
 import hudson.util.spring.BeanBuilder;
 import java.io.File;
 import java.io.FileInputStream;
@@ -301,17 +302,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
 
     /**
-     * If non-null, we use this and {@link #managerPassword}
+     * If non-null, we use this and {@link #managerPasswordSecret}
      * when binding to LDAP.
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
     public final String managerDN;
 
+    @Deprecated
+    private String managerPassword;
+
     /**
-     * Scrambled password, used to first bind to LDAP.
+     * Password used to first bind to LDAP.
      */
-    private final String managerPassword;
+    private Secret managerPasswordSecret;
 
     /**
      * Created in {@link #createSecurityComponents()}. Can be used to connect to LDAP.
@@ -388,11 +392,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, Secret.fromString(managerPassword), inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
+    }
+    
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
-        this.managerPassword = Scrambler.scramble(fixEmpty(managerPassword));
+        this.managerPasswordSecret = managerPasswordSecret;
         this.inhibitInferRootDN = inhibitInferRootDN;
         if(!inhibitInferRootDN && fixEmptyAndTrim(rootDN)==null) rootDN= fixNull(inferRootDN(server));
         this.rootDN = rootDN.trim();
@@ -411,6 +423,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
         this.mailAddressAttributeName = StringUtils.defaultString(fixEmptyAndTrim(mailAddressAttributeName),
                 DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+    }
+
+    private Object readResolve() {
+        if (managerPassword != null) {
+            managerPasswordSecret = Secret.fromString(Scrambler.descramble(managerPassword));
+            managerPassword = null;
+        }
+        return this;
     }
 
     public String getServerUrl() {
@@ -510,7 +530,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public String getManagerPassword() {
-        return Scrambler.descramble(managerPassword);
+        return Secret.toString(managerPasswordSecret);
+    }
+
+    public Secret getManagerPasswordSecret() {
+        return managerPasswordSecret;
     }
 
     public String getLDAPURL() {
@@ -857,8 +881,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
-        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter String managerPassword) {
+        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
             String server = value;
+            String managerPassword = Secret.toString(managerPasswordSecret);
 
             if(!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();

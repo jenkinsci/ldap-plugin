@@ -52,7 +52,7 @@ THE SOFTWARE.
         <f:entry field="managerDN" title="${%Manager DN}">
             <f:textbox autocomplete="off"/>
         </f:entry>
-        <f:entry field="managerPassword" title="${%Manager Password}">
+        <f:entry field="managerPasswordSecret" title="${%Manager Password}">
             <f:password autocomplete="off"/>
         </f:entry>
         <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
