@@ -225,6 +225,8 @@ import org.springframework.web.context.WebApplicationContext;
 public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private static final boolean FORCE_USERNAME_LOWERCASE =
             Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceUsernameLowercase");
+    private static final boolean FORCE_GROUPNAME_LOWERCASE =
+            Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceGroupnameLowercase");
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
@@ -583,7 +585,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     @Override
     protected UserDetails authenticate(String username, String password) throws AuthenticationException {
         return updateUserDetails((UserDetails) getSecurityComponents().manager.authenticate(
-                new UsernamePasswordAuthenticationToken(FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username, password)).getPrincipal());
+                new UsernamePasswordAuthenticationToken(fixUsername(username), password)).getPrincipal());
     }
 
     /**
@@ -591,8 +593,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(
-                FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username));
+        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(fixUsername(username)));
     }
 
     public Authentication updateUserDetails(Authentication authentication) {
@@ -608,8 +609,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public LdapUserDetails updateUserDetails(LdapUserDetails d) {
-        hudson.model.User u = hudson.model.User.get(
-                FORCE_USERNAME_LOWERCASE ? d.getUsername().toLowerCase() : d.getUsername());
+        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
         try {
             Attribute attribute = d.getAttributes().get(getDisplayNameAttributeName());
             String displayName = attribute == null ? null : (String) attribute.get();
@@ -637,6 +637,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+        groupname = fixGroupname(groupname);
         Set<String> cachedGroups;
         if (cache != null) {
             final CacheEntry<Set<String>> cached;
@@ -671,11 +672,28 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         if(groups.isEmpty())
             throw new UsernameNotFoundException(groupname);
 
-        return new GroupDetails() {
-            public String getName() {
-                return groups.iterator().next();
-            }
-        };
+        return new GroupDetailsImpl(fixGroupname(groups.iterator().next()));
+    }
+
+    private static String fixGroupname(String groupname) {
+        return FORCE_GROUPNAME_LOWERCASE ? groupname.toLowerCase() : groupname;
+    }
+
+    private static String fixUsername(String username) {
+        return FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username;
+    }
+
+    private static class GroupDetailsImpl extends GroupDetails {
+
+        private String name;
+
+        public GroupDetailsImpl(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 
     private class LDAPAuthenticationManager implements AuthenticationManager {
@@ -712,6 +730,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+            username = fixUsername(username);
             try {
                 SecurityRealm securityRealm =
                         Jenkins.getInstance() == null ? null : Jenkins.getInstance().getSecurityRealm();
@@ -854,7 +873,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
             Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
-            r.addAll(names);
+            if (FORCE_GROUPNAME_LOWERCASE) {
+                for (GrantedAuthority ga : names) {
+                    r.add(new GrantedAuthorityImpl(ga.getAuthority().toLowerCase()));
+                }
+            } else {
+                r.addAll(names);
+            }
 
             for (GrantedAuthority ga : names) {
                 String role = ga.getAuthority();
