@@ -106,6 +106,7 @@
         <artifactId>maven-hpi-plugin</artifactId>
         <version>${maven-hpi-plugin.version}</version>
         <configuration>
+          <compatibleSinceVersion>1.9</compatibleSinceVersion>
           <systemProperties>
             <hudson.bundled.plugins>${basedir}/work/plugins/ldap.hpl</hudson.bundled.plugins>
           </systemProperties>
