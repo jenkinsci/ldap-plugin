@@ -46,8 +46,8 @@ THE SOFTWARE.
         <f:entry field="groupSearchFilter" title="${%Group search filter}">
             <f:textbox/>
         </f:entry>
-        <f:entry field="groupMembershipFilter" title="${%Group membership filter}">
-            <f:textbox/>
+        <f:entry field="groupMembershipStrategy" title="${%Group membership}">
+            <f:hetero-radio field="groupMembershipStrategy" descriptors="${descriptor.groupMembershipStrategies}"/>
         </f:entry>
         <f:entry field="managerDN" title="${%Manager DN}">
             <f:textbox autocomplete="off"/>

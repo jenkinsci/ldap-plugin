@@ -25,7 +25,11 @@
 package hudson.security;
 
 import java.util.Collections;
+
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+
+import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -50,7 +54,9 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
         assertEquals("uS", sr.userSearch);
         assertEquals("gSB", sr.groupSearchBase);
         assertEquals("gSF", sr.groupSearchFilter);
-        assertEquals("gMF", sr.groupMembershipFilter);
+        assertThat(sr.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
+        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy)sr.getGroupMembershipStrategy()).getFilter(), is("gMF"));
+        assertNull(sr.groupMembershipFilter);
         assertEquals("mDN", sr.managerDN);
         assertEquals("s3cr3t", sr.getManagerPassword());
         assertTrue(sr.inhibitInferRootDN);

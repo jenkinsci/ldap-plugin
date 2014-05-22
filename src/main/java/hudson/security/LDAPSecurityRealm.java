@@ -25,6 +25,7 @@
 package hudson.security;
 
 import groovy.lang.Binding;
+import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
@@ -68,6 +69,8 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import jenkins.model.Jenkins;
+import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
 import org.acegisecurity.AcegiSecurityException;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -287,8 +290,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * {@code LDAPBindSecurityRealm.groovy}
      *
      * @since 1.5
+     * @deprecated use {@link #groupMembershipStrategy}
      */
-    public final String groupMembershipFilter;
+    @Deprecated
+    public transient String groupMembershipFilter;
+
+    /**
+     * @since 2.0
+     */
+    public /*effectively final*/ LDAPGroupMembershipStrategy groupMembershipStrategy;
 
     /*
         Other configurations that are needed:
@@ -402,8 +412,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, Secret.fromString(managerPassword), inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
     
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, new FromGroupSearchLDAPGroupMembershipStrategy(groupMembershipFilter), managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
@@ -415,7 +433,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.userSearch = userSearch!=null ? userSearch : DescriptorImpl.DEFAULT_USER_SEARCH;
         this.groupSearchBase = fixEmptyAndTrim(groupSearchBase);
         this.groupSearchFilter = fixEmptyAndTrim(groupSearchFilter);
-        this.groupMembershipFilter = fixEmptyAndTrim(groupMembershipFilter);
+        this.groupMembershipStrategy = groupMembershipStrategy == null ? new FromGroupSearchLDAPGroupMembershipStrategy("") : groupMembershipStrategy;
         this.disableMailAddressResolver = disableMailAddressResolver;
         this.cache = cache;
         this.extraEnvVars = environmentProperties == null || environmentProperties.length == 0
@@ -431,6 +449,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         if (managerPassword != null) {
             managerPasswordSecret = Secret.fromString(Scrambler.descramble(managerPassword));
             managerPassword = null;
+        }
+        if (groupMembershipStrategy == null) {
+            groupMembershipStrategy = new FromGroupSearchLDAPGroupMembershipStrategy(groupMembershipFilter);
+            groupMembershipFilter = null;
         }
         return this;
     }
@@ -458,8 +480,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return cache == null ? null : cache.getTtl();
     }
 
+    @Deprecated
     public String getGroupMembershipFilter() {
         return groupMembershipFilter;
+    }
+
+    public LDAPGroupMembershipStrategy getGroupMembershipStrategy() {
+        return groupMembershipStrategy;
     }
 
     public String getGroupSearchFilter() {
@@ -569,14 +596,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         ldapTemplate = new LdapTemplate(findBean(InitialDirContextFactory.class, appContext));
 
-        if (groupMembershipFilter != null) {
-            AuthoritiesPopulatorImpl authoritiesPopulator = findBean(AuthoritiesPopulatorImpl.class, appContext);
-            authoritiesPopulator.setGroupSearchFilter(groupMembershipFilter);
+        if (groupMembershipStrategy != null) {
+            groupMembershipStrategy.setAuthoritiesPopulator(findBean(LdapAuthoritiesPopulator.class, appContext));
         }
 
         return new SecurityComponents(
             new LDAPAuthenticationManager(findBean(AuthenticationManager.class, appContext)),
-            new LDAPUserDetailsService(appContext));
+            new LDAPUserDetailsService(appContext, groupMembershipStrategy));
     }
 
     /**
@@ -712,6 +738,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public static class LDAPUserDetailsService implements UserDetailsService {
         public final LdapUserSearch ldapSearch;
         public final LdapAuthoritiesPopulator authoritiesPopulator;
+        public final LDAPGroupMembershipStrategy groupMembershipStrategy;
         /**
          * {@link BasicAttributes} in LDAP tend to be bulky (about 20K at size), so interning them
          * to keep the size under control. When a programmatic client is not smart enough to
@@ -720,13 +747,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         private final LRUMap attributesCache = new LRUMap(32);
 
         LDAPUserDetailsService(WebApplicationContext appContext) {
-            ldapSearch = findBean(LdapUserSearch.class, appContext);
-            authoritiesPopulator = findBean(LdapAuthoritiesPopulator.class, appContext);
+            this(appContext, null);
         }
 
         LDAPUserDetailsService(LdapUserSearch ldapSearch, LdapAuthoritiesPopulator authoritiesPopulator) {
+            this(ldapSearch, authoritiesPopulator, null);
+        }
+
+        LDAPUserDetailsService(LdapUserSearch ldapSearch, LdapAuthoritiesPopulator authoritiesPopulator, LDAPGroupMembershipStrategy groupMembershipStrategy) {
             this.ldapSearch = ldapSearch;
             this.authoritiesPopulator = authoritiesPopulator;
+            this.groupMembershipStrategy = groupMembershipStrategy;
+        }
+
+        public LDAPUserDetailsService(WebApplicationContext appContext,
+                                      LDAPGroupMembershipStrategy groupMembershipStrategy) {
+            this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy);
         }
 
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
@@ -764,9 +800,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         }
                     }
 
-                    GrantedAuthority[] extraAuthorities = authoritiesPopulator.getGrantedAuthorities(ldapUser);
+                    GrantedAuthority[] extraAuthorities = groupMembershipStrategy == null
+                            ? authoritiesPopulator.getGrantedAuthorities(ldapUser)
+                            : groupMembershipStrategy.getGrantedAuthorities(ldapUser);
                     for (GrantedAuthority extraAuthority : extraAuthorities) {
-                        user.addAuthority(extraAuthority);
+                        if (FORCE_GROUPNAME_LOWERCASE) {
+                            user.addAuthority(new GrantedAuthorityImpl(extraAuthority.getAuthority().toLowerCase()));
+                        } else {
+                            user.addAuthority(extraAuthority);
+                        }
                     }
                     ldapUser = user.createUserDetails();
                 }
@@ -873,13 +915,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
             Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
-            if (FORCE_GROUPNAME_LOWERCASE) {
-                for (GrantedAuthority ga : names) {
-                    r.add(new GrantedAuthorityImpl(ga.getAuthority().toLowerCase()));
-                }
-            } else {
-                r.addAll(names);
-            }
+            r.addAll(names);
 
             for (GrantedAuthority ga : names) {
                 String role = ga.getAuthority();
@@ -953,6 +989,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // The getLdapCtxInstance method throws this if it fails to parse the port number
                 return FormValidation.error(Messages.LDAPSecurityRealm_InvalidPortNumber());
             }
+        }
+
+        public DescriptorExtensionList<LDAPGroupMembershipStrategy, Descriptor<LDAPGroupMembershipStrategy>> getGroupMembershipStrategies() {
+            return Jenkins.getInstance().getDescriptorList(LDAPGroupMembershipStrategy.class);
         }
     }
 
