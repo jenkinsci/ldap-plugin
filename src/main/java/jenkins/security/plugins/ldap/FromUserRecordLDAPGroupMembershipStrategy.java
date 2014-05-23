@@ -32,6 +32,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,7 +62,8 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     @Override
     public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
-        Attribute attribute = ldapUser.getAttributes().get(attributeName);
+        Attributes attributes = ldapUser.getAttributes();
+        Attribute attribute = attributes == null ? null : attributes.get(attributeName);
         if (attribute != null) {
             try {
                 for (Object value: Collections.list(attribute.getAll())) {
