@@ -27,6 +27,7 @@ import hudson.Extension;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.naming.InvalidNameException;
@@ -56,13 +57,14 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     }
 
     public String getAttributeName() {
-        return attributeName;
+        return StringUtils.defaultIfEmpty(attributeName, "memberOf");
     }
 
     @Override
     public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
         Attributes attributes = ldapUser.getAttributes();
+        final String attributeName = getAttributeName();
         Attribute attribute = attributes == null ? null : attributes.get(attributeName);
         if (attribute != null) {
             try {
