@@ -1,0 +1,18 @@
+<div>
+    Almost all LDAP schemas use an attribute (<code>cn</code>) for the group name that is specified to be case
+    insensitive. Unless you are connecting to a LDAP server that uses a different search attribute than the defaults
+    you should leave this as <code>Case insensitive</code>.
+    <p>
+        <b>Recommendations:</b>
+    </p>
+    <ul>
+        <li>
+            If your group search filter is blank or contains <code>cn={0}</code> then select
+            <code>Case insensitive</code>.
+        </li>
+        <li>
+            Otherwise consult the LDAP schema of your LDAP server to determine the correct selection, with
+            <code>Case insensitive</code> being the best choice for the lazy.
+        </li>
+    </ul>
+</div>

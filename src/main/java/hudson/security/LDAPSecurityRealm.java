@@ -30,6 +30,8 @@ import hudson.Extension;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
+
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.User;
@@ -68,6 +70,8 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+
+import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
@@ -361,6 +365,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private final String mailAddressAttributeName;
 
+    private final IdStrategy userIdStrategy;
+
+    private final IdStrategy groupIdStrategy;
+
     /**
      * @deprecated retained for backwards binary compatibility.
      */
@@ -420,8 +428,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, new FromGroupSearchLDAPGroupMembershipStrategy(groupMembershipFilter), managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName, IdStrategy.CASE_INSENSITIVE, IdStrategy.CASE_INSENSITIVE);
+    }
+
+    @DataBoundConstructor
+    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, IdStrategy userIdStrategy, IdStrategy groupIdStrategy) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
@@ -443,6 +459,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
         this.mailAddressAttributeName = StringUtils.defaultString(fixEmptyAndTrim(mailAddressAttributeName),
                 DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+        this.userIdStrategy = userIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : userIdStrategy;
+        this.groupIdStrategy = groupIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : groupIdStrategy;
     }
 
     private Object readResolve() {
@@ -460,12 +478,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public String getServerUrl() {
         StringBuilder buf = new StringBuilder();
         boolean first = true;
-        for (String s: server.split("\\s+")) {
+        for (String s: Util.fixNull(server).split("\\s+")) {
             if (s.trim().length() == 0) continue;
             if (first) first = false; else buf.append(' ');
             buf.append(addPrefix(s));
         }
         return buf.toString();
+    }
+
+    @Override
+    public IdStrategy getUserIdStrategy() {
+        return userIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : userIdStrategy;
+    }
+
+    @Override
+    public IdStrategy getGroupIdStrategy() {
+        return groupIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : groupIdStrategy;
     }
 
     public CacheConfiguration getCache() {
@@ -939,6 +967,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public String getDisplayName() {
             return Messages.LDAPSecurityRealm_DisplayName();
+        }
+
+        public IdStrategy getDefaultIdStrategy() {
+            return IdStrategy.CASE_INSENSITIVE;
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
