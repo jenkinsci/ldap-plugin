@@ -44,46 +44,12 @@ THE SOFTWARE.
           <!-- TODO Jenkins 1.577+ switch to f:dropdownDescriptorSelector -->
           <!--f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}" default="${descriptor.defaultIdStrategy}"/-->
           <!--f:dropdownDescriptorSelector field="groupIdStrategy" title="${%Group name case sensitivity}" default="${descriptor.defaultIdStrategy}"/-->
-          <f:dropdownList name="userIdStrategy" title="${%Login name case sensitivity}"
-                          help="${descriptor.getHelpFile('userIdStrategy')}">
-            <j:scope>
-              <j:set var="descriptors"
-                     value="${descriptor.getPropertyType(instance,'userIdStrategy').getApplicableDescriptors()}"/>
-              <j:set var="current" value="${instance['userIdStrategy']}"/>
-              <j:set var="current" value="${current!=null ? current : (default.descriptor!=null ? default : null)}"/>
-              <j:forEach var="descriptor" items="${descriptors}" varStatus="loop">
-                <f:dropdownListBlock value="${loop.index}" title="${descriptor.displayName}"
-                                     selected="${current.descriptor==descriptor || (current==null and descriptor==attrs.default)}"
-                                     staplerClass="${descriptor.clazz.name}"
-                                     lazy="descriptor">
-                  <l:ajax>
-                    <j:set var="instance" value="${current.descriptor==descriptor ? current : null}"/>
-                    <st:include from="${descriptor}" page="${descriptor.configPage}" optional="true"/>
-                  </l:ajax>
-                </f:dropdownListBlock>
-              </j:forEach>
-            </j:scope>
-          </f:dropdownList>
-          <f:dropdownList name="groupIdStrategy" title="${%Group name case sensitivity}"
-                          help="${descriptor.getHelpFile('groupIdStrategy')}">
-            <j:scope>
-              <j:set var="descriptors"
-                     value="${descriptor.getPropertyType(instance,'userIdStrategy').getApplicableDescriptors()}"/>
-              <j:set var="current" value="${instance['groupIdStrategy']}"/>
-              <j:set var="current" value="${current!=null ? current : (default.descriptor!=null ? default : null)}"/>
-              <j:forEach var="descriptor" items="${descriptors}" varStatus="loop">
-                <f:dropdownListBlock value="${loop.index}" title="${descriptor.displayName}"
-                                     selected="${current.descriptor==descriptor || (current==null and descriptor==attrs.default)}"
-                                     staplerClass="${descriptor.clazz.name}"
-                                     lazy="descriptor">
-                  <l:ajax>
-                    <j:set var="instance" value="${current.descriptor==descriptor ? current : null}"/>
-                    <st:include from="${descriptor}" page="${descriptor.configPage}" optional="true"/>
-                  </l:ajax>
-                </f:dropdownListBlock>
-              </j:forEach>
-            </j:scope>
-          </f:dropdownList>
+          <f:entry field="userIdStrategyClass" title="${%Login name case sensitivity}">
+            <f:select default="${descriptor.defaultIdStrategy.class.name}"/>
+          </f:entry>
+          <f:entry field="groupIdStrategyClass" title="${%Group name case sensitivity}">
+            <f:select default="${descriptor.defaultIdStrategy.class.name}"/>
+          </f:entry>
           <!-- END TODO Jenkins 1.577+ -->
         </f:advanced>
         <f:entry field="groupSearchBase" title="${%Group search base}">
