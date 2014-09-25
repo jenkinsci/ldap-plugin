@@ -37,6 +37,7 @@ import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
+import hudson.tasks.Mailer.UserProperty;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Scrambler;
@@ -688,7 +689,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         try {
             Attribute attribute = d.getAttributes().get(getDisplayNameAttributeName());
             String displayName = attribute == null ? null : (String) attribute.get();
-            if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName())) {
+            if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName()) && !u.getFullName().equals(displayName)) {
                 u.setFullName(displayName);
             }
         } catch (NamingException e) {
@@ -699,7 +700,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 Attribute attribute = d.getAttributes().get(getMailAddressAttributeName());
                 String mailAddress = attribute == null ? null : (String) attribute.get();
                 if (StringUtils.isNotBlank(mailAddress)) {
-                    u.addProperty(new Mailer.UserProperty(mailAddress));
+                    UserProperty existing = u.getProperty(UserProperty.class);
+                    if (existing==null || !existing.hasExplicitlyConfiguredAddress())
+                        u.addProperty(new Mailer.UserProperty(mailAddress));
                 }
             } catch (NamingException e) {
                 LOGGER.log(Level.FINEST, "Could not retrieve email address attribute", e);
