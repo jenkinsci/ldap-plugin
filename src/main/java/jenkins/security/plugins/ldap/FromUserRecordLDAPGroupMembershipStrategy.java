@@ -49,7 +49,7 @@ import java.util.logging.Logger;
 public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembershipStrategy {
 
     private static final Logger LOGGER = Logger.getLogger(FromUserRecordLDAPGroupMembershipStrategy.class.getName());
-    private final String attributeName;
+    private String attributeName;
 
     @DataBoundConstructor
     public FromUserRecordLDAPGroupMembershipStrategy(String attributeName) {
@@ -59,6 +59,11 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     public String getAttributeName() {
         return StringUtils.defaultIfEmpty(attributeName, "memberOf");
     }
+    
+    public void setAttributeName(String attributeName) {
+        this.attributeName = attributeName;
+    }
+
 
     @Override
     public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
