@@ -24,6 +24,7 @@
  */
 package hudson.security;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
@@ -64,6 +65,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -98,6 +100,8 @@ import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.springframework.dao.DataAccessException;
@@ -239,6 +243,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String server;
 
     /**
@@ -246,12 +252,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * How do I infer this?
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String rootDN;
 
     /**
      * Allow the rootDN to be inferred? Default is false.
      * If true, allow rootDN to be blank.
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final boolean inhibitInferRootDN;
 
     /**
@@ -260,6 +270,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * Something like "ou=people" but can be empty.
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String userSearchBase;
 
     /**
@@ -269,6 +281,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String userSearch;
     
     /**
@@ -279,6 +293,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String groupSearchBase;
 
     /**
@@ -287,6 +303,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @since 1.5
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String groupSearchFilter;
 
     /**
@@ -298,11 +316,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated use {@link #groupMembershipStrategy}
      */
     @Deprecated
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public transient String groupMembershipFilter;
 
     /**
      * @since 2.0
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public /*effectively final*/ LDAPGroupMembershipStrategy groupMembershipStrategy;
 
     /*
@@ -324,9 +346,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final String managerDN;
 
     @Deprecated
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     private String managerPassword;
 
     /**
@@ -342,6 +368,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+        justification = "This public field is exposed to the plugin's API")
     public final boolean disableMailAddressResolver;
 
     /**
@@ -628,17 +656,28 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return StringUtils.defaultString(mailAddressAttributeName, DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
     }
 
+    /**
+     * Creates security components.
+     * @return Created {@link SecurityComponents}
+     * @throws Error Execution error
+     */
+    @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
         Binding binding = new Binding();
         binding.setVariable("instance", this);
 
-        BeanBuilder builder = new BeanBuilder(Jenkins.getInstance().pluginManager.uberClassLoader);
+        final Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            throw new Error("Jenkins instance is not ready");
+        }
+        
+        BeanBuilder builder = new BeanBuilder(jenkins.pluginManager.uberClassLoader);
         String fileName = "LDAPBindSecurityRealm.groovy";
         try {
-            File override = new File(Jenkins.getInstance().getRootDir(), fileName);
+            File override = new File(jenkins.getRootDir(), fileName);
             builder.parse(
-                    override.exists() ? new AutoCloseInputStream(new FileInputStream(override)) :
-                        getClass().getResourceAsStream(fileName), binding);
+                    new AutoCloseInputStream(override.exists() ? new FileInputStream(override) :
+                        getClass().getResourceAsStream(fileName)), binding);
         } catch (FileNotFoundException e) {
             throw new Error("Failed to load "+fileName,e);
         }
@@ -820,8 +859,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
             username = fixUsername(username);
             try {
-                SecurityRealm securityRealm =
-                        Jenkins.getInstance() == null ? null : Jenkins.getInstance().getSecurityRealm();
+                final Jenkins jenkins = Jenkins.getInstance();
+                final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
                         && securityRealm.getSecurityComponents().userDetails == this) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
@@ -893,11 +932,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Extension
     public static final class MailAdressResolverImpl extends MailAddressResolver {
-        public String findMailAddressFor(User u) {
-            // LDAP not active
-            SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
-            if(!(realm instanceof LDAPSecurityRealm))
+        public String findMailAddressFor(User u) {       
+            final Jenkins jenkins = Jenkins.getInstance();
+            if (jenkins == null) {
                 return null;
+            }
+            SecurityRealm realm = jenkins.getSecurityRealm();
+            if(!(realm instanceof LDAPSecurityRealm)) { // LDAP not active
+                return null;
+            }
             if (((LDAPSecurityRealm)realm).disableMailAddressResolver) {
                 LOGGER.info( "LDAPSecurityRealm MailAddressResolver is disabled" );
                 return null;
@@ -1000,7 +1043,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         // BEGIN TODO Jenkins 1.577+
         @Deprecated
         public static IdStrategy fromClassName(String className) {
-            for (Descriptor<IdStrategy> d: Jenkins.getInstance().getDescriptorList(IdStrategy.class)) {
+            for (Descriptor<IdStrategy> d: IdStrategy.all()) {
                 if (d.clazz.getName().equals(className)) {
                     try {
                         return d.clazz.newInstance();
@@ -1017,7 +1060,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Deprecated
         public ListBoxModel doFillUserIdStrategyClassItems() {
             ListBoxModel result = new ListBoxModel();
-            for (Descriptor<IdStrategy> d: Jenkins.getInstance().getDescriptorList(IdStrategy.class)) {
+            for (Descriptor<IdStrategy> d: IdStrategy.all()) {
                 try {
                     d.clazz.newInstance();
                     result.add(d.getDisplayName(), d.clazz.getName());
@@ -1041,7 +1084,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
 
-            if(!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER))
+            final Jenkins jenkins = Jenkins.getInstance();
+            if (jenkins == null) {
+                return FormValidation.error("Jenkins is not ready. Cannot validate the field");
+            }
+            if(!jenkins.hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
             try {
@@ -1087,7 +1134,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public DescriptorExtensionList<LDAPGroupMembershipStrategy, Descriptor<LDAPGroupMembershipStrategy>> getGroupMembershipStrategies() {
-            return Jenkins.getInstance().getDescriptorList(LDAPGroupMembershipStrategy.class);
+            final Jenkins jenkins = Jenkins.getInstance();
+            if (jenkins != null) {
+                return jenkins.getDescriptorList(LDAPGroupMembershipStrategy.class);
+            } else {
+                return DescriptorExtensionList.createDescriptorList((Jenkins)null, LDAPGroupMembershipStrategy.class);
+            }
         }
     }
 
