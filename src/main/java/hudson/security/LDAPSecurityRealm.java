@@ -659,7 +659,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * Creates security components.
      * @return Created {@link SecurityComponents}
-     * @throws Error Execution error
+     * @throws IllegalStateException Execution error
      */
     @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
@@ -668,7 +668,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         final Jenkins jenkins = Jenkins.getInstance();
         if (jenkins == null) {
-            throw new Error("Jenkins instance is not ready");
+            throw new IllegalStateException("Jenkins has not been started, or was already shut down");
         }
         
         BeanBuilder builder = new BeanBuilder(jenkins.pluginManager.uberClassLoader);
@@ -679,7 +679,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     new AutoCloseInputStream(override.exists() ? new FileInputStream(override) :
                         getClass().getResourceAsStream(fileName)), binding);
         } catch (FileNotFoundException e) {
-            throw new Error("Failed to load "+fileName,e);
+            throw new IllegalStateException("Failed to load "+fileName, e);
         }
         WebApplicationContext appContext = builder.createApplicationContext();
 
