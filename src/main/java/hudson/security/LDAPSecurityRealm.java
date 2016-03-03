@@ -1291,7 +1291,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
             @Override
             public String getDisplayName() {
-                return null;
+                return "";
             }
         }
     }
