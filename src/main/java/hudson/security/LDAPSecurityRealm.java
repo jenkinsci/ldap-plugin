@@ -113,7 +113,7 @@ import org.springframework.web.context.WebApplicationContext;
  *
  * <h2>Key Object Classes</h2>
  *
- * <h4>Group Membership</h4>
+ * <h3>Group Membership</h3>
  *
  * <p>
  * Two object classes seem to be relevant. These are in RFC 2256 and core.schema. These use DN for membership,
@@ -1291,7 +1291,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
             @Override
             public String getDisplayName() {
-                return null;
+                return "";
             }
         }
     }
