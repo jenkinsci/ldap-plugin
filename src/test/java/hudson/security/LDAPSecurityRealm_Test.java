@@ -32,7 +32,9 @@ import static org.junit.Assert.*;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 public class LDAPSecurityRealm_Test { // different name so as not to clash with LDAPSecurityRealmTest.groovy
@@ -66,6 +68,20 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
         assertEquals(Collections.singletonMap("k", "v"), sr.getExtraEnvVars());
         assertEquals("dNAN", sr.getDisplayNameAttributeName());
         assertEquals("mAAN", sr.getMailAddressAttributeName());
+    }
+
+    @Issue("JENKINS-8152")
+    @WithoutJenkins
+    @Test public void providerUrl() throws Exception {
+        assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", null));
+        assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", ""));
+        assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", "   "));
+        assertEquals("ldap://example.com/ ldap://example.net/", LDAPSecurityRealm.toProviderUrl("example.com ldap://example.net", null));
+        assertEquals("ldap://example.com/o=O,c=C", LDAPSecurityRealm.toProviderUrl("example.com", "o=O,c=C"));
+        assertEquals("ldap://example.com/o=O,c=C", LDAPSecurityRealm.toProviderUrl("example.com", "  o=O,c=C"));
+        assertEquals("ldap://example.com/o=O,c=C ldap://example.net/o=O,c=C", LDAPSecurityRealm.toProviderUrl("ldap://example.com example.net", "o=O,c=C"));
+        assertEquals("ldap://example.com/o=O%20O,c=C", LDAPSecurityRealm.toProviderUrl("example.com", "o=O O,c=C"));
+        assertEquals("ldap://example.com/o=O%20O,c=C ldap://example.net/o=O%20O,c=C", LDAPSecurityRealm.toProviderUrl("example.com example.net", "o=O O,c=C  "));
     }
 
 }

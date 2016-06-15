@@ -51,7 +51,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -622,18 +624,37 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    private static String toProviderUrl(String serverUrl, String rootDN) {
+    /* package for testing */ static String toProviderUrl(String serverUrl, String rootDN) {
         StringBuilder buf = new StringBuilder();
         boolean first = true;
         for (String s: serverUrl.split("\\s+")) {
             if (s.trim().length() == 0) continue;
-            if (first) first = false; else buf.append(' ');
-            s = addPrefix(s);
-            buf.append(s);
-            if (!s.endsWith("/")) buf.append('/');
-            buf.append(fixNull(rootDN));
+            s = getProviderUrl(s, rootDN);
+            if (s != null) {
+                if (first) first = false; else buf.append(' ');
+                buf.append(s);
+            }
         }
         return buf.toString();
+    }
+
+    private static String getProviderUrl(String server, String rootDN) {
+        server = addPrefix(server);
+        if (!server.endsWith("/")) {
+            server = server + '/';
+        }
+        if (rootDN != null) {
+            rootDN = rootDN.trim();
+            if (!rootDN.isEmpty()) {
+                try {
+                    server = server + new URI(null, null, rootDN, null).toASCIIString();
+                } catch(URISyntaxException e) {
+                    LOGGER.log(Level.WARNING, "Unable to build URL with rootDN: " + server, e);
+                    return null;
+                }
+            }
+        }
+        return server;
     }
 
     public String getManagerPassword() {
