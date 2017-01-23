@@ -29,7 +29,14 @@ import java.util.Collections;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
+import com.gargoylesoftware.htmlunit.html.HtmlButton;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -82,6 +89,54 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
         assertEquals("ldap://example.com/o=O,c=C ldap://example.net/o=O,c=C", LDAPSecurityRealm.toProviderUrl("ldap://example.com example.net", "o=O,c=C"));
         assertEquals("ldap://example.com/o=O%20O,c=C", LDAPSecurityRealm.toProviderUrl("example.com", "o=O O,c=C"));
         assertEquals("ldap://example.com/o=O%20O,c=C ldap://example.net/o=O%20O,c=C", LDAPSecurityRealm.toProviderUrl("example.com example.net", "o=O O,c=C  "));
+    }
+
+    @Issue("JENKINS-30588")
+    @Test public void groupMembershipAttribute() throws Exception {
+        final String previousValue = "previousValue";
+        final String testValue = "testValue";
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                "ldap.itd.umich.edu",
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromUserRecordLDAPGroupMembershipStrategy("previousValue"),
+                null,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                (IdStrategy)null,
+                (IdStrategy)null);
+        r.jenkins.setSecurityRealm(realm);
+        r.jenkins.getSecurityRealm().createSecurityComponents();
+        final JenkinsRule.WebClient c = r.createWebClient();
+        final HtmlPage security = c.goTo("configureSecurity");
+        final HtmlForm form = security.getFormByName("config");
+        getButtonByText(form, "Advanced...").click();
+        for (HtmlInput e : form.getInputsByName("_.attributeName")) {
+            if (e.getValueAttribute().equals(previousValue)) {
+                e.setValueAttribute(testValue);
+            }
+        }
+        getButtonByText(form, "Save").click();
+        final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm)r.jenkins.getSecurityRealm());
+        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy)changedRealm.groupMembershipStrategy).getAttributeName();
+        assertEquals("Value should be changed", testValue, changedValue);
+    }
+
+    private HtmlButton getButtonByText(HtmlForm form, String text) throws Exception {
+        for (HtmlElement e : form.getElementsByTagName("button")) {
+            if (text.equals(e.getTextContent())) {
+                return ((HtmlButton)e);
+            }
+        }
+        throw new AssertionError(String.format("Button [%s] not found", text));
     }
 
 }
