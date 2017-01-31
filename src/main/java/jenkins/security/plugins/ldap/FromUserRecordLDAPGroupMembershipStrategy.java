@@ -65,6 +65,9 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
         Attributes attributes = ldapUser.getAttributes();
         final String attributeName = getAttributeName();
+
+        LOGGER.log(Level.FINEST, "Looking for groupmembership at {0} attribute", attributeName);
+
         Attribute attribute = attributes == null ? null : attributes.get(attributeName);
         if (attribute != null) {
             try {
