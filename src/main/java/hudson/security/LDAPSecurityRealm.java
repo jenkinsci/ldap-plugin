@@ -999,12 +999,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         LDAPGroupMembershipStrategy groupMembershipStrategy;
         LdapUserSearch ldapSearch;
 
-        public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase, LDAPGroupMembershipStrategy groupMembershipStrategy) {
+        public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase) {
             super(initialDirContextFactory, fixNull(groupSearchBase));
 
             super.setRolePrefix("");
             super.setConvertToUpperCase(false);
-            this.groupMembershipStrategy = groupMembershipStrategy;
         }
 
         @Override
@@ -1014,6 +1013,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public void setLdapSearch(LdapUserSearch ldapSearch) {
             this.ldapSearch = ldapSearch;
+        }
+
+        public void setGroupMembershipStrategy(LDAPGroupMembershipStrategy groupMembershipStrategy) {
+            this.groupMembershipStrategy = groupMembershipStrategy;
         }
 
         @Override
@@ -1037,24 +1040,47 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          */
         @Override
         public Set getGroupMembershipRoles(String userDn, String username) {
+            if (ldapSearch == null) {
+                LOGGER.log(Level.WARNING, "[JENKINS-38124] Please update $JENKINS_HOME/LDAPBindSecurityRealm.groovy file to fix it.");
+            }
             if (groupMembershipStrategy instanceof FromUserRecordLDAPGroupMembershipStrategy) {
-                LOGGER.log(Level.FINEST, "Retrieving group membership from User.");
+                if (ldapSearch == null) {
+                    LOGGER.log(Level.SEVERE, "[JENKINS-38124] membership is retrieved from groups even you have configured from user. Please update $JENKINS_HOME/LDAPBindSecurityRealm.groovy file to fix it.");
 
-                LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
+                    Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn, username);
 
-                GrantedAuthority[] names = groupMembershipStrategy.getGrantedAuthorities(ldapUser);
-                Set<GrantedAuthority> r = Sets.newHashSet(names);
+                    Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size() * 2);
+                    r.addAll(names);
 
-                for (GrantedAuthority ga : names) {
-                    String role = ga.getAuthority();
+                    for (GrantedAuthority ga : names) {
+                        String role = ga.getAuthority();
 
-                    // backward compatible name mangling
-                    if (convertToUpperCase)
-                        role = role.toUpperCase();
-                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                        // backward compatible name mangling
+                        if (convertToUpperCase)
+                            role = role.toUpperCase();
+                        r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    }
+
+                    return r;
+                } else {
+                    LOGGER.log(Level.FINEST, "Retrieving group membership from User.");
+
+                    LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
+
+                    GrantedAuthority[] names = groupMembershipStrategy.getGrantedAuthorities(ldapUser);
+                    Set<GrantedAuthority> r = Sets.newHashSet(names);
+
+                    for (GrantedAuthority ga : names) {
+                        String role = ga.getAuthority();
+
+                        // backward compatible name mangling
+                        if (convertToUpperCase)
+                            role = role.toUpperCase();
+                        r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    }
+
+                    return r;
                 }
-
-                return r;
             } else {
                 LOGGER.log(Level.FINEST, "Retrieving group membership from Groups.");
 
