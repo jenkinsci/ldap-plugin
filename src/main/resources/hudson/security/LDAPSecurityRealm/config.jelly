@@ -41,16 +41,8 @@ THE SOFTWARE.
             <f:textbox default="${descriptor.DEFAULT_USER_SEARCH}"/>
         </f:entry>
         <f:advanced title="${%Case sensitivity}">
-          <!-- TODO Jenkins 1.577+ switch to f:dropdownDescriptorSelector -->
-          <!--f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}" default="${descriptor.defaultIdStrategy}"/-->
-          <!--f:dropdownDescriptorSelector field="groupIdStrategy" title="${%Group name case sensitivity}" default="${descriptor.defaultIdStrategy}"/-->
-          <f:entry field="userIdStrategyClass" title="${%Login name case sensitivity}">
-            <f:select default="${descriptor.defaultIdStrategy.class.name}"/>
-          </f:entry>
-          <f:entry field="groupIdStrategyClass" title="${%Group name case sensitivity}">
-            <f:select default="${descriptor.defaultIdStrategy.class.name}"/>
-          </f:entry>
-          <!-- END TODO Jenkins 1.577+ -->
+          <f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}" default="${descriptor.defaultIdStrategy}"/>
+          <f:dropdownDescriptorSelector field="groupIdStrategy" title="${%Group name case sensitivity}" default="${descriptor.defaultIdStrategy}"/>
         </f:advanced>
         <f:entry field="groupSearchBase" title="${%Group search base}">
             <f:textbox/>
