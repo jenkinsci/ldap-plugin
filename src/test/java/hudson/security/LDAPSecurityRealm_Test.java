@@ -37,6 +37,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.LDAPConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -57,24 +58,25 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
 
     private void check() {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
-        assertEquals("s", sr.server);
-        assertEquals("rDN", sr.rootDN);
-        assertEquals("uSB", sr.userSearchBase);
-        assertEquals("uS", sr.userSearch);
-        assertEquals("gSB", sr.groupSearchBase);
-        assertEquals("gSF", sr.groupSearchFilter);
-        assertThat(sr.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
-        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy)sr.getGroupMembershipStrategy()).getFilter(), is("gMF"));
+        LDAPConfiguration cnf = sr.getConfigurationFor("s");
+        assertEquals("s", cnf.getServer());
+        assertEquals("rDN", cnf.getRootDN());
+        assertEquals("uSB", cnf.getUserSearchBase());
+        assertEquals("uS", cnf.getUserSearch());
+        assertEquals("gSB", cnf.getGroupSearchBase());
+        assertEquals("gSF", cnf.getGroupSearchFilter());
+        assertThat(cnf.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
+        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy)cnf.getGroupMembershipStrategy()).getFilter(), is("gMF"));
         assertNull(sr.groupMembershipFilter);
-        assertEquals("mDN", sr.managerDN);
-        assertEquals("s3cr3t", sr.getManagerPassword());
-        assertTrue(sr.inhibitInferRootDN);
+        assertEquals("mDN", cnf.getManagerDN());
+        assertEquals("s3cr3t", cnf.getManagerPassword());
+        assertTrue(cnf.isInhibitInferRootDN());
         assertTrue(sr.disableMailAddressResolver);
         assertEquals(Integer.valueOf(20), sr.getCacheSize());
         assertEquals(Integer.valueOf(60), sr.getCacheTTL());
-        assertEquals(Collections.singletonMap("k", "v"), sr.getExtraEnvVars());
-        assertEquals("dNAN", sr.getDisplayNameAttributeName());
-        assertEquals("mAAN", sr.getMailAddressAttributeName());
+        assertEquals(Collections.singletonMap("k", "v"), cnf.getExtraEnvVars());
+        assertEquals("dNAN", cnf.getDisplayNameAttributeName());
+        assertEquals("mAAN", cnf.getMailAddressAttributeName());
     }
 
     @Issue("JENKINS-8152")
@@ -126,7 +128,8 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
         }
         getButtonByText(form, "Save").click();
         final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm)r.jenkins.getSecurityRealm());
-        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy)changedRealm.groupMembershipStrategy).getAttributeName();
+        final LDAPConfiguration conf = changedRealm.getConfigurations().get(0);
+        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy)conf.getGroupMembershipStrategy()).getAttributeName();
         assertEquals("Value should be changed", testValue, changedValue);
     }
 
