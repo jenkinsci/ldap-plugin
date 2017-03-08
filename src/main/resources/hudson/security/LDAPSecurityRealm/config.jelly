@@ -65,7 +65,7 @@ THE SOFTWARE.
             <f:textbox autocomplete="off"/>
         </f:entry>
         <f:entry field="managerPasswordSecret" title="${%Manager Password}">
-            <f:password autocomplete="off"/>
+            <f:password autocomplete="new-password"/>
         </f:entry>
         <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
             <f:textbox default="${descriptor.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME}"/>
