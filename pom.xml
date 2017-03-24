@@ -57,20 +57,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>test-in-groovy</id>
-            <configuration>
-              <!-- 1.8 not yet supported by plugin but 1.7 works
-              here so long as we provide explicit version -->
-              <providerSelection>1.7</providerSelection>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
