@@ -467,16 +467,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName, IdStrategy.CASE_INSENSITIVE, IdStrategy.CASE_INSENSITIVE);
     }
 
-    // BEING TODO Jenkins 1.577+
-    /**
-     * @deprecated will be removed once we depend on Jenkins 1.577+
-     */
     @DataBoundConstructor
-    @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, String userIdStrategyClass, String groupIdStrategyClass) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName, DescriptorImpl.fromClassName(userIdStrategyClass), DescriptorImpl.fromClassName(groupIdStrategyClass));
-    }
-
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, IdStrategy userIdStrategy, IdStrategy groupIdStrategy) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
@@ -502,18 +493,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.userIdStrategy = userIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : userIdStrategy;
         this.groupIdStrategy = groupIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : groupIdStrategy;
     }
-
-    @Deprecated
-    public String getUserIdStrategyClass() {
-        return getUserIdStrategy().getClass().getName();
-    }
-
-    @Deprecated
-    public String getGroupIdStrategyClass() {
-        return getGroupIdStrategy().getClass().getName();
-    }
-    // END TODO Jenkins 1.577+
-
 
     private Object readResolve() {
         if (managerPassword != null) {
@@ -1060,45 +1039,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public IdStrategy getDefaultIdStrategy() {
             return IdStrategy.CASE_INSENSITIVE;
         }
-
-        // BEGIN TODO Jenkins 1.577+
-        @Deprecated
-        public static IdStrategy fromClassName(String className) {
-            for (Descriptor<IdStrategy> d: IdStrategy.all()) {
-                if (d.clazz.getName().equals(className)) {
-                    try {
-                        return d.clazz.newInstance();
-                    } catch (InstantiationException e) {
-                        // ignore
-                    } catch (IllegalAccessException e) {
-                        // ignore
-                    }
-                }
-            }
-            return IdStrategy.CASE_INSENSITIVE;
-        }
-
-        @Deprecated
-        public ListBoxModel doFillUserIdStrategyClassItems() {
-            ListBoxModel result = new ListBoxModel();
-            for (Descriptor<IdStrategy> d: IdStrategy.all()) {
-                try {
-                    d.clazz.newInstance();
-                    result.add(d.getDisplayName(), d.clazz.getName());
-                } catch (InstantiationException e) {
-                    // ignore
-                } catch (IllegalAccessException e) {
-                    // ignore
-                }
-            }
-            return result;
-        }
-
-        @Deprecated
-        public ListBoxModel doFillGroupIdStrategyClassItems() {
-            return doFillUserIdStrategyClassItems();
-        }
-        // END TODO Jenkins 1.577+
 
         // note that this works better in 1.528+ (JENKINS-19124)
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
