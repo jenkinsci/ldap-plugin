@@ -234,6 +234,7 @@
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
+          <compatibleSinceVersion>1.15</compatibleSinceVersion>
           <systemProperties>
             <hudson.bundled.plugins>${basedir}/work/plugins/ldap.hpl</hudson.bundled.plugins>
           </systemProperties>

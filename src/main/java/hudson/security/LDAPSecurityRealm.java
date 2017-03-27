@@ -24,6 +24,7 @@
  */
 package hudson.security;
 
+import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
@@ -79,6 +80,7 @@ import javax.naming.directory.InitialDirContext;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
 import org.acegisecurity.AcegiSecurityException;
 import org.acegisecurity.Authentication;
@@ -978,6 +980,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         // Make these available (private in parent class and no get methods!)
         String rolePrefix = "ROLE_";
         boolean convertToUpperCase = true;
+        LDAPGroupMembershipStrategy groupMembershipStrategy;
+        LdapUserSearch ldapSearch;
 
         public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase) {
             super(initialDirContextFactory, fixNull(groupSearchBase));
@@ -989,6 +993,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         protected Set getAdditionalRoles(LdapUserDetails ldapUser) {
             return Collections.singleton(AUTHENTICATED_AUTHORITY);
+        }
+
+        public void setLdapSearch(LdapUserSearch ldapSearch) {
+            this.ldapSearch = ldapSearch;
+        }
+
+        public void setGroupMembershipStrategy(LDAPGroupMembershipStrategy groupMembershipStrategy) {
+            this.groupMembershipStrategy = groupMembershipStrategy;
         }
 
         @Override
@@ -1012,21 +1024,66 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          */
         @Override
         public Set getGroupMembershipRoles(String userDn, String username) {
-            Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
-
-            Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
-            r.addAll(names);
-
-            for (GrantedAuthority ga : names) {
-                String role = ga.getAuthority();
-
-                // backward compatible name mangling
-                if (convertToUpperCase)
-                    role = role.toUpperCase();
-                r.add(new GrantedAuthorityImpl(rolePrefix + role));
+            if (ldapSearch == null) {
+                LOGGER.log(Level.WARNING, "[JENKINS-38124] Please update $JENKINS_HOME/LDAPBindSecurityRealm.groovy file to fix it.");
             }
+            if (groupMembershipStrategy instanceof FromUserRecordLDAPGroupMembershipStrategy) {
+                if (ldapSearch == null) {
+                    LOGGER.log(Level.SEVERE, "[JENKINS-38124] membership is retrieved from groups even you have configured from user. Please update $JENKINS_HOME/LDAPBindSecurityRealm.groovy file to fix it.");
 
-            return r;
+                    Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn, username);
+
+                    Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size() * 2);
+                    r.addAll(names);
+
+                    for (GrantedAuthority ga : names) {
+                        String role = ga.getAuthority();
+
+                        // backward compatible name mangling
+                        if (convertToUpperCase)
+                            role = role.toUpperCase();
+                        r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    }
+
+                    return r;
+                } else {
+                    LOGGER.log(Level.FINEST, "Retrieving group membership from User.");
+
+                    LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
+
+                    GrantedAuthority[] names = groupMembershipStrategy.getGrantedAuthorities(ldapUser);
+                    Set<GrantedAuthority> r = Sets.newHashSet(names);
+
+                    for (GrantedAuthority ga : names) {
+                        String role = ga.getAuthority();
+
+                        // backward compatible name mangling
+                        if (convertToUpperCase)
+                            role = role.toUpperCase();
+                        r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    }
+
+                    return r;
+                }
+            } else {
+                LOGGER.log(Level.FINEST, "Retrieving group membership from Groups.");
+
+                Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn, username);
+
+                Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size() * 2);
+                r.addAll(names);
+
+                for (GrantedAuthority ga : names) {
+                    String role = ga.getAuthority();
+
+                    // backward compatible name mangling
+                    if (convertToUpperCase)
+                        role = role.toUpperCase();
+                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                }
+
+                return r;
+            }
         }
     }
 
