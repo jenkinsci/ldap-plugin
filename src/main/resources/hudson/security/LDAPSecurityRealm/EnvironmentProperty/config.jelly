@@ -30,10 +30,4 @@ THE SOFTWARE.
 	<f:entry field="value" title="${%Value}">
 	  <f:textbox/>
 	</f:entry>
-  <f:entry title="">
-     <div align="right">
-       <!-- TODO as of 1.532 this should be pulled up into the parent config.jelly -->
-       <f:repeatableDeleteButton />
-     </div>
-   </f:entry>
 </j:jelly>

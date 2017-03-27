@@ -1259,15 +1259,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
             public ListBoxModel doFillTtlItems() {
                 ListBoxModel m = new ListBoxModel();
-                // TODO use Messages (not that there were any translations before)
-                m.add("30 sec", "30");
-                m.add("1 min", "60");
-                m.add("2 min", "120");
-                m.add("5 min", "300");
-                m.add("10 min", "600");
-                m.add("15 min", "900");
-                m.add("30 min", "1800");
-                m.add("1 hour", "3600");
+                for (int ttl: new int[]{30, 60, 120, 300, 600, 900, 1800, 3600}) {
+                    m.add(Util.getTimeSpanString(ttl*1000L), Integer.toString(ttl));
+                }
                 return m;
             }
 
