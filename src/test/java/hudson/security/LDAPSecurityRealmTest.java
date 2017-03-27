@@ -34,9 +34,17 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import javax.naming.directory.BasicAttributes;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
+import junit.framework.TestCase;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.ldap.LdapDataAccessException;
+import org.acegisecurity.ldap.LdapUserSearch;
+import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
+import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,12 +53,55 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class LDAPSecurityRealm_Test { // different name so as not to clash with LDAPSecurityRealmTest.groovy
+public class LDAPSecurityRealmTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
+
+    /**
+     * This minimal test still causes the 'LDAPBindSecurityRealm.groovy' to be parsed, allowing us to catch
+     * basic syntax errors and such.
+     */
+    @Test
+    public void groovyBeanDef() {
+        r.jenkins.setSecurityRealm(new LDAPSecurityRealm("ldap.itd.umich.edu", null, null, null, null, null, null, false));
+        System.out.println(r.jenkins.getSecurityRealm().getSecurityComponents());// force the component creation
+    }
+
+    @Test
+    public void sessionStressTest() {
+        LDAPSecurityRealm.LDAPUserDetailsService s = new LDAPSecurityRealm.LDAPUserDetailsService(
+                new LdapUserSearch() {
+                    @Override
+                    public LdapUserDetails searchForUser(String username) {
+                        LdapUserDetailsImpl.Essence e = new LdapUserDetailsImpl.Essence();
+                        e.setUsername((String) username);
+                        BasicAttributes ba = new BasicAttributes();
+                        ba.put("test", username);
+                        ba.put("xyz", "def");
+                        e.setAttributes(ba);
+                        return e.createUserDetails();
+                    }
+                },
+                new LdapAuthoritiesPopulator() {
+                    @Override
+                    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails userDetails)
+                            throws LdapDataAccessException {
+                        return new GrantedAuthority[0];
+                    }
+                }
+        );
+        LdapUserDetails d1 = s.loadUserByUsername("me");
+        LdapUserDetails d2 = s.loadUserByUsername("you");
+        LdapUserDetails d3 = s.loadUserByUsername("me");
+        // caching should reuse the same attributes
+        assertSame(d1.getAttributes(), d3.getAttributes());
+        assertNotSame(d1.getAttributes(), d2.getAttributes());
+    }
 
     @LocalData
-    @Test public void compatAndConfig() throws Exception {
+    @Test
+    public void compatAndConfig() throws Exception {
         check();
         r.configRoundtrip();
         check();
@@ -81,7 +132,8 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
 
     @Issue("JENKINS-8152")
     @WithoutJenkins
-    @Test public void providerUrl() throws Exception {
+    @Test
+    public void providerUrl() throws Exception {
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", null));
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", ""));
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", "   "));
@@ -94,7 +146,8 @@ public class LDAPSecurityRealm_Test { // different name so as not to clash with 
     }
 
     @Issue("JENKINS-30588")
-    @Test public void groupMembershipAttribute() throws Exception {
+    @Test
+    public void groupMembershipAttribute() throws Exception {
         final String previousValue = "previousValue";
         final String testValue = "testValue";
         final LDAPSecurityRealm realm = new LDAPSecurityRealm(
