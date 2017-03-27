@@ -25,16 +25,19 @@
 package hudson.security;
 
 import hudson.model.User;
+import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
+import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -77,4 +80,26 @@ public class LDAPEmbeddedTest {
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
     }
+
+    @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void login() throws Exception {
+        LDAPSecurityRealm realm =
+                new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
+                        "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                        null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        assertThat(content, containsString("Philip J. Fry"));
+
+
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
+
+        String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
+        assertThat(leelaEmail, is("leela@planetexpress.com"));
+
+    }
+
 }
