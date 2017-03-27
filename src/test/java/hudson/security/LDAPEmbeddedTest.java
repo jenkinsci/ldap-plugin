@@ -29,10 +29,7 @@ import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
-import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.LDAPConfiguration;
-import jenkins.security.plugins.ldap.LDAPRule;
-import jenkins.security.plugins.ldap.LDAPSchema;
+import jenkins.security.plugins.ldap.*;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,7 +44,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-@LDAPConfiguration
+@LDAPTestConfiguration
 public class LDAPEmbeddedTest {
     public LDAPRule ads = new LDAPRule();
     public JenkinsRule r = new JenkinsRule();
