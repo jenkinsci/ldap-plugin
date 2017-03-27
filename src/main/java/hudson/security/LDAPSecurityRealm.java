@@ -80,6 +80,7 @@ import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
+import net.sf.json.JSONObject;
 import org.acegisecurity.AcegiSecurityException;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -100,10 +101,13 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -1043,6 +1047,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public IdStrategy getDefaultIdStrategy() {
             return IdStrategy.CASE_INSENSITIVE;
+        }
+
+        @RequirePOST
+        public FormValidation doValidate(StaplerRequest req) throws Exception {
+            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream()));
+            LDAPSecurityRealm realm =
+                    req.bindJSON(LDAPSecurityRealm.class, json.getJSONObject("useSecurity").getJSONObject("realm"));
+            String user = json.getString("testUser");
+            String password = json.getString("testPassword");
+            UserDetails userDetails;
+            try {
+                userDetails = realm.authenticate(user, password);
+            } catch (AuthenticationException e) {
+                return FormValidation.warning("Could not authenticate", e);
+            }
+            return FormValidation.ok("User: %s Groups: %s", userDetails.getUsername(), Arrays.asList(userDetails.getAuthorities()));
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)

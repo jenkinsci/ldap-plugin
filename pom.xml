@@ -238,6 +238,13 @@
             <hudson.bundled.plugins>${basedir}/work/plugins/ldap.hpl</hudson.bundled.plugins>
           </systemProperties>
         </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate-taglib-interface</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>    
   </build>
