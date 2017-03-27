@@ -102,8 +102,6 @@ import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.springframework.dao.DataAccessException;
@@ -921,8 +919,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
                 return ldapUser;
             } catch (LdapDataAccessException e) {
+                // TODO why not throw all DataAccessException up? that is why it is in the declared clause
                 LOGGER.log(Level.WARNING, "Failed to search LDAP for username="+username,e);
                 throw new UserMayOrMayNotExistException(e.getMessage(),e);
+            } catch (UsernameNotFoundException x) {
+                throw x;
+            } catch (DataAccessException x) {
+                throw x;
+            } catch (RuntimeException x) {
+                throw new LdapDataAccessException("Failed to search LDAP for " + username + ": " + x, x);
             }
         }
     }
