@@ -1077,8 +1077,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
                 return ldapUser;
             } catch (LdapDataAccessException e) {
+                // TODO why not throw all DataAccessException up? that is why it is in the declared clause
                 LOGGER.log(Level.WARNING, "Failed to search LDAP for username="+username,e);
                 throw new UserMayOrMayNotExistException(e.getMessage(),e);
+            } catch (UsernameNotFoundException x) {
+                throw x;
+            } catch (DataAccessException x) {
+                throw x;
+            } catch (RuntimeException x) {
+                throw new LdapDataAccessException("Failed to search LDAP for " + username + ": " + x, x);
             }
         }
     }
