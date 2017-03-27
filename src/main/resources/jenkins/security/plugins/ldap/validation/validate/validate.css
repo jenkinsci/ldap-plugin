@@ -1,0 +1,10 @@
+.validation-ok {
+    color: black;
+    font-weight: bold;
+    padding-left: 20px;
+    min-height: 16px;
+    background-image: url("validation-ok.png");
+    background-position: left center;
+    background-repeat: no-repeat;
+}
+

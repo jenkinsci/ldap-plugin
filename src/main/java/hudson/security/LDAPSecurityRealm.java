@@ -1051,18 +1051,110 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @RequirePOST
         public FormValidation doValidate(StaplerRequest req) throws Exception {
+            if (!Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) {
+                // require admin to test
+                return FormValidation.ok();
+            }
+            // extract the submitted details
             JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream()));
-            LDAPSecurityRealm realm =
-                    req.bindJSON(LDAPSecurityRealm.class, json.getJSONObject("useSecurity").getJSONObject("realm"));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
-            UserDetails userDetails;
+            JSONObject realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
+            // instantiate the realm
+            LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
+
+            StringBuilder response = new StringBuilder(1024);
+            LdapUserDetails loginDetails = null;
             try {
-                userDetails = realm.authenticate(user, password);
+                // need to access direct so as not to update the user details
+                loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager.authenticate(
+                        new UsernamePasswordAuthenticationToken(fixUsername(user), password)).getPrincipal();
+                response.append("<div class='validation-ok'>Authentication successful</div>");
             } catch (AuthenticationException e) {
-                return FormValidation.warning("Could not authenticate", e);
+                response.append("<div class='error'>Authentication failed</div>");
             }
-            return FormValidation.ok("User: %s Groups: %s", userDetails.getUsername(), Arrays.asList(userDetails.getAuthorities()));
+            Set<String> loginAuthorities = new HashSet<>();
+            if (loginDetails != null) {
+                response.append("<div class='validation-ok'>User ID: ").append(Util.xmlEscape(loginDetails.getUsername())).append("</div>");
+                response.append("<div class='validation-ok'>User Dn: ").append(Util.xmlEscape(loginDetails.getDn())).append("</div>");
+                try {
+                    Attribute attribute = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
+                    String displayName = attribute == null ? null : (String) attribute.get();
+                    if (displayName != null) {
+                        response.append("<div class='validation-ok'>User display name: ")
+                                .append(Util.xmlEscape(displayName)).append("</div>");
+                    }
+                } catch (NamingException e) {
+                    response.append("<div class='error'>Could not retrieve the display name attribute</div>");
+                }
+                if (!realm.disableMailAddressResolver) {
+                    try {
+                        Attribute attribute = loginDetails.getAttributes().get(realm.getMailAddressAttributeName());
+                        String mailAddress = attribute == null ? null : (String) attribute.get();
+                        if (StringUtils.isNotBlank(mailAddress)) {
+                            response.append("<div class='validation-ok'>User email: ")
+                                    .append(Util.xmlEscape(mailAddress)).append("</div>");
+                        }
+                    } catch (NamingException e) {
+                        response.append("<div class='error'>Could not retrieve the email address attribute</div>");
+                    }
+                }
+                for (GrantedAuthority a : loginDetails.getAuthorities()) {
+                    loginAuthorities.add(a.getAuthority());
+                }
+                if (loginDetails.getAuthorities().length < 1) {
+                    response.append("<div class='error'>No group membership reported</div>");
+                } else {
+                    if (loginDetails.getAuthorities().length == 1) {
+                        response.append("<div class='warning'>Only basic group membership reported<ul>");
+                    } else {
+                        response.append("<div class='validation-ok'>Group membership<ul>");
+                    }
+                    for (GrantedAuthority a : loginDetails.getAuthorities()) {
+                        response.append("<li><code>" + Util.xmlEscape(a.getAuthority()) + "</code></li>");
+                    }
+                    response.append("</ul></div>");
+                }
+            }
+
+            LdapUserDetails lookUpDetails = null;
+            try {
+                // need to access direct so as not to update the user details
+                lookUpDetails =
+                        (LdapUserDetails) realm.getSecurityComponents().userDetails.loadUserByUsername(fixUsername(user));
+                response.append("<div class='validation-ok'>User lookup successful</div>");
+            } catch (UserMayOrMayNotExistException e1) {
+                response.append("<div class='error'>User lookup failed</div>");
+            } catch (UsernameNotFoundException e1) {
+                response.append("<div class='error'>User lookup failed</div>");
+            }
+            Set<String> lookupAuthorities = new HashSet<>();
+            if (lookUpDetails != null) {
+                for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
+                    lookupAuthorities.add(a.getAuthority());
+                }
+                if (lookUpDetails.getAuthorities().length < 1) {
+                    response.append("<div class='error'>No group membership reported</div>");
+                } else {
+                    if (lookUpDetails.getAuthorities().length == 1) {
+                        response.append("<div class='warning'>Only basic group membership reported<ul>");
+                    } else {
+                        response.append("<div class='validation-ok'>Group membership<ul>");
+                    }
+                    for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
+                        response.append("<li><code>" + Util.xmlEscape(a.getAuthority()) + "</code></li>");
+                    }
+                    response.append("</ul></div>");
+                }
+            }
+            if (loginAuthorities.equals(lookupAuthorities)) {
+                response.append("<div class='validation-ok'>Lookup group details match login group details</div>");
+            } else {
+                response.append("<div class='error'>Lookup group details do not match login group details</div>");
+            }
+
+
+            return FormValidation.okWithMarkup(response.toString());
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
