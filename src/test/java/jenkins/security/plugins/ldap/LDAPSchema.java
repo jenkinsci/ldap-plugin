@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.security;
+package jenkins.security.plugins.ldap;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

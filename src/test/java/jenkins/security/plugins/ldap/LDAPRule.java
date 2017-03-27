@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.security;
+package jenkins.security.plugins.ldap;
 
 import java.io.File;
 import java.io.IOException;
