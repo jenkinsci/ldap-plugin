@@ -40,9 +40,11 @@ import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 @LDAPConfiguration
@@ -82,6 +84,34 @@ public class LDAPEmbeddedTest {
         assertThat(user.getAuthorities(), allOf(hasItem("HMS Victory"), hasItem("ROLE_HMS VICTORY")));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void groupLookup() throws Exception {
+        r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE)
+        );
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty");
+        assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
+        assertThat(groupDetails.getName(), is("HMS Bounty"));
+        assertThat("LDAP security realm does not support group member query", groupDetails.getMembers(), nullValue());
     }
 
     @Test
