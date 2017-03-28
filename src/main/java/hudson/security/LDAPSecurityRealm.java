@@ -690,7 +690,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
         for (LDAPConfiguration conf : configurations) {
             WebApplicationContext appContext = conf.createApplicationContext();
-            manager.addDelegate(findBean(AuthenticationManager.class, appContext));
+            manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
             details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getServer()));
         }
         return new SecurityComponents(manager, details);
@@ -828,22 +828,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private class LDAPAuthenticationManager implements AuthenticationManager {
 
-        private final List<AuthenticationManager> delegates;
+        private final List<ManagerEntry> delegates;
 
         private LDAPAuthenticationManager() {
             this.delegates = new ArrayList<>();
         }
 
-        private void addDelegate(AuthenticationManager delegate) {
-            this.delegates.add(delegate);
+        private void addDelegate(final AuthenticationManager delegate, final String server) {
+            this.delegates.add(new ManagerEntry(delegate, server));
         }
 
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
             BadCredentialsException lastException = null;
-            for (AuthenticationManager delegate : delegates) {
+            for (ManagerEntry delegate : delegates) {
                 try {
-                    Authentication a = delegate.authenticate(authentication);
-                    return updateUserDetails(a);
+                    Authentication a = delegate.delegate.authenticate(authentication);
+                    return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.server));
                 } catch (BadCredentialsException e) {
                     lastException = e;
                 }
@@ -853,6 +853,74 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } else {
                 throw new UserMayOrMayNotExistException("This is not intentional.", authentication);
             }
+        }
+
+        private class ManagerEntry {
+            final AuthenticationManager delegate;
+            final String server;
+
+            public ManagerEntry(AuthenticationManager delegate, String server) {
+                this.delegate = delegate;
+                this.server = server;
+            }
+        }
+    }
+
+    protected static class DelegatedLdapAuthentication implements Authentication {
+        private final Authentication delegate;
+        private final String server;
+
+        public DelegatedLdapAuthentication(Authentication delegate, String server) {
+            this.delegate = delegate;
+            this.server = server;
+        }
+
+        @Override
+        public GrantedAuthority[] getAuthorities() {
+            return delegate.getAuthorities();
+        }
+
+        @Override
+        public Object getCredentials() {
+            return delegate.getCredentials();
+        }
+
+        @Override
+        public Object getDetails() {
+            return delegate.getDetails();
+        }
+
+        @Override
+        public Object getPrincipal() {
+            Object principal = delegate.getPrincipal();
+            if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
+                return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.server);
+            } else {
+                return principal;
+            }
+        }
+
+        @Override
+        public boolean isAuthenticated() {
+            return delegate.isAuthenticated();
+        }
+
+        @Override
+        public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+            delegate.setAuthenticated(isAuthenticated);
+        }
+
+        @Override
+        public String getName() {
+            return delegate.getName();
+        }
+
+        public Authentication getDelegate() {
+            return delegate;
+        }
+
+        public String getServer() {
+            return server;
         }
     }
 
@@ -947,7 +1015,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (LDAPUserDetailsService delegate : delegates) {
                 try {
                     LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                    return new DelegatedLdapUserDetails(userDetails, delegate.server);
+                    if (userDetails instanceof DelegatedLdapUserDetails) {
+                        return userDetails;
+                    } else {
+                        return new DelegatedLdapUserDetails(userDetails, delegate.server);
+                    }
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (DataAccessException e) {
@@ -1053,7 +1125,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                    ldapUser = user.createUserDetails();
+                    ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), server);
                 }
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails == this

@@ -108,8 +108,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         this.rootDN = rootDN;
         this.displayNameAttributeName = LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
         this.mailAddressAttributeName = LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+        this.userSearchBase = "";
         this.userSearch = LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH;
         this.groupMembershipStrategy = new FromGroupSearchLDAPGroupMembershipStrategy("");
+        this.groupSearchBase = "";
     }
 
     /**
