@@ -1022,16 +1022,30 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
             r.addAll(names);
 
-            for (GrantedAuthority ga : names) {
-                String role = ga.getAuthority();
+            if (isGeneratingPrefixRoles()) {
+                for (GrantedAuthority ga : names) {
+                    String role = ga.getAuthority();
 
-                // backward compatible name mangling
-                if (convertToUpperCase)
-                    role = role.toUpperCase();
-                r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    // backward compatible name mangling
+                    if (convertToUpperCase)
+                        role = role.toUpperCase();
+                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                }
             }
 
             return r;
+        }
+
+        public boolean isGeneratingPrefixRoles() {
+            return StringUtils.isNotBlank(rolePrefix) || convertToUpperCase;
+        }
+
+        public boolean isConvertToUpperCase() {
+            return convertToUpperCase;
+        }
+
+        public String getRolePrefix() {
+            return rolePrefix;
         }
     }
 
