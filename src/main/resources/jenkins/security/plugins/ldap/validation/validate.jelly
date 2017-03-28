@@ -58,7 +58,7 @@
         <table width="100%">
           <d:invokeBody/>
           <f:entry>
-            <input type="submit" name="Validate}" value="${attrs.submit}" class="submit-button primary" onclick="return false;"/>
+            <input type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary" onclick="return false;"/>
           </f:entry>
         </table>
         </div>

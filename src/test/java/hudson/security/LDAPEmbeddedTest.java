@@ -27,6 +27,7 @@ package hudson.security;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
+import hudson.util.FormValidation;
 import hudson.util.Secret;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -48,8 +49,8 @@ import static hudson.security.SecurityRealm.AUTHENTICATED_AUTHORITY;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -123,7 +124,7 @@ public class LDAPEmbeddedTest {
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate("hhornblo", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS_Lydia", "ROLE_HMS_LYDIA"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
@@ -197,7 +198,7 @@ public class LDAPEmbeddedTest {
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate("hhornblo", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS_Lydia"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
@@ -262,7 +263,79 @@ public class LDAPEmbeddedTest {
 
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
         assertThat(leelaEmail, is("leela@planetexpress.com"));
+    }
 
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void validate() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        realm.setDisableRolePrefixing(true);
+        FormValidation validation = realm.getDescriptor().validate(realm, "hnelson", "pass");
+        assertThat("Group details reported", validation.renderHtml(),
+                allOf(
+                        containsString("HMS Victory"),
+                        not(containsString("HMS_Victory"))
+                )
+        );
+        assertThat("Validation positive", validation.renderHtml(),
+                allOf(
+                        containsString("'validation-ok'"),
+                        not(containsString("'warning'")),
+                        not(containsString("'error'"))
+                )
+        );
+        assertThat(validation.kind, is(FormValidation.Kind.OK));
+        realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "bar",
+                "foo",
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        realm.setDisableRolePrefixing(true);
+        validation = realm.getDescriptor().validate(realm, "hnelson", "pass");
+        assertThat("Group details reported", validation.renderHtml(),
+                allOf(
+                        containsString("HMS Victory"),
+                        not(containsString("HMS_Victory"))
+                )
+        );
+        assertThat("Validation warning", validation.renderHtml(),
+                allOf(
+                        containsString("'validation-ok'"),
+                        containsString("'warning'"),
+                        not(containsString("'error'"))
+                )
+        );
+        assertThat(validation.kind, is(FormValidation.Kind.WARNING));
     }
 
 }

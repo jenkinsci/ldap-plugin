@@ -817,6 +817,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return FORCE_USERNAME_LOWERCASE ? username.toLowerCase() : username;
     }
 
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
+    }
+
     private static class GroupDetailsImpl extends GroupDetails {
 
         private String name;
@@ -1134,155 +1139,122 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             JSONObject realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
             // instantiate the realm
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
+            return validate(realm, user, password);
+        }
+
+        public FormValidation validate(LDAPSecurityRealm realm, String user, String password) {
             FormValidation connnectionCheck = doCheckServer(realm.getServerUrl(), realm.managerDN, realm.managerPasswordSecret);
             if (connnectionCheck.kind != FormValidation.Kind.OK) {
                 return connnectionCheck;
             }
 
             StringBuilder response = new StringBuilder(1024);
-            response.append("<div>Login</div>");
+            response.append("<div>")
+                    .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LoginHeader())
+                    .append("</div>");
             LdapUserDetails loginDetails = null;
             try {
                 // need to access direct so as not to update the user details
                 loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager.authenticate(
                         new UsernamePasswordAuthenticationToken(fixUsername(user), password)).getPrincipal();
-                response.append("<div class='validation-ok'>Authentication successful</div>");
+                response.append("<div class='validation-ok'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationSuccessful())
+                        .append("</div>");
             } catch (AuthenticationException e) {
-                response.append("<div class='error'>Authentication failed</div>");
+                response.append("<div class='error'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailed())
+                        .append("</div>");
             }
             Set<String> loginAuthorities = new HashSet<>();
             if (loginDetails != null) {
-                response.append("<div class='validation-ok'>User ID: ").append(Util.escape(loginDetails.getUsername()))
+                response.append("<div class='validation-ok'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserId(Util.escape(loginDetails.getUsername())))
                         .append("</div>");
-                response.append("<div class='validation-ok'>User DN: ").append(Util.escape(loginDetails.getDn()))
+                response.append("<div class='validation-ok'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserDn(Util.escape(loginDetails.getDn())))
                         .append("</div>");
-                Attribute attribute = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
-                if (attribute == null) {
-                    response.append("<div class='warning'>No display name specified for user!<br/>"
-                            + "Is the attribute name '")
-                            .append(Util.escape(realm.getDisplayNameAttributeName()))
-                            .append("' correct?<br/>Available attributes are:<ul>");
-                    for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                        response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                    }
-                    response.append("</ul></div>");
-                } else {
-                    try {
-                        String displayName = (String) attribute.get();
-                        if (displayName != null) {
-                            response.append("<div class='validation-ok'>User display name: ")
-                                    .append(Util.escape(displayName)).append("</div>");
-                        } else {
-                            response.append("<div class='warning'>Retrieved display name was empty!<br/>"
-                                    + "Is the attribute name '")
-                                    .append(Util.escape(realm.getDisplayNameAttributeName()))
-                                    .append("' correct?<br/>Available attributes are:<ul>");
-                            for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                                response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                            }
-                            response.append("</ul></div>");
-                        }
-                    } catch (NamingException e) {
-                        response.append("<div class='error'>Could not retrieve the display name attribute.<br/>"
-                                + "Is the attribute name '")
-                                .append(Util.escape(realm.getDisplayNameAttributeName()))
-                                .append("' correct?<br/>Available attributes are:<ul>");
-                        for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                        }
-                        response.append("</ul></div>");
-                    }
-                }
+                validateDisplayName(realm, response, loginDetails);
                 if (!realm.disableMailAddressResolver) {
-                    attribute = loginDetails.getAttributes().get(realm.getMailAddressAttributeName());
-                    if (attribute == null) {
-                        response.append("<div class='warning'>No email address specified for user!<br/>"
-                                + "Is the attribute name '")
-                                .append(Util.escape(realm.getMailAddressAttributeName()))
-                                .append("' correct?<br/>Available attributes are:<ul>");
-                        for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                        }
-                        response.append("</ul></div>");
-                    } else {
-                        try {
-                            String mailAddress = (String) attribute.get();
-                            if (StringUtils.isNotBlank(mailAddress)) {
-                                response.append("<div class='validation-ok'>User email: ")
-                                        .append(Util.escape(mailAddress)).append("</div>");
-                            } else {
-                                response.append("<div class='warning'>Retrieved email address was empty!<br/>"
-                                        + "Is the attribute name '")
-                                        .append(Util.escape(realm.getMailAddressAttributeName()))
-                                        .append("' correct?<br/>Available attributes are:<ul>");
-                                for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                                    response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                                }
-                                response.append("</ul></div>");
-                            }
-                        } catch (NamingException e) {
-                            response.append("<div class='error'>Could not retrieve the email address attribute.<br/>"
-                                    + "Is the attribute name '")
-                                    .append(Util.escape(realm.getMailAddressAttributeName()))
-                                    .append("' correct?<br/>Available attributes are:<ul>");
-                            for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
-                                response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
-                            }
-                            response.append("</ul></div>");
-                        }
-                    }
+                    validateEmailAddress(realm, response, loginDetails);
                 }
                 for (GrantedAuthority a : loginDetails.getAuthorities()) {
                     loginAuthorities.add(a.getAuthority());
                 }
                 if (loginDetails.getAuthorities().length < 1) {
-                    response.append("<div class='error'>No group membership reported</div>");
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership())
+                            .append("</div>");
                 } else if (loginDetails.getAuthorities().length == 1) {
-                    response.append("<div class='warning'>Only basic group membership reported.<br/>");
-                    response.append(
-                            "If the user is a member of some LDAP groups then the group membership settings are "
-                                    + "probably configured incorrectly.</div>");
+                    response.append("<div class='warning'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership())
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembershipDetail())
+                            .append("</div>");
                 } else {
-                    response.append("<div class='validation-ok'>Group membership<ul>");
+                    response.append("<div class='validation-ok'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupMembership())
+                            .append("<ul>");
                     for (GrantedAuthority a : loginDetails.getAuthorities()) {
                         if (AUTHENTICATED_AUTHORITY.equals(a)) {
                             continue;
                         }
-                        response.append("<li><code>").append(Util.escape(a.getAuthority())).append("</code></li>");
+                        response.append("<li><code>")
+                                .append(Util.escape(a.getAuthority()))
+                                .append("</code></li>");
                     }
                     response.append("</ul></div>");
                 }
             }
 
-            response.append("<div>Lookup</div>");
+            response.append("<div>")
+                    .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LookupHeader())
+                    .append("</div>");
             LdapUserDetails lookUpDetails = null;
             try {
                 // need to access direct so as not to update the user details
                 lookUpDetails =
                         (LdapUserDetails) realm.getSecurityComponents().userDetails
                                 .loadUserByUsername(fixUsername(user));
-                response.append("<div class='validation-ok'>User lookup: successful</div>");
+                response.append("<div class='validation-ok'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSuccessful())
+                        .append("</div>");
             } catch (UserMayOrMayNotExistException e1) {
-                response.append(
-                        "<div class='warning'>User lookup: user may or may not exist.<br/>Is a Manager DN and "
-                                + "password required to lookup user details?</div>");
+                response.append("<div class='warning'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired())
+                        .append("</div>");
             } catch (UsernameNotFoundException e1) {
-                response.append(
-                        "<div class='error'>User lookup: user does not exist.<br/>Is a Manager DN and password "
-                                + "required to lookup user details?<br/>Are the user search base and user search "
-                                + "filter settings correct?</div>");
+                response.append(loginDetails == null ? "<div class='warning'>" : "<div class='error'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupDoesNotExist())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSettingsCorrect())
+                        .append("</div>");
             } catch (LdapDataAccessException e) {
                 Throwable cause = e.getCause();
                 while (cause != null && !(cause instanceof BadCredentialsException)) {
                     cause = cause.getCause();
                 }
                 if (cause != null) {
-                    response.append("<div class='error'>User lookup: bad credentials for user lookup.<br/>"
-                            + "Is the Manager DN and password correct?</div>");
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupBadCredentials())
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnCorrect())
+                            .append("</div>");
                 } else {
-                    response.append("<div class='error'>User lookup: failed<br/>");
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupFailed())
+                            .append("<br/>");
                     response.append(Util.escape(e.getLocalizedMessage()));
                     response.append("</div>");
+                }
+            }
+            if (loginDetails == null && lookUpDetails != null) {
+                validateDisplayName(realm, response, lookUpDetails);
+                if (!realm.disableMailAddressResolver) {
+                    validateEmailAddress(realm, response, lookUpDetails);
                 }
             }
             Set<String> lookupAuthorities = new HashSet<>();
@@ -1293,13 +1265,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 if (loginDetails == null || !loginAuthorities.equals(lookupAuthorities)) {
                     // report the group details
                     if (lookUpDetails.getAuthorities().length < 1) {
-                        response.append("<div class='error'>No group membership reported</div>");
+                        response.append("<div class='error'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership())
+                                .append("</div>");
                     } else if (lookUpDetails.getAuthorities().length == 1) {
-                        response.append("<div class='warning'>Only basic group membership reported.<br/>If the user "
-                                + "is a member of some LDAP groups then the group membership settings are probably "
-                                + "configured incorrectly.</div>");
+                        response.append("<div class='warning'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership())
+                                .append("<br/>")
+                                .append(jenkins.security.plugins.ldap.Messages
+                                        .LDAPSecurityRealm_BasicGroupMembershipDetail())
+                                .append("</div>");
                     } else {
-                        response.append("<div class='validation-ok'>Group membership<ul>");
+                        response.append("<div class='validation-ok'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupMembership())
+                                .append("<ul>");
                         for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
                             if (AUTHENTICATED_AUTHORITY.equals(a)) {
                                 continue;
@@ -1314,9 +1293,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
             if (loginDetails != null && lookUpDetails != null) {
                 if (loginAuthorities.equals(lookupAuthorities)) {
-                    response.append("<div class='validation-ok'>Lookup group details match login group details</div>");
+                    response.append("<div class='validation-ok'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupMembershipMatch())
+                            .append("</div>");
                 } else {
-                    response.append("<div class='error'>Lookup group details do not match login group details</div>");
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupMembershipMismatch())
+                            .append("</div>");
                 }
             }
             Set<String> groups = new HashSet<>(loginAuthorities);
@@ -1326,29 +1309,169 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (String group : groups) {
                 try {
                     realm.loadGroupByGroupname(group);
-                } catch (UserMayOrMayNotExistException e) {
-                    badGroups.add(group);
                 } catch (UsernameNotFoundException e) {
                     badGroups.add(group);
                 }
             }
             if (groups.isEmpty()) {
-                response.append(
-                        "<div class='warning'>Group lookup: could not verify.<br/>Please try with a user that is a member"
-                                + " of at least one group.</div>");
+                response.append("<div class='warning'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupNotPossible())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupNotPossibleDetail())
+                        .append("</div>");
             } else if (badGroups.isEmpty()) {
-                response.append("<div class='validation-ok'>Group lookup: successful for ").append(groups.size())
-                        .append(" groups</div>");
+                response.append("<div class='validation-ok'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupSuccessful(groups.size()))
+                        .append("</div>");
             } else {
-                response.append("<div class='warning'>Group lookup: failed for groups:<ul>");
+                response.append("<div class='warning'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupFailed(badGroups.size()))
+                        .append("<ul>");
                 for (String group:badGroups) {
-                    response.append("<li>").append(Util.escape(group)).append("</li>");
+                    response.append("<li>")
+                            .append(Util.escape(group))
+                            .append("</li>");
                 }
-                response.append("</ul>Is a Manager DN and password required to lookup group details?<br/>");
-                response.append("Are the group search base and group search filter settings correct?</div>");
+                response.append("</ul>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupManagerDnRequired())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupSettingsCorrect())
+                        .append("</div>");
             }
 
+            if (response.indexOf("<div class='error'") != -1) {
+                return FormValidation.errorWithMarkup(response.toString());
+            }
+            if (response.indexOf("<div class='warning'") != -1) {
+                return FormValidation.warningWithMarkup(response.toString());
+            }
             return FormValidation.okWithMarkup(response.toString());
+        }
+
+        private void validateEmailAddress(LDAPSecurityRealm realm, StringBuilder response,
+                                          LdapUserDetails details) {
+            Attribute attribute = details.getAttributes().get(realm.getMailAddressAttributeName());
+            if (attribute == null) {
+                response.append("<div class='warning'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoEmailAddress())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
+                                Util.escape(realm.getMailAddressAttributeName())
+                        ))
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes())
+                        .append("<ul>");
+                for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                    response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                }
+                response.append("</ul></div>");
+            } else {
+                try {
+                    String mailAddress = (String) attribute.get();
+                    if (StringUtils.isNotBlank(mailAddress)) {
+                        response.append("<div class='validation-ok'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserEmail(
+                                        Util.escape(mailAddress)
+                                ))
+                                .append("</div>");
+                    } else {
+                        response.append("<div class='warning'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyEmailAddress())
+                                .append("<br/>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
+                                                Util.escape(realm.getMailAddressAttributeName())
+                                ))
+                                .append("<br/>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes())
+                                .append("<ul>");
+                        for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                        }
+                        response.append("</ul></div>");
+                    }
+                } catch (NamingException e) {
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages
+                                    .LDAPSecurityRealm_CouldNotRetrieveEmailAddress())
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages
+                                    .LDAPSecurityRealm_IsAttributeNameCorrect(
+                                            Util.escape(realm.getMailAddressAttributeName())
+                                    ))
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages
+                                    .LDAPSecurityRealm_AvailableAttributes())
+                            .append("<ul>");
+                    for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                        response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                    }
+                    response.append("</ul></div>");
+                }
+            }
+        }
+
+        private void validateDisplayName(LDAPSecurityRealm realm, StringBuilder response,
+                                         LdapUserDetails loginDetails) {
+            Attribute attribute = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
+            if (attribute == null) {
+                response.append("<div class='warning'>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoDisplayName())
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
+                                Util.escape(realm.getDisplayNameAttributeName())
+                        ))
+                        .append("<br/>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes())
+                        .append("<ul>");
+                for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                    response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                }
+                response.append("</ul></div>");
+            } else {
+                try {
+                    String displayName = (String) attribute.get();
+                    if (displayName != null) {
+                        response.append("<div class='validation-ok'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserDisplayName(
+                                        Util.escape(displayName)
+                                ))
+                                .append("</div>");
+                    } else {
+                        response.append("<div class='warning'>")
+                                .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyDisplayName())
+                                .append("<br/>")
+                                .append(jenkins.security.plugins.ldap.Messages
+                                        .LDAPSecurityRealm_IsAttributeNameCorrect(
+                                                Util.escape(realm.getDisplayNameAttributeName())
+                                        ))
+                                .append("<br/>")
+                                .append(jenkins.security.plugins.ldap.Messages
+                                        .LDAPSecurityRealm_AvailableAttributes())
+                                .append("<ul>");
+                        for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                        }
+                        response.append("</ul></div>");
+                    }
+                } catch (NamingException e) {
+                    response.append("<div class='error'>")
+                            .append(jenkins.security.plugins.ldap.Messages.
+                                    LDAPSecurityRealm_CouldNotRetrieveDisplayName())
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages
+                                    .LDAPSecurityRealm_IsAttributeNameCorrect(
+                                            Util.escape(realm.getDisplayNameAttributeName())
+                                    ))
+                            .append("<br/>")
+                            .append(jenkins.security.plugins.ldap.Messages
+                                    .LDAPSecurityRealm_AvailableAttributes())
+                            .append("<ul>");
+                    for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                        response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                    }
+                    response.append("</ul></div>");
+                }
+            }
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
