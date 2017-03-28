@@ -28,10 +28,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
-import static hudson.Util.fixEmpty;
-import static hudson.Util.fixEmptyAndTrim;
-import static hudson.Util.fixNull;
-
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -51,9 +47,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,7 +71,6 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
-
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
@@ -110,6 +105,10 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.context.WebApplicationContext;
+
+import static hudson.Util.fixEmpty;
+import static hudson.Util.fixEmptyAndTrim;
+import static hudson.Util.fixNull;
 
 /**
  * {@link SecurityRealm} implementation that uses LDAP for authentication.
@@ -247,7 +246,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String server;
 
@@ -256,7 +255,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * How do I infer this?
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String rootDN;
 
@@ -264,7 +263,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * Allow the rootDN to be inferred? Default is false.
      * If true, allow rootDN to be blank.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final boolean inhibitInferRootDN;
 
@@ -274,7 +273,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * Something like "ou=people" but can be empty.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String userSearchBase;
 
@@ -285,10 +284,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String userSearch;
-    
+
     /**
      * This defines the organizational unit that contains groups.
      *
@@ -297,7 +296,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String groupSearchBase;
 
@@ -307,7 +306,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @since 1.5
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String groupSearchFilter;
 
@@ -320,14 +319,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated use {@link #groupMembershipStrategy}
      */
     @Deprecated
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public transient String groupMembershipFilter;
 
     /**
      * @since 2.0
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public /*effectively final*/ LDAPGroupMembershipStrategy groupMembershipStrategy;
 
@@ -350,12 +349,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final String managerDN;
 
     @Deprecated
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     private String managerPassword;
 
@@ -372,7 +371,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public final boolean disableMailAddressResolver;
 
@@ -452,7 +451,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
         this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, Secret.fromString(managerPassword), inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
-    
+
     /**
      * @deprecated retained for backwards binary compatibility.
      */
@@ -592,7 +591,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Attribute a = atts.get("defaultNamingContext");
             if(a!=null && a.get()!=null) // this entry is available on Active Directory. See http://msdn2.microsoft.com/en-us/library/ms684291(VS.85).aspx
                 return a.get().toString();
-            
+
             a = atts.get("namingcontexts");
             if(a==null) {
                 LOGGER.warning("namingcontexts attribute not found in root DSE of "+server);
@@ -672,7 +671,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         if (jenkins == null) {
             throw new IllegalStateException("Jenkins has not been started, or was already shut down");
         }
-        
+
         BeanBuilder builder = new BeanBuilder(jenkins.pluginManager.uberClassLoader);
         String fileName = "LDAPBindSecurityRealm.groovy";
         try {
@@ -941,7 +940,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Extension
     public static final class MailAdressResolverImpl extends MailAddressResolver {
-        public String findMailAddressFor(User u) {       
+        public String findMailAddressFor(User u) {
             final Jenkins jenkins = Jenkins.getInstance();
             if (jenkins == null) {
                 return null;
@@ -1064,6 +1063,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
 
             StringBuilder response = new StringBuilder(1024);
+            response.append("<div>Login</div>");
             LdapUserDetails loginDetails = null;
             try {
                 // need to access direct so as not to update the user details
@@ -1075,28 +1075,84 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
             Set<String> loginAuthorities = new HashSet<>();
             if (loginDetails != null) {
-                response.append("<div class='validation-ok'>User ID: ").append(Util.xmlEscape(loginDetails.getUsername())).append("</div>");
-                response.append("<div class='validation-ok'>User Dn: ").append(Util.xmlEscape(loginDetails.getDn())).append("</div>");
-                try {
-                    Attribute attribute = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
-                    String displayName = attribute == null ? null : (String) attribute.get();
-                    if (displayName != null) {
-                        response.append("<div class='validation-ok'>User display name: ")
-                                .append(Util.xmlEscape(displayName)).append("</div>");
+                response.append("<div class='validation-ok'>User ID: ").append(Util.escape(loginDetails.getUsername()))
+                        .append("</div>");
+                response.append("<div class='validation-ok'>User DN: ").append(Util.escape(loginDetails.getDn()))
+                        .append("</div>");
+                Attribute attribute = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
+                if (attribute == null) {
+                    response.append("<div class='warning'>No display name specified for user!<br/>"
+                            + "Is the attribute name '")
+                            .append(Util.escape(realm.getDisplayNameAttributeName()))
+                            .append("' correct?<br/>Available attributes are:<ul>");
+                    for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                        response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
                     }
-                } catch (NamingException e) {
-                    response.append("<div class='error'>Could not retrieve the display name attribute</div>");
-                }
-                if (!realm.disableMailAddressResolver) {
+                    response.append("</ul></div>");
+                } else {
                     try {
-                        Attribute attribute = loginDetails.getAttributes().get(realm.getMailAddressAttributeName());
-                        String mailAddress = attribute == null ? null : (String) attribute.get();
-                        if (StringUtils.isNotBlank(mailAddress)) {
-                            response.append("<div class='validation-ok'>User email: ")
-                                    .append(Util.xmlEscape(mailAddress)).append("</div>");
+                        String displayName = (String) attribute.get();
+                        if (displayName != null) {
+                            response.append("<div class='validation-ok'>User display name: ")
+                                    .append(Util.escape(displayName)).append("</div>");
+                        } else {
+                            response.append("<div class='warning'>Retrieved display name was empty!<br/>"
+                                    + "Is the attribute name '")
+                                    .append(Util.escape(realm.getDisplayNameAttributeName()))
+                                    .append("' correct?<br/>Available attributes are:<ul>");
+                            for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                                response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                            }
+                            response.append("</ul></div>");
                         }
                     } catch (NamingException e) {
-                        response.append("<div class='error'>Could not retrieve the email address attribute</div>");
+                        response.append("<div class='error'>Could not retrieve the display name attribute.<br/>"
+                                + "Is the attribute name '")
+                                .append(Util.escape(realm.getDisplayNameAttributeName()))
+                                .append("' correct?<br/>Available attributes are:<ul>");
+                        for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                        }
+                        response.append("</ul></div>");
+                    }
+                }
+                if (!realm.disableMailAddressResolver) {
+                    attribute = loginDetails.getAttributes().get(realm.getMailAddressAttributeName());
+                    if (attribute == null) {
+                        response.append("<div class='warning'>No email address specified for user!<br/>"
+                                + "Is the attribute name '")
+                                .append(Util.escape(realm.getMailAddressAttributeName()))
+                                .append("' correct?<br/>Available attributes are:<ul>");
+                        for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                            response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                        }
+                        response.append("</ul></div>");
+                    } else {
+                        try {
+                            String mailAddress = (String) attribute.get();
+                            if (StringUtils.isNotBlank(mailAddress)) {
+                                response.append("<div class='validation-ok'>User email: ")
+                                        .append(Util.escape(mailAddress)).append("</div>");
+                            } else {
+                                response.append("<div class='warning'>Retrieved email address was empty!<br/>"
+                                        + "Is the attribute name '")
+                                        .append(Util.escape(realm.getMailAddressAttributeName()))
+                                        .append("' correct?<br/>Available attributes are:<ul>");
+                                for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                                    response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                                }
+                                response.append("</ul></div>");
+                            }
+                        } catch (NamingException e) {
+                            response.append("<div class='error'>Could not retrieve the email address attribute.<br/>"
+                                    + "Is the attribute name '")
+                                    .append(Util.escape(realm.getMailAddressAttributeName()))
+                                    .append("' correct?<br/>Available attributes are:<ul>");
+                            for (Attribute attr : Collections.list(loginDetails.getAttributes().getAll())) {
+                                response.append("<li>").append(Util.escape(attr.getID())).append("</li>");
+                            }
+                            response.append("</ul></div>");
+                        }
                     }
                 }
                 for (GrantedAuthority a : loginDetails.getAuthorities()) {
@@ -1104,55 +1160,103 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
                 if (loginDetails.getAuthorities().length < 1) {
                     response.append("<div class='error'>No group membership reported</div>");
+                } else if (loginDetails.getAuthorities().length == 1) {
+                    response.append("<div class='warning'>Only basic group membership reported.<br/>");
+                    response.append(
+                            "If the user is a member of some LDAP groups then the group membership settings are "
+                                    + "probably configured incorrectly.</div>");
                 } else {
-                    if (loginDetails.getAuthorities().length == 1) {
-                        response.append("<div class='warning'>Only basic group membership reported<ul>");
-                    } else {
-                        response.append("<div class='validation-ok'>Group membership<ul>");
-                    }
+                    response.append("<div class='validation-ok'>Group membership<ul>");
                     for (GrantedAuthority a : loginDetails.getAuthorities()) {
-                        response.append("<li><code>" + Util.xmlEscape(a.getAuthority()) + "</code></li>");
+                        if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                            continue;
+                        }
+                        response.append("<li><code>").append(Util.escape(a.getAuthority())).append("</code></li>");
                     }
                     response.append("</ul></div>");
                 }
             }
 
+            response.append("<div>Lookup</div>");
             LdapUserDetails lookUpDetails = null;
             try {
                 // need to access direct so as not to update the user details
                 lookUpDetails =
-                        (LdapUserDetails) realm.getSecurityComponents().userDetails.loadUserByUsername(fixUsername(user));
-                response.append("<div class='validation-ok'>User lookup successful</div>");
+                        (LdapUserDetails) realm.getSecurityComponents().userDetails
+                                .loadUserByUsername(fixUsername(user));
+                response.append("<div class='validation-ok'>User lookup: successful</div>");
             } catch (UserMayOrMayNotExistException e1) {
-                response.append("<div class='error'>User lookup failed</div>");
+                response.append(
+                        "<div class='warning'>User lookup: user may or may not exist.<br/>Is a Manager DN and "
+                                + "password required to lookup user details?</div>");
             } catch (UsernameNotFoundException e1) {
-                response.append("<div class='error'>User lookup failed</div>");
+                response.append(
+                        "<div class='error'>User lookup: user does not exist.<br/>Is a Manager DN and password "
+                                + "required to lookup user details?<br/>Are the user search base and user search "
+                                + "filter settings correct?</div>");
             }
             Set<String> lookupAuthorities = new HashSet<>();
             if (lookUpDetails != null) {
                 for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
                     lookupAuthorities.add(a.getAuthority());
                 }
-                if (lookUpDetails.getAuthorities().length < 1) {
-                    response.append("<div class='error'>No group membership reported</div>");
-                } else {
-                    if (lookUpDetails.getAuthorities().length == 1) {
-                        response.append("<div class='warning'>Only basic group membership reported<ul>");
+                if (loginDetails == null || !loginAuthorities.equals(lookupAuthorities)) {
+                    // report the group details
+                    if (lookUpDetails.getAuthorities().length < 1) {
+                        response.append("<div class='error'>No group membership reported</div>");
+                    } else if (lookUpDetails.getAuthorities().length == 1) {
+                        response.append("<div class='warning'>Only basic group membership reported.<br/>If the user "
+                                + "is a member of some LDAP groups then the group membership settings are probably "
+                                + "configured incorrectly.</div>");
                     } else {
                         response.append("<div class='validation-ok'>Group membership<ul>");
+                        for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
+                            if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                                continue;
+                            }
+                            response.append("<li><code>")
+                                    .append(Util.escape(a.getAuthority()))
+                                    .append("</code></li>");
+                        }
+                        response.append("</ul></div>");
                     }
-                    for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
-                        response.append("<li><code>" + Util.xmlEscape(a.getAuthority()) + "</code></li>");
-                    }
-                    response.append("</ul></div>");
                 }
             }
-            if (loginAuthorities.equals(lookupAuthorities)) {
-                response.append("<div class='validation-ok'>Lookup group details match login group details</div>");
-            } else {
-                response.append("<div class='error'>Lookup group details do not match login group details</div>");
+            if (loginDetails != null && lookUpDetails != null) {
+                if (loginAuthorities.equals(lookupAuthorities)) {
+                    response.append("<div class='validation-ok'>Lookup group details match login group details</div>");
+                } else {
+                    response.append("<div class='error'>Lookup group details do not match login group details</div>");
+                }
             }
-
+            Set<String> groups = new HashSet<>(loginAuthorities);
+            groups.addAll(lookupAuthorities);
+            groups.remove(AUTHENTICATED_AUTHORITY.getAuthority());
+            boolean groupLookupOk = true;
+            for (String group : groups) {
+                try {
+                    realm.loadGroupByGroupname(group);
+                } catch (UserMayOrMayNotExistException e) {
+                    response.append("<div class='warning'>Group lookup: group '").append(Util.escape(group))
+                            .append("' may or may not exist</div>");
+                    groupLookupOk = false;
+                } catch (UsernameNotFoundException e) {
+                    response.append("<div class='warning'>Group lookup: group '").append(Util.escape(group))
+                            .append("' does not exist</div>");
+                    groupLookupOk = false;
+                }
+            }
+            if (groups.isEmpty()) {
+                response.append(
+                        "<div class='warning'>Group lookup: could not verify.<br/>Please try with a user that is a member"
+                                + " of at least one group.</div>");
+            } else if (groupLookupOk) {
+                response.append("<div class='validation-ok'>Group lookup: successful for ").append(groups.size())
+                        .append(" groups</div>");
+            } else {
+                response.append("<div class='warning'>Group lookup: failed for some groups.<br/>Is a Manager DN and "
+                        + "password required to lookup group details?<br/>Are the group search base and group search filter settings correct?</div>");
+            }
 
             return FormValidation.okWithMarkup(response.toString());
         }
