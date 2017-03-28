@@ -102,6 +102,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -403,6 +404,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private final IdStrategy groupIdStrategy;
 
+    private boolean disableRolePrefixing;
+
     /**
      * @deprecated retained for backwards binary compatibility.
      */
@@ -495,6 +498,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
         this.userIdStrategy = userIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : userIdStrategy;
         this.groupIdStrategy = groupIdStrategy == null ? IdStrategy.CASE_INSENSITIVE : groupIdStrategy;
+    }
+
+    public boolean isDisableRolePrefixing() {
+        return disableRolePrefixing;
+    }
+
+    @DataBoundSetter
+    public void setDisableRolePrefixing(boolean disableRolePrefixing) {
+        this.disableRolePrefixing = disableRolePrefixing;
     }
 
     private Object readResolve() {

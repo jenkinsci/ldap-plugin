@@ -69,6 +69,10 @@ authoritiesPopulator(AuthoritiesPopulatorImpl, initialDirContextFactory, instanc
     // see DefaultLdapAuthoritiesPopulator for other possible configurations
     searchSubtree = true;
     groupSearchFilter = "(| (member={0}) (uniqueMember={0}) (memberUid={1}))";
+    if (instance.disableRolePrefixing) {
+        rolePrefix = "";
+        convertToUpperCase = false;
+    }
 }
 
 authenticationManager(ProviderManager) {
