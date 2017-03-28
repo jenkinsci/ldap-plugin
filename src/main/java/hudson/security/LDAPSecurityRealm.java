@@ -58,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,6 +81,7 @@ import org.acegisecurity.AcegiSecurityException;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
+import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.ldap.InitialDirContextFactory;
@@ -1061,6 +1063,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             JSONObject realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
             // instantiate the realm
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
+            FormValidation connnectionCheck = doCheckServer(realm.getServerUrl(), realm.managerDN, realm.managerPasswordSecret);
+            if (connnectionCheck.kind != FormValidation.Kind.OK) {
+                return connnectionCheck;
+            }
 
             StringBuilder response = new StringBuilder(1024);
             response.append("<div>Login</div>");
@@ -1194,6 +1200,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         "<div class='error'>User lookup: user does not exist.<br/>Is a Manager DN and password "
                                 + "required to lookup user details?<br/>Are the user search base and user search "
                                 + "filter settings correct?</div>");
+            } catch (LdapDataAccessException e) {
+                Throwable cause = e.getCause();
+                while (cause != null && !(cause instanceof BadCredentialsException)) {
+                    cause = cause.getCause();
+                }
+                if (cause != null) {
+                    response.append("<div class='error'>User lookup: bad credentials for user lookup.<br/>"
+                            + "Is the Manager DN and password correct?</div>");
+                } else {
+                    response.append("<div class='error'>User lookup: failed<br/>");
+                    response.append(Util.escape(e.getLocalizedMessage()));
+                    response.append("</div>");
+                }
             }
             Set<String> lookupAuthorities = new HashSet<>();
             if (lookUpDetails != null) {
@@ -1230,32 +1249,32 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
             }
             Set<String> groups = new HashSet<>(loginAuthorities);
+            Set<String> badGroups = new TreeSet<>();
             groups.addAll(lookupAuthorities);
             groups.remove(AUTHENTICATED_AUTHORITY.getAuthority());
-            boolean groupLookupOk = true;
             for (String group : groups) {
                 try {
                     realm.loadGroupByGroupname(group);
                 } catch (UserMayOrMayNotExistException e) {
-                    response.append("<div class='warning'>Group lookup: group '").append(Util.escape(group))
-                            .append("' may or may not exist</div>");
-                    groupLookupOk = false;
+                    badGroups.add(group);
                 } catch (UsernameNotFoundException e) {
-                    response.append("<div class='warning'>Group lookup: group '").append(Util.escape(group))
-                            .append("' does not exist</div>");
-                    groupLookupOk = false;
+                    badGroups.add(group);
                 }
             }
             if (groups.isEmpty()) {
                 response.append(
                         "<div class='warning'>Group lookup: could not verify.<br/>Please try with a user that is a member"
                                 + " of at least one group.</div>");
-            } else if (groupLookupOk) {
+            } else if (badGroups.isEmpty()) {
                 response.append("<div class='validation-ok'>Group lookup: successful for ").append(groups.size())
                         .append(" groups</div>");
             } else {
-                response.append("<div class='warning'>Group lookup: failed for some groups.<br/>Is a Manager DN and "
-                        + "password required to lookup group details?<br/>Are the group search base and group search filter settings correct?</div>");
+                response.append("<div class='warning'>Group lookup: failed for groups:<ul>");
+                for (String group:badGroups) {
+                    response.append("<li>").append(Util.escape(group)).append("</li>");
+                }
+                response.append("</ul>Is a Manager DN and password required to lookup group details?<br/>");
+                response.append("Are the group search base and group search filter settings correct?</div>");
             }
 
             return FormValidation.okWithMarkup(response.toString());
