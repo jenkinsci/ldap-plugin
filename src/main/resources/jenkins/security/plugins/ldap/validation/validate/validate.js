@@ -1,3 +1,11 @@
+Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', -200, function (div) {
+    if (!div['data-innerHTML']) {
+        div['data-innerHTML'] = div.innerHTML;
+        div.innerHTML = '';
+    }
+    button = null; // avoid memory leak
+});
+
 function ldapValidateButton(checkUrl, formFilter, button) {
     button = button._button;
     buildFormTree(button.form);
@@ -9,7 +17,7 @@ function ldapValidateButton(checkUrl, formFilter, button) {
         var path = formFilter.split('.');
         for (var i = 0; i < path.length; i++) {
             cur = cur[path[i]];
-            filtered[path[i]] = i == path.length - 1 ? cur : {};
+            filtered[path[i]] = i === path.length - 1 ? cur : {};
             filtered = filtered[path[i]];
         }
     }
@@ -91,10 +99,3 @@ function ldapValidateButton(checkUrl, formFilter, button) {
     }
 }
 
-Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', 0, function (div) {
-    if (!div['data-innerHTML']) {
-        div['data-innerHTML'] = div.innerHTML;
-        div.innerHTML = '';
-    }
-    button = null; // avoid memory leak
-});
