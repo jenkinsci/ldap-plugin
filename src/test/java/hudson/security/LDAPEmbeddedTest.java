@@ -119,17 +119,17 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE);
         r.jenkins.setSecurityRealm(realm);
         User user = User.get("hhornblo");
-        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate("hhornblo", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS Lydia", "ROLE_HMS LYDIA"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS_Lydia", "ROLE_HMS_LYDIA"));
         user = User.get("hnelson");
-        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
         details = realm.authenticate("hnelson", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
     }
 
     @Test
@@ -193,17 +193,17 @@ public class LDAPEmbeddedTest {
         realm.setDisableRolePrefixing(true);
         r.jenkins.setSecurityRealm(realm);
         User user = User.get("hhornblo");
-        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia"));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate("hhornblo", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS Lydia"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS_Lydia"));
         user = User.get("hnelson");
-        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory"));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
         details = realm.authenticate("hnelson", "pass");
-        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory"));
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory"));
     }
 
     private Set<String> userGetAuthorities(UserDetails details) {

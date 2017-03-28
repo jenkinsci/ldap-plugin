@@ -51,6 +51,25 @@ m-typeObjectClass: AUXILIARY
 m-must: sAMAccountName
 m-may: memberOf
 
+dn: m-oid=1.2.840.113556.1.5.8, ou=objectclasses, cn=microsoft, ou=schema
+objectclass: metaObjectClass
+objectclass: metaTop
+objectclass: top
+m-oid: 1.2.840.113556.1.5.8
+m-name: simulatedMicrosoftSecurityGroup
+m-supObjectClass: top
+m-typeObjectClass: STRUCTURAL
+m-must: sAMAccountName
+m-must: cn
+
+# We dual-purpose the dataset:
+#
+# You can look for groups based on uniqueMember in the groupOfNames... those groups will have spaces in the names
+# You can look for groups based on memberOf in the person... those groups will have underscores in the names
+#
+# This lets us determine if the groups are being resolved correctly when using the different group membership
+# strategies
+
 dn: ou=people,o=sevenSeas
 objectclass: top
 objectclass: organizationalUnit
@@ -92,7 +111,7 @@ uid: hhornblo
 sAMAccountName: hhornblo
 mail: hhornblo@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=William Bush,ou=people,o=sevenSeas
 objectclass: person
@@ -109,7 +128,7 @@ uid: wbush
 sAMAccountName: wbush
 mail: wbush@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=Thomas Quist,ou=people,o=sevenSeas
 objectclass: person
@@ -126,7 +145,7 @@ uid: tquist
 sAMAccountName: tquist
 mail: tquist@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=Moultrie Crystal,ou=people,o=sevenSeas
 objectclass: person
@@ -143,7 +162,7 @@ uid: mchrysta
 sAMAccountName: mchrysta
 mail: mchrysta@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
@@ -153,6 +172,12 @@ uniquemember: cn=Horatio Hornblower,ou=people,o=sevenSeas
 uniquemember: cn=William Bush,ou=people,o=sevenSeas
 uniquemember: cn=Thomas Quist,ou=people,o=sevenSeas
 uniquemember: cn=Moultrie Crystal,ou=people,o=sevenSeas
+
+dn: cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas
+objectclass: simulatedMicrosoftSecurityGroup
+objectclass: top
+cn: HMS_Lydia
+sAMAccountName: hms_lydia
 
 # HMS Victory Crew
 # ----------------
@@ -171,7 +196,7 @@ uid: hnelson
 sAMAccountName: hnelson
 mail: hnelson@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Victory,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Victory,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=Thomas Masterman Hardy,ou=people,o=sevenSeas
 objectclass: person
@@ -188,7 +213,7 @@ uid: thardy
 sAMAccountName: thardy
 mail: thardy@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Victory,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Victory,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=Cornelius Buckley,ou=people,o=sevenSeas
 objectclass: person
@@ -205,7 +230,7 @@ uid: cbuckley
 sAMAccountName: cbuckley
 mail: cbuckley@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Victory,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Victory,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=HMS Victory,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
@@ -214,6 +239,12 @@ cn: HMS Victory
 uniquemember: cn=Horatio Nelson,ou=people,o=sevenSeas
 uniquemember: cn=Thomas Masterman Hardy,ou=people,o=sevenSeas
 uniquemember: cn=Cornelius Buckley,ou=people,o=sevenSeas
+
+dn: cn=HMS_Victory,ou=crews,ou=groups,o=sevenSeas
+objectclass: simulatedMicrosoftSecurityGroup
+objectclass: top
+cn: HMS_Victory
+sAMAccountName: hms_victory
 
 # HMS Bounty Crew
 # ---------------
@@ -232,7 +263,7 @@ uid: wbligh
 sAMAccountName: wbligh
 mail: wbligh@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Bounty,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=Fletcher Christian,ou=people,o=sevenSeas
 objectclass: person
@@ -249,7 +280,7 @@ uid: fchristi
 sAMAccountName: fchristi
 mail: fchristi@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Bounty,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=John Fryer,ou=people,o=sevenSeas
 objectclass: person
@@ -266,7 +297,7 @@ uid: jfryer
 sAMAccountName: jfryer
 mail: jfryer@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Bounty,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=John Hallett,ou=people,o=sevenSeas
 objectclass: person
@@ -283,7 +314,7 @@ uid: jhallett
 sAMAccountName: jhallett
 mail: jhallett@royalnavy.mod.uk
 userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
-memberof: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
+memberof: cn=HMS_Bounty,ou=crews,ou=groups,o=sevenSeas
 
 dn: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
@@ -293,5 +324,11 @@ uniquemember: cn=William Bligh,ou=people,o=sevenSeas
 uniquemember: cn=Fletcher Christian,ou=people,o=sevenSeas
 uniquemember: cn=John Fryer,ou=people,o=sevenSeas
 uniquemember: cn=John Hallett,ou=people,o=sevenSeas
+
+dn: cn=HMS_Bounty,ou=crews,ou=groups,o=sevenSeas
+objectclass: simulatedMicrosoftSecurityGroup
+objectclass: top
+cn: HMS_Bounty
+sAMAccountName: hms_bounty
 
 
