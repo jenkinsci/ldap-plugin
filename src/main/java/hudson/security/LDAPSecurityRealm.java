@@ -90,6 +90,8 @@ import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.acegisecurity.providers.ldap.LdapAuthenticationProvider;
+import org.acegisecurity.providers.ldap.LdapAuthenticator;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.providers.ldap.populator.DefaultLdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.UserDetails;
@@ -988,6 +990,38 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
+    public static final class LdapAuthenticationProviderImpl extends LdapAuthenticationProvider {
+
+        public LdapAuthenticationProviderImpl(LdapAuthenticator authenticator,
+                                              LdapAuthoritiesPopulator authoritiesPopulator,
+                                              LDAPGroupMembershipStrategy groupMembershipStrategy) {
+            super(authenticator, groupMembershipStrategy != null
+                    ? new WrappedAuthoritiesPopulator(groupMembershipStrategy, authoritiesPopulator)
+                    : authoritiesPopulator);
+        }
+    }
+
+    private static final class WrappedAuthoritiesPopulator implements LdapAuthoritiesPopulator {
+
+        private final LDAPGroupMembershipStrategy strategy;
+        private final LdapAuthoritiesPopulator populator;
+
+        private WrappedAuthoritiesPopulator(LDAPGroupMembershipStrategy strategy, LdapAuthoritiesPopulator populator) {
+            this.strategy = strategy;
+            this.populator = populator;
+            strategy.setAuthoritiesPopulator(populator);
+        }
+
+        @Override
+        public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails userDetails) throws LdapDataAccessException {
+            if (strategy.getAuthoritiesPopulator() != populator) {
+                strategy.setAuthoritiesPopulator(populator);
+            }
+            return strategy.getGrantedAuthorities(userDetails);
+        }
+
+    }
+
     /**
      * {@link LdapAuthoritiesPopulator} that adds the automatic 'authenticated' role.
      */
@@ -995,6 +1029,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         // Make these available (private in parent class and no get methods!)
         String rolePrefix = "ROLE_";
         boolean convertToUpperCase = true;
+        private GrantedAuthority defaultRole = null;
 
         public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase) {
             super(initialDirContextFactory, fixNull(groupSearchBase));
@@ -1004,7 +1039,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        protected Set getAdditionalRoles(LdapUserDetails ldapUser) {
+        public Set getAdditionalRoles(LdapUserDetails ldapUser) {
             return Collections.singleton(AUTHENTICATED_AUTHORITY);
         }
 
@@ -1058,6 +1093,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public String getRolePrefix() {
             return rolePrefix;
+        }
+
+        public GrantedAuthority getDefaultRole() {
+            return defaultRole;
+        }
+
+        public void setDefaultRole(String defaultRole) {
+            // capture the default role in the event that legacy bean binding scripts are configuring it
+            super.setDefaultRole(defaultRole);
+            this.defaultRole = new GrantedAuthorityImpl(defaultRole);
         }
     }
 

@@ -25,6 +25,7 @@ package jenkins.security.plugins.ldap;
 
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
+import java.util.Set;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
@@ -104,6 +105,11 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                             authoritiesPopulatorImpl.getRolePrefix() + role);
                     result.add(extraAuthority);
                 }
+            }
+            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(ldapUser));
+            GrantedAuthority defaultRole = authoritiesPopulatorImpl.getDefaultRole();
+            if (defaultRole != null) {
+                result.add(defaultRole);
             }
         }
 
