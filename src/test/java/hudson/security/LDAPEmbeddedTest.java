@@ -28,17 +28,23 @@ import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPRule;
 import jenkins.security.plugins.ldap.LDAPSchema;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import static hudson.security.SecurityRealm.AUTHENTICATED_AUTHORITY;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -56,8 +62,8 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup() throws Exception {
-        r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
+    public void userLookup_rolesFromGroupSearch() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
                 null,
@@ -74,16 +80,140 @@ public class LDAPEmbeddedTest {
                 "cn",
                 null,
                 IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE)
-        );
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
         User user = User.get("hhornblo");
-        assertThat(user.getAuthorities(), allOf(hasItem("HMS Lydia"), hasItem("ROLE_HMS LYDIA")));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
+        UserDetails details = realm.authenticate("hhornblo", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
         user = User.get("hnelson");
-        assertThat(user.getAuthorities(), allOf(hasItem("HMS Victory"), hasItem("ROLE_HMS VICTORY")));
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+        details = realm.authenticate("hnelson", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void userLookup_rolesFromUserRecord() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromUserRecordLDAPGroupMembershipStrategy("memberOf"),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        User user = User.get("hhornblo");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
+        assertThat(user.getDisplayName(), is("Horatio Hornblower"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
+        UserDetails details = realm.authenticate("hhornblo", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS Lydia", "ROLE_HMS LYDIA"));
+        user = User.get("hnelson");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
+        assertThat(user.getDisplayName(), is("Horatio Nelson"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+        details = realm.authenticate("hnelson", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void userLookup_rolesFromGroupSearch_modern() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        realm.setDisableRolePrefixing(true);
+        r.jenkins.setSecurityRealm(realm);
+        User user = User.get("hhornblo");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia"));
+        assertThat(user.getDisplayName(), is("Horatio Hornblower"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
+        UserDetails details = realm.authenticate("hhornblo", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia"));
+        user = User.get("hnelson");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory"));
+        assertThat(user.getDisplayName(), is("Horatio Nelson"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+        details = realm.authenticate("hnelson", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void userLookup_rolesFromUserRecord_modern() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromUserRecordLDAPGroupMembershipStrategy("memberOf"),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        realm.setDisableRolePrefixing(true);
+        r.jenkins.setSecurityRealm(realm);
+        User user = User.get("hhornblo");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia"));
+        assertThat(user.getDisplayName(), is("Horatio Hornblower"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
+        UserDetails details = realm.authenticate("hhornblo", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder( "HMS Lydia"));
+        user = User.get("hnelson");
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory"));
+        assertThat(user.getDisplayName(), is("Horatio Nelson"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+        details = realm.authenticate("hnelson", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory"));
+    }
+
+    private Set<String> userGetAuthorities(UserDetails details) {
+        Set<String> authorities = new LinkedHashSet<>();
+        for (GrantedAuthority a : details.getAuthorities()) {
+            if (!a.equals(AUTHENTICATED_AUTHORITY)) { // see User.getAuthorities()
+                authorities.add(a.getAuthority());
+            }
+        }
+        return authorities;
     }
 
     @Test
