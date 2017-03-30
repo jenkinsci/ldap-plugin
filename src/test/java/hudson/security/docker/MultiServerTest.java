@@ -96,13 +96,17 @@ public class MultiServerTest {
         //Planet Express verification
         String content = j.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
         assertThat(content, containsString("Philip J. Fry"));
+        user = User.get("fry");
+        assertThat(user.getDisplayName(), is("Philip J. Fry"));
 
 
         LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
         assertEquals("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com", zoidberg.getDn());
 
-        String leelaEmail = MailAddressResolver.resolve(j.jenkins.getUser("leela"));
+        user = j.jenkins.getUser("leela");
+        String leelaEmail = MailAddressResolver.resolve(user);
         assertEquals("leela@planetexpress.com", leelaEmail);
+        assertThat(user.getDisplayName(), is("Turanga Leela"));
 
     }
 
