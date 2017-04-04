@@ -30,6 +30,9 @@
       Server-side method that handles the validation. For example, if this is 'foo', you need "doFoo" on
       your descriptor class.
     </st:attribute>
+    <st:attribute name="name" use="required">
+      Name of the validate button control.
+    </st:attribute>
     <st:attribute name="title" use="required">
       Caption of the validate button. Should be internationalized.
     </st:attribute>
@@ -47,15 +50,17 @@
     </st:attribute>
   </st:documentation>
   <f:entry>
-    <div style="float:right">
-      <input type="button" value="${title}" class="yui-button ldap-validate-button"
-             onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this)"/>
-      <div style="display:none;" class="ldap-validate-form">
+    <j:set var="uid" value="${h.generateId()}" />
+    <div style="float:right" class="ldap-validate-section">
+      <input id="${uid}" type="button" value="${title}" name="${name}" class="yui-button ldap-validate-button"
+             onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this,'${uid}')"
+             />
+      <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
         <div class="hd">
            <h2>${dialog}</h2>
         </div>
         <div class="bd">
-        <table width="100%">
+        <table id="${uid}_dialog" width="100%">
           <d:invokeBody/>
           <f:entry>
             <input type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary" onclick="return false;"/>
@@ -64,11 +69,11 @@
         </div>
       </div>
     </div>
-    <div style="display:none;">
+    <div id="${uid}_spinner" style="display:none;">
       <img src="${imagesURL}/spinner.gif"/>
       ${attrs.progress}
     </div>
-    <div><!-- this is where the error message goes --></div>
+    <div id="${uid}_result"><!-- this is where the error message goes --></div>
   </f:entry>
   <script>
     // HACK: can be removed once base version of Jenkins has fix of https://issues.jenkins-ci.org/browse/JENKINS-26578

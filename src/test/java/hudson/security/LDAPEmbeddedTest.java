@@ -40,6 +40,8 @@ import jenkins.security.plugins.ldap.LDAPSchema;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -288,6 +290,7 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE);
         realm.setDisableRolePrefixing(true);
         FormValidation validation = realm.getDescriptor().validate(realm, "hnelson", "pass");
+
         assertThat("Group details reported", validation.renderHtml(),
                 allOf(
                         containsString("HMS Victory"),
@@ -301,7 +304,81 @@ public class LDAPEmbeddedTest {
                         not(containsString("'error'"))
                 )
         );
+        Document validationDoc = Jsoup.parse(validation.renderHtml());
+        assertThat(validationDoc.select("[data-test='authentication']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-username']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-dn']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-displayname']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-email']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-groups']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-username']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-dn']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-displayname']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-email']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-groups']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='consistency']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='resolve-groups']").attr("class"),
+                containsString("validation-ok"));
         assertThat(validation.kind, is(FormValidation.Kind.OK));
+        validation = realm.getDescriptor().validate(realm, "hnelson", "badpass");
+
+        assertThat("Group details reported", validation.renderHtml(),
+                allOf(
+                        containsString("HMS Victory"),
+                        not(containsString("HMS_Victory"))
+                )
+        );
+        assertThat("Validation negative", validation.renderHtml(),
+                allOf(
+                        containsString("'validation-ok'"),
+                        not(containsString("'warning'")),
+                        containsString("'error'")
+                )
+        );
+        validationDoc = Jsoup.parse(validation.renderHtml());
+        assertThat(validationDoc.select("[data-test='authentication']").attr("class"),
+                containsString("error"));
+        assertThat(validationDoc.select("[data-test='authentication-username']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='authentication-dn']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='authentication-displayname']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='authentication-email']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='authentication-groups']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-username']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-dn']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-displayname']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-email']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-groups']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='consistency']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='resolve-groups']").attr("class"),
+                containsString("validation-ok"));
+        assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
         realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -335,7 +412,40 @@ public class LDAPEmbeddedTest {
                         not(containsString("'error'"))
                 )
         );
-        assertThat(validation.kind, is(FormValidation.Kind.WARNING));
+        validationDoc = Jsoup.parse(validation.renderHtml());
+        assertThat(validationDoc.select("[data-test='authentication']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-username']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-dn']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='authentication-displayname']").attr("class"),
+                containsString("warning"));
+        assertThat(validationDoc.select("[data-test='authentication-displayname']").select("li").text(),
+                allOf(containsString("cn"), containsString("memberof"), containsString("description")));
+        assertThat(validationDoc.select("[data-test='authentication-email']").attr("class"),
+                containsString("warning"));
+        assertThat(validationDoc.select("[data-test='authentication-email']").select("li").text(),
+                allOf(containsString("cn"), containsString("memberof"), containsString("description")));
+        assertThat(validationDoc.select("[data-test='authentication-groups']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='lookup-username']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-dn']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-displayname']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-email']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='lookup-groups']").attr("class"),
+                is(""));
+        assertThat(validationDoc.select("[data-test='consistency']").attr("class"),
+                containsString("validation-ok"));
+        assertThat(validationDoc.select("[data-test='resolve-groups']").attr("class"),
+                containsString("validation-ok"));
+        assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
     }
 
 }

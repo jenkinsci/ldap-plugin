@@ -28,10 +28,13 @@ THE SOFTWARE.
     <f:entry field="server" title="${%Server}">
         <f:textbox/>
     </f:entry>
-    <v:validate method="validate" filter="useSecurity.realm"
+    <v:validate name="validateLdapSettings" method="validate" filter="useSecurity.realm"
                 title="${%Test LDAP settings}"
-                dialog="${%Test LDAP settings with}"
+                dialog="${%Test LDAP settings}"
                 submit="${%Test}">
+        <f:block>
+            ${%validationBlurb}
+        </f:block>
         <f:entry title="${%User:}">
             <f:textbox name="testUser"/>
         </f:entry>

@@ -6,7 +6,7 @@ Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', -200, function (div
     button = null; // avoid memory leak
 });
 
-function ldapValidateButton(checkUrl, formFilter, button) {
+function ldapValidateButton(checkUrl, formFilter, button, id) {
     button = button._button;
     buildFormTree(button.form);
     var json = JSON.parse(button.form['json'].value);
@@ -27,9 +27,7 @@ function ldapValidateButton(checkUrl, formFilter, button) {
         document.body.appendChild(dialogDiv);
         dialogDiv.innerHTML = "<div></div>";
         var dialogBody = dialogDiv.firstElementChild;
-        dialogBody.innerHTML = findNext(button, function (e) {
-            return e.tagName === 'DIV' && e['data-innerHTML'];
-        })['data-innerHTML'];
+        dialogBody.innerHTML = document.getElementById(id+"_div")['data-innerHTML'];
         var cleanUp = function() {
             dialog.destroy();
             document.body.removeChild(dialogDiv);
@@ -66,8 +64,9 @@ function ldapValidateButton(checkUrl, formFilter, button) {
             inputs[0].focus();
             var buttons = dialogDiv.getElementsByTagName("BUTTON");
             buttons[buttons.length-1].onclick = function () {
-                var spinner = $(button).up("DIV").next();
-                var target = spinner.next();
+                var spinner = document.getElementById(id + "_spinner");
+                var target = document.getElementById(id+"_result");
+                target.style.display = "none";
                 target.innerHTML = '';
                 spinner.style.display = "block";
                 for (var i = 0; i < inputs.length; i++) {
@@ -82,6 +81,7 @@ function ldapValidateButton(checkUrl, formFilter, button) {
                     onComplete: function (rsp) {
                         spinner.style.display = "none";
                         applyErrorMessage(target, rsp);
+                        target.style.display = "block";
                         layoutUpdateCallback.call();
                         var s = rsp.getResponseHeader("script");
                         try {
