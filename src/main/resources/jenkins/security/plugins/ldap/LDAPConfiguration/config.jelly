@@ -3,7 +3,7 @@
     <f:entry field="server" title="${%Server}">
         <f:textbox/>
     </f:entry>
-    <f:advanced>
+    <f:advanced title="${%Advanced Server Configuration}">
         <f:entry field="rootDN" title="${%root DN}">
             <f:textbox/>
         </f:entry>
