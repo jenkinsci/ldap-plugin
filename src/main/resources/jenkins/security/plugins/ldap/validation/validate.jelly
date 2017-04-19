@@ -52,9 +52,14 @@
   <f:entry>
     <j:set var="uid" value="${h.generateId()}" />
     <div style="float:right" class="ldap-validate-section">
-      <input id="${uid}" type="button" value="${title}" name="${name}" class="yui-button ldap-validate-button"
-             onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this,'${uid}')"
-             />
+      <span class="yui-button">
+        <span>
+          <button id="${uid}" type="button" name="${name}" class="ldap-validate-button"
+                  onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this,'${uid}'); return false;">
+            ${title}
+          </button>
+        </span>
+      </span>
       <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
         <div class="hd">
            <h2>${dialog}</h2>

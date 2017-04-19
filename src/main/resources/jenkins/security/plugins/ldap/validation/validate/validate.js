@@ -1,15 +1,20 @@
 Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', -200, function (div) {
-    if (!div['data-innerHTML']) {
-        div['data-innerHTML'] = div.innerHTML;
+    var id = div.getAttribute("id");
+    if (window['ldap validate'] === undefined) {
+        window['ldap validate'] = {};
+    }
+    if (window['ldap validate'][id] === undefined) {
+        window['ldap validate'][id] = div.innerHTML;
         div.innerHTML = '';
     }
-    button = null; // avoid memory leak
+    div = null; // avoid memory leak
 });
 
 function ldapValidateButton(checkUrl, formFilter, button, id) {
+    var form = findAncestor(button, "FORM");
     button = button._button;
-    buildFormTree(button.form);
-    var json = JSON.parse(button.form['json'].value);
+    buildFormTree(form);
+    var json = JSON.parse(form['json'].value);
     if (formFilter) {
         var cur = json;
         json = {};
@@ -27,7 +32,7 @@ function ldapValidateButton(checkUrl, formFilter, button, id) {
         document.body.appendChild(dialogDiv);
         dialogDiv.innerHTML = "<div></div>";
         var dialogBody = dialogDiv.firstElementChild;
-        dialogBody.innerHTML = document.getElementById(id+"_div")['data-innerHTML'];
+        dialogBody.innerHTML = window['ldap validate'][id+"_div"];
         var cleanUp = function() {
             dialog.destroy();
             document.body.removeChild(dialogDiv);
@@ -61,7 +66,9 @@ function ldapValidateButton(checkUrl, formFilter, button, id) {
         dialog.show();
         window.setTimeout(function () {
             var inputs = dialogDiv.getElementsByTagName("INPUT");
-            inputs[0].focus();
+            if (inputs && inputs.length > 0) {
+                inputs[0].focus();
+            }
             var buttons = dialogDiv.getElementsByTagName("BUTTON");
             buttons[buttons.length-1].onclick = function () {
                 var spinner = document.getElementById(id + "_spinner");
