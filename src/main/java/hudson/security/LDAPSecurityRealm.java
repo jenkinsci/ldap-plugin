@@ -1195,6 +1195,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             response.append("<div>")
                     .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LoginHeader())
                     .append("</div>");
+            boolean potentialLockout = false;
 
             // can we login?
             LdapUserDetails loginDetails = null;
@@ -1205,8 +1206,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 ok(response, "authentication",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationSuccessful());
             } catch (AuthenticationException e) {
-                rsp(response, StringUtils.isBlank(password)? "warning" : "error", "authentication",
-                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailed());
+                if (StringUtils.isBlank(password)) {
+                    warning(response, "authentication",
+                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailedEmptyPass(user));
+                } else {
+                    error(response, "authentication",
+                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailed(user));
+                    potentialLockout = true;
+                }
             }
             Set<String> loginAuthorities = new HashSet<>();
             if (loginDetails != null) {
@@ -1225,6 +1232,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 if (loginDetails.getAuthorities().length < 1) {
                     error(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
+                    // we do not flag this error as may be legitimate config
                 } else if (loginDetails.getAuthorities().length == 1) {
                     warning(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
@@ -1257,20 +1265,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSuccessful());
             } catch (UserMayOrMayNotExistException e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
-                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive(),
+                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive(user),
                         StringUtils.isBlank(realm.managerDN)
                                 ? jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired()
                                 : jenkins.security.plugins.ldap.Messages
                                         .LDAPSecurityRealm_UserLookupManagerDnPermissions()
                 );
+                // we do not flag these errors as could be probing user accounts
             } catch (UsernameNotFoundException e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
-                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupDoesNotExist(),
+                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupDoesNotExist(user),
                         StringUtils.isBlank(realm.managerDN)
                                 ? jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired()
                                 : jenkins.security.plugins.ldap.Messages
                                         .LDAPSecurityRealm_UserLookupManagerDnPermissions(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSettingsCorrect());
+                // we do not flag these errors as could be probing user accounts
             } catch (LdapDataAccessException e) {
                 Throwable cause = e.getCause();
                 while (cause != null && !(cause instanceof BadCredentialsException)) {
@@ -1285,10 +1295,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                     : jenkins.security.plugins.ldap.Messages
                                             .LDAPSecurityRealm_UserLookupManagerDnPermissions()
                             );
+                    potentialLockout = true;
                 } else {
                     error(response, "lookup",
-                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupFailed(),
+                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupFailed(user),
                             Util.escape(e.getLocalizedMessage()));
+                    potentialLockout = true;
                 }
             }
             if (loginDetails == null && lookUpDetails != null) {
@@ -1316,6 +1328,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     if (lookUpDetails.getAuthorities().length < 1) {
                         error(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
+                        // we do not flag this error as may be legitimate
                     } else if (lookUpDetails.getAuthorities().length == 1) {
                         warning(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
@@ -1341,12 +1354,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     error(response, "consistency-username",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UsernameMismatch(
                                     loginDetails.getUsername(), lookUpDetails.getUsername()));
+                    potentialLockout = true; // consistency is important
                 }
                 // dn
                 if (!StringUtils.equals(loginDetails.getDn(), lookUpDetails.getDn())) {
                     error(response, "consistency-dn",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DnMismatch(
                                     loginDetails.getDn(), lookUpDetails.getDn()));
+                    potentialLockout = true; // consistency is important
                 }
                 // display name
                 if (StringUtils.isNotBlank(realm.getDisplayNameAttributeName())) {
@@ -1368,6 +1383,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         error(response, "consistency-displayname",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayNameMismatch(
                                         loginValue, lookUpValue));
+                        potentialLockout = true; // consistency is important
                     }
                 }
                 // email address
@@ -1391,6 +1407,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         error(response, "consistency-email",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmailAddressMismatch(
                                         loginValue, lookUpValue));
+                        potentialLockout = true; // consistency is important
                     }
                 }
                 // groups
@@ -1400,6 +1417,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } else {
                     error(response, "consistency",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupMembershipMismatch());
+                    potentialLockout = true; // consistency is important
                 }
             }
             // lets check group lookup if we can
@@ -1424,7 +1442,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } else {
                 List<String> escaped = new ArrayList<>(badGroups.size());
                 for (String group : badGroups) {
-                    escaped.add("<li>"+Util.escape(group)+"</li>");
+                    escaped.add("<code>"+Util.escape(group)+"</code>");
                 }
                 warning(response, "resolve-groups",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupFailed(badGroups.size()),
@@ -1436,6 +1454,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                         .LDAPSecurityRealm_GroupLookupManagerDnPermissions(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupSettingsCorrect());
             }
+            if (potentialLockout) {
+                response.append("<div>")
+                        .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LockoutHeader())
+                        .append("</div>");
+                error(response, "lockout",
+                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_PotentialLockout(user)
+                );
+            }
             // and we are done, report the results
             return FormValidation.okWithMarkup(response.toString());
         }
@@ -1446,7 +1472,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
                 for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                    alternatives.add("<li>"+Util.escape(attr.getID())+"</li>");
+                    alternatives.add("<code>"+Util.escape(attr.getID())+"</code>");
                 }
                 warning(response, testId,
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoEmailAddress(),
@@ -1466,7 +1492,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } else {
                         List<String> alternatives = new ArrayList<>();
                         for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                            alternatives.add("<li>" + Util.escape(attr.getID()) + "</li>");
+                            alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyEmailAddress(),
@@ -1479,7 +1505,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
                     for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                        alternatives.add("<li>" + Util.escape(attr.getID()) + "</li>");
+                        alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_CouldNotRetrieveEmailAddress(),
@@ -1498,7 +1524,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
                 for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                    alternatives.add("<li>" + Util.escape(attr.getID()) + "</li>");
+                    alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                 }
                 warning(response, testId,
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoDisplayName(),
@@ -1518,7 +1544,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } else {
                         List<String> alternatives = new ArrayList<>();
                         for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                            alternatives.add("<li>" + Util.escape(attr.getID()) + "</li>");
+                            alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyDisplayName(),
@@ -1531,7 +1557,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
                     for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
-                        alternatives.add("<li>" + Util.escape(attr.getID()) + "</li>");
+                        alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_CouldNotRetrieveDisplayName(),
