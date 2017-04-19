@@ -322,6 +322,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @Extension
     public static final class LDAPConfigurationDescriptor extends Descriptor<LDAPConfiguration> {
+        //For jelly usage
+        public static final String DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME = LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
+        public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+        public static final String DEFAULT_USER_SEARCH = LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH;
 
         @Override
         public String getDisplayName() {
