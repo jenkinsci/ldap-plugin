@@ -11,13 +11,14 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Tests connecting to two different embedded servers using slightly different configurations.
@@ -111,5 +112,27 @@ public class LdapMultiEmbeddedTest {
 
         content = r.createWebClient().login("hnelson", "pass").goTo("whoAmI").getBody().getTextContent();
         assertThat(content, containsString("Nelson"));
+    }
+
+    @Test
+    public void loginWithBrokenServerInTheMiddle() throws Exception {
+        //Insert a bad configuration in the middle
+        LDAPSecurityRealm realm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        ArrayList<LDAPConfiguration> newList = new ArrayList<>(realm.getConfigurations());
+        newList.add(1, new LDAPConfiguration("foobar.example.com", "dc=foobar,dc=example,dc=com", false, null, null));
+        LDAPSecurityRealm newRealm = new LDAPSecurityRealm(newList, realm.disableMailAddressResolver, realm.getCache(), realm.getUserIdStrategy(), realm.getGroupIdStrategy());
+        r.jenkins.setSecurityRealm(newRealm);
+
+        //Fry should be able to log in
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        assertThat(content, containsString("Philip J. Fry"));
+        //hnelson should not
+        try {
+            r.createWebClient().login("hnelson", "pass");
+            fail("hnelson should not be able to login because there is a broken server in between");
+        } catch (com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException e) {
+            assertEquals(401, e.getStatusCode());
+        }
+
     }
 }

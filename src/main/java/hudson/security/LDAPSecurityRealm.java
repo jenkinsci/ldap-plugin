@@ -1011,7 +1011,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
             UsernameNotFoundException lastUNFE = null;
-            DataAccessException lastDAE = null;
             for (LDAPUserDetailsService delegate : delegates) {
                 try {
                     LdapUserDetails userDetails = delegate.loadUserByUsername(username);
@@ -1023,14 +1022,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (DataAccessException e) {
-                    LOGGER.log(Level.WARNING, "An LDAP connection seems to be broken, will try the next configuration.", e);
-                    lastDAE = e;
+                    LOGGER.log(Level.WARNING, "LDAP connection " + delegate.server + " seems to be broken, will _not_ try the next configuration.", e);
+                    throw e;
                 }
             }
             if (lastUNFE != null) {
                 throw  lastUNFE;
-            } else if (lastDAE != null) {
-                throw lastDAE;
             } else {
                 throw new UserMayOrMayNotExistException("This is not intentional.", username);
             }
