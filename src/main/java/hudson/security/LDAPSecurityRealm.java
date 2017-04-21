@@ -728,8 +728,21 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public LdapUserDetails updateUserDetails(LdapUserDetails d) {
         hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
         LDAPConfiguration configuration = getConfigurationFor(d);
-        String displayNameAttributeName = configuration != null ? configuration.getDisplayNameAttributeName() : DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
-        String mailAddressAttributeName = configuration != null ? configuration.getMailAddressAttributeName() : DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+        String displayNameAttributeName;
+        String mailAddressAttributeName;
+        if (configuration != null) {
+            displayNameAttributeName = configuration.getDisplayNameAttributeName();
+            mailAddressAttributeName = configuration.getMailAddressAttributeName();
+            if (StringUtils.isEmpty(displayNameAttributeName)) {
+                displayNameAttributeName = DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
+            }
+            if (StringUtils.isEmpty(mailAddressAttributeName)) {
+                mailAddressAttributeName = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+            }
+        } else {
+            displayNameAttributeName = DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
+            mailAddressAttributeName = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+        }
         try {
             Attribute attribute = d.getAttributes().get(displayNameAttributeName);
             String displayName = attribute == null ? null : (String) attribute.get();
