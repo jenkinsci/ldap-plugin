@@ -1192,19 +1192,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
             try {
                 LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails.loadUserByUsername(u.getId());
-                Attribute mail = details.getAttributes().get(((LDAPSecurityRealm)realm).getMailAddressAttributeName());
+                final LDAPConfiguration configuration = ((LDAPSecurityRealm) realm).getConfigurationFor(details);
+                String attr;
+                if (configuration != null) {
+                    attr = configuration.getMailAddressAttributeName();
+                    if (StringUtils.isEmpty(attr)) {
+                        attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+                    }
+                } else {
+                    attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
+                }
+                Attribute mail = details.getAttributes().get(attr);
                 if(mail==null)  return null;    // not found
                 return (String)mail.get();
-            } catch (UsernameNotFoundException e) {
-                LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
-                return null;
-            } catch (DataAccessException e) {
-                LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
-                return null;
-            } catch (NamingException e) {
-                LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
-                return null;
-            } catch (AcegiSecurityException e) {
+            } catch (DataAccessException | NamingException | AcegiSecurityException e) {
                 LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
                 return null;
             }
