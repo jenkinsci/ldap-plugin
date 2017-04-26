@@ -76,6 +76,8 @@ import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.acegisecurity.*;
 import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapDataAccessException;
@@ -98,6 +100,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -480,6 +483,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @DataBoundConstructor
     public LDAPSecurityRealm(List<LDAPConfiguration> configurations, boolean disableMailAddressResolver, CacheConfiguration cache, IdStrategy userIdStrategy, IdStrategy groupIdStrategy) {
+        if (configurations == null || configurations.isEmpty()) {
+            //Correct FormException should be handled by DescriptorImpl.newInstance
+            throw new IllegalArgumentException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne());
+        }
         this.configurations = configurations;
         this.disableMailAddressResolver = disableMailAddressResolver;
         this.cache = cache;
@@ -1286,7 +1293,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return IdStrategy.CASE_INSENSITIVE;
         }
 
-
+        @Override
+        public SecurityRealm newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            if (!formData.has("configurations")) {
+                throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+            } else {
+                final Object configurations = formData.get("configurations");
+                if (configurations instanceof JSONArray && ((JSONArray) configurations).isEmpty()) {
+                    throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                } else if (!(configurations instanceof JSONObject)) {
+                    throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                } else if (((JSONObject) configurations).isNullObject()) {
+                    throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                }
+            }
+            return super.newInstance(req, formData);
+        }
     }
 
     /**
