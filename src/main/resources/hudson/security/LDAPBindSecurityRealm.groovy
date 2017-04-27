@@ -23,14 +23,13 @@
  */
 import org.acegisecurity.providers.ProviderManager
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationProvider
-import org.acegisecurity.providers.ldap.LdapAuthenticationProvider
 import org.acegisecurity.providers.ldap.authenticator.BindAuthenticator2
 import org.acegisecurity.ldap.DefaultInitialDirContextFactory
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch
 import org.acegisecurity.providers.rememberme.RememberMeAuthenticationProvider
 import jenkins.model.Jenkins
 import hudson.security.LDAPSecurityRealm.AuthoritiesPopulatorImpl
-import hudson.Util
+import hudson.security.LDAPSecurityRealm.LdapAuthenticationProviderImpl
 import javax.naming.Context
 
 /*
@@ -69,12 +68,16 @@ authoritiesPopulator(AuthoritiesPopulatorImpl, initialDirContextFactory, instanc
     // see DefaultLdapAuthoritiesPopulator for other possible configurations
     searchSubtree = true;
     groupSearchFilter = "(| (member={0}) (uniqueMember={0}) (memberUid={1}))";
+    if (instance.disableRolePrefixing) {
+        rolePrefix = "";
+        convertToUpperCase = false;
+    }
 }
 
 authenticationManager(ProviderManager) {
     providers = [
         // talk to LDAP
-        bean(LdapAuthenticationProvider,bindAuthenticator,authoritiesPopulator),
+        bean(LdapAuthenticationProviderImpl,bindAuthenticator,authoritiesPopulator,instance.groupMembershipStrategy),
 
     // these providers apply everywhere
         bean(RememberMeAuthenticationProvider) {

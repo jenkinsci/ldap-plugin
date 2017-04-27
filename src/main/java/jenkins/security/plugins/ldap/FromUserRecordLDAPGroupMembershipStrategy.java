@@ -24,6 +24,8 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.Extension;
+import hudson.security.LDAPSecurityRealm;
+import java.util.Set;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
@@ -87,6 +89,30 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
             }
 
         }
+        if (getAuthoritiesPopulator() instanceof LDAPSecurityRealm.AuthoritiesPopulatorImpl) {
+            // HACK HACK HACK HACK
+            LDAPSecurityRealm.AuthoritiesPopulatorImpl authoritiesPopulatorImpl =
+                    (LDAPSecurityRealm.AuthoritiesPopulatorImpl) getAuthoritiesPopulator();
+            if (authoritiesPopulatorImpl.isGeneratingPrefixRoles()) {
+                for (GrantedAuthority ga : new ArrayList<>(result)) {
+                    String role = ga.getAuthority();
+
+                    // backward compatible name mangling
+                    if (authoritiesPopulatorImpl.isConvertToUpperCase()) {
+                        role = role.toUpperCase();
+                    }
+                    GrantedAuthorityImpl extraAuthority = new GrantedAuthorityImpl(
+                            authoritiesPopulatorImpl.getRolePrefix() + role);
+                    result.add(extraAuthority);
+                }
+            }
+            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(ldapUser));
+            GrantedAuthority defaultRole = authoritiesPopulatorImpl.getDefaultRole();
+            if (defaultRole != null) {
+                result.add(defaultRole);
+            }
+        }
+
         return result.toArray(new GrantedAuthority[result.size()]);
     }
 
