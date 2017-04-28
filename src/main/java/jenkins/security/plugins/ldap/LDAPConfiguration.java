@@ -439,9 +439,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
 
-    public WebApplicationContext createApplicationContext() {
+    public WebApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
         Binding binding = new Binding();
         binding.setVariable("instance", this);
+        binding.setVariable("realmInstance", realm);
 
         final Jenkins jenkins = Jenkins.getInstance();
         if (jenkins == null) {

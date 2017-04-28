@@ -1,0 +1,100 @@
+<!--
+ ~ The MIT License
+ ~
+ ~ Copyright (c) 2017, CloudBees, Inc.
+ ~
+ ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+ ~ of this software and associated documentation files (the "Software"), to deal
+ ~ in the Software without restriction, including without limitation the rights
+ ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ ~ copies of the Software, and to permit persons to whom the Software is
+ ~ furnished to do so, subject to the following conditions:
+ ~
+ ~ The above copyright notice and this permission notice shall be included in
+ ~ all copies or substantial portions of the Software.
+ ~
+ ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ ~ THE SOFTWARE.
+ -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
+         xmlns:f="/lib/form" xmlns:d="jelly:define">
+  <st:documentation>
+    A <code>validate</code> control that supports validation of the entire form element.
+    <st:attribute name="method" use="required">
+      Server-side method that handles the validation. For example, if this is 'foo', you need "doFoo" on
+      your descriptor class.
+    </st:attribute>
+    <st:attribute name="name" use="required">
+      Name of the validate button control.
+    </st:attribute>
+    <st:attribute name="title" use="required">
+      Caption of the validate button. Should be internationalized.
+    </st:attribute>
+    <st:attribute name="dialog" use="required">
+      Caption of the validate dialog. Should be internationalized.
+    </st:attribute>
+    <st:attribute name="submit" use="required">
+      Caption of the validate dialog submit button. Should be internationalized.
+    </st:attribute>
+    <st:attribute name="progress">
+      Caption of the text shown while the AJAX call is in progress. For example, "checking..."
+    </st:attribute>
+    <st:attribute name="filter">
+      JSON path to the object to send.
+    </st:attribute>
+  </st:documentation>
+  <f:entry>
+    <j:set var="uid" value="${h.generateId()}" />
+    <div style="float:right" class="ldap-validate-section">
+      <span class="yui-button">
+        <span>
+          <button id="${uid}" type="button" name="${name}" class="ldap-validate-button"
+                  onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this,'${uid}'); return false;">
+            ${title}
+          </button>
+        </span>
+      </span>
+      <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
+        <div class="hd">
+           <h2>${dialog}</h2>
+        </div>
+        <div class="bd">
+        <table id="${uid}_dialog" width="100%">
+          <d:invokeBody/>
+          <f:entry>
+            <input type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary" onclick="return false;"/>
+          </f:entry>
+        </table>
+        </div>
+      </div>
+    </div>
+    <div id="${uid}_spinner" style="display:none;">
+      <img src="${imagesURL}/spinner.gif"/>
+      ${attrs.progress}
+    </div>
+    <div id="${uid}_result"><!-- this is where the error message goes --></div>
+  </f:entry>
+  <script>
+    // HACK: can be removed once base version of Jenkins has fix of https://issues.jenkins-ci.org/browse/JENKINS-26578
+    // conditionally include the adjunct resources as AdjunctManager doesn't do this correctly for CSS
+    if (!document.getElementById('jenkins.security.plugins.ldap.validation.validate')) {
+    var link = document.createElement('link');
+    link.id = 'jenkins.security.plugins.ldap.validation.validate';
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = "${request.contextPath+'/'+app.getAdjuncts(null).rootURL+'/jenkins/security/plugins/ldap/validation/validate/validate.css'}";
+    link.media = 'all';
+    document.getElementsByTagName('head')[0].appendChild(link);
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = "${request.contextPath+'/'+app.getAdjuncts(null).rootURL+'/jenkins/security/plugins/ldap/validation/validate/validate.js'}";
+    document.getElementsByTagName('body')[0].appendChild(script);
+    }
+  </script>
+</j:jelly>

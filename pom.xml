@@ -232,6 +232,13 @@
       <version>${apacheds.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.10.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -244,6 +251,13 @@
             <hudson.bundled.plugins>${basedir}/work/plugins/ldap.hpl</hudson.bundled.plugins>
           </systemProperties>
         </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate-taglib-interface</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>    
   </build>

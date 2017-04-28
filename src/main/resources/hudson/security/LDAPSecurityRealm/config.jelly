@@ -23,7 +23,8 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
+         xmlns:v="/jenkins/security/plugins/ldap/validation">
     <f:entry>
         <f:repeatable field="configurations" minimum="1" header="${%Server}" add="${%Add Server}">
             <table style="width:100%">
@@ -36,6 +37,20 @@ THE SOFTWARE.
             </table>
         </f:repeatable>
     </f:entry>
+    <v:validate name="validateLdapSettings" method="validate" filter="useSecurity.realm"
+                title="${%Test LDAP settings}"
+                dialog="${%Test LDAP settings}"
+                submit="${%Test}">
+        <f:block>
+            ${%validationBlurb}
+        </f:block>
+        <f:entry title="${%User:}">
+            <f:textbox name="testUser"/>
+        </f:entry>
+        <f:entry title="${%Password:}">
+            <f:password name="testPassword"/>
+        </f:entry>
+    </v:validate>
     <f:advanced title="${%Advanced Configuration}">
         <f:advanced title="${%Case sensitivity}">
             <f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}"
@@ -45,6 +60,9 @@ THE SOFTWARE.
         </f:advanced>
         <f:entry field="disableMailAddressResolver">
             <f:checkbox title="${%Disable Ldap Email Resolver}"/>
+        </f:entry>
+        <f:entry field="disableRolePrefixing" help="/plugin/ldap/help-disableRolePrefixing.html">
+            <f:checkbox default="true" title="${%Disable Backward Compatibility for Roles}"/>
         </f:entry>
         <f:optionalProperty field="cache" title="${%Enable cache}"/>
         <f:entry field="environmentProperties" title="${%Environment Properties}">
