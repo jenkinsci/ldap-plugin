@@ -3,6 +3,7 @@
  * 
  * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe,
  *    Olivier Lamy
+ * Copyright (c) 2017 CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -910,7 +911,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    protected static class DelegatedLdapAuthentication implements Authentication {
+    private static class DelegatedLdapAuthentication implements Authentication {
         private final Authentication delegate;
         private final String server;
 
@@ -968,7 +969,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    protected static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
+    private static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
         private final String server;
