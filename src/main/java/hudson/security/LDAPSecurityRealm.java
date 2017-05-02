@@ -674,6 +674,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
+    @Restricted(NoExternalUse.class)
+    public boolean hasMultiConfiguration() {
+        return hasConfiguration() && configurations.size() > 1;
+    }
+
     @CheckForNull @Restricted(NoExternalUse.class)
     public LDAPConfiguration getConfigurationFor(String server) {
         for (LDAPConfiguration configuration : configurations) {
@@ -1505,9 +1510,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserId(Util.escape(loginDetails.getUsername())));
                 ok(response, "authentication-dn",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserDn(Util.escape(loginDetails.getDn())));
-                validateDisplayName(realm, response, loginDetails, "authentication-displayname");
+                LDAPConfiguration loginConfiguration = realm.getConfigurationFor(loginDetails);
+                assert loginConfiguration != null;
+                if (realm.hasMultiConfiguration()) {
+                    ok(response, "authentication-configuration",
+                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserConfiguration(Util.escape(loginConfiguration.getServer())));
+                }
+                validateDisplayName(loginConfiguration, response, loginDetails, "authentication-displayname");
                 if (!realm.disableMailAddressResolver) {
-                    validateEmailAddress(realm, response, loginDetails, "authentication-email");
+                    validateEmailAddress(loginConfiguration, response, loginDetails, "authentication-email");
                 }
                 for (GrantedAuthority a : loginDetails.getAuthorities()) {
                     loginAuthorities.add(a.getAuthority());
@@ -1549,7 +1560,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } catch (UserMayOrMayNotExistException e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive(user),
-                        StringUtils.isBlank(realm.managerDN)
+                        isAnyManagerBlank(realm)
                                 ? jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired()
                                 : jenkins.security.plugins.ldap.Messages
                                 .LDAPSecurityRealm_UserLookupManagerDnPermissions()
@@ -1558,7 +1569,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } catch (UsernameNotFoundException e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupDoesNotExist(user),
-                        StringUtils.isBlank(realm.managerDN)
+                        isAnyManagerBlank(realm)
                                 ? jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupManagerDnRequired()
                                 : jenkins.security.plugins.ldap.Messages
                                 .LDAPSecurityRealm_UserLookupManagerDnPermissions(),
@@ -1572,7 +1583,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 if (cause != null) {
                     error(response, "lookup",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupBadCredentials(),
-                            StringUtils.isBlank(realm.managerDN)
+                            isAnyManagerBlank(realm)
                                     ? jenkins.security.plugins.ldap.Messages
                                     .LDAPSecurityRealm_UserLookupManagerDnCorrect()
                                     : jenkins.security.plugins.ldap.Messages
@@ -1596,9 +1607,17 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserDn(
                                 Util.escape(lookUpDetails.getDn())
                         ));
-                validateDisplayName(realm, response, lookUpDetails, "lookup-displayname");
+                LDAPConfiguration lookupConfiguration = realm.getConfigurationFor(lookUpDetails);
+                assert lookupConfiguration != null;
+                if (realm.hasMultiConfiguration()) {
+                    ok(response, "lookup-configuration",
+                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserConfiguration(
+                                    Util.escape(lookupConfiguration.getServer())
+                            ));
+                }
+                validateDisplayName(lookupConfiguration, response, lookUpDetails, "lookup-displayname");
                 if (!realm.disableMailAddressResolver) {
-                    validateEmailAddress(realm, response, lookUpDetails, "lookup-email");
+                    validateEmailAddress(lookupConfiguration, response, lookUpDetails, "lookup-email");
                 }
             }
             Set<String> lookupAuthorities = new HashSet<>();
@@ -1632,6 +1651,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
             // let's check consistency
             if (loginDetails != null && lookUpDetails != null) {
+                LDAPConfiguration loginConfiguration = realm.getConfigurationFor(loginDetails);
+                LDAPConfiguration lookupConfiguration = realm.getConfigurationFor(lookUpDetails);
+                assert loginConfiguration == lookupConfiguration : "The lookup user details and login user details are not from the same server configuration";
                 // username
                 if (!StringUtils.equals(loginDetails.getUsername(), lookUpDetails.getUsername())) {
                     error(response, "consistency-username",
@@ -1647,15 +1669,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     potentialLockout = true; // consistency is important
                 }
                 // display name
-                if (StringUtils.isNotBlank(realm.getDisplayNameAttributeName())) {
-                    Attribute loginAttr = loginDetails.getAttributes().get(realm.getDisplayNameAttributeName());
+                if (StringUtils.isNotBlank(loginConfiguration.getDisplayNameAttributeName())) {
+                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getDisplayNameAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(realm.getDisplayNameAttributeName());
+                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getDisplayNameAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1670,16 +1692,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 }
                 // email address
-                if (!realm.disableMailAddressResolver && StringUtils.isNotBlank(realm.getMailAddressAttributeName()))
+                if (!realm.disableMailAddressResolver && StringUtils.isNotBlank(loginConfiguration.getMailAddressAttributeName()))
                 {
-                    Attribute loginAttr = loginDetails.getAttributes().get(realm.getMailAddressAttributeName());
+                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getMailAddressAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(realm.getMailAddressAttributeName());
+                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getMailAddressAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1730,7 +1752,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 warning(response, "resolve-groups",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_GroupLookupFailed(badGroups.size()),
                         escaped,
-                        StringUtils.isBlank(realm.managerDN)
+                        isAnyManagerBlank(realm)
                                 ? jenkins.security.plugins.ldap.Messages
                                 .LDAPSecurityRealm_GroupLookupManagerDnRequired()
                                 : jenkins.security.plugins.ldap.Messages
@@ -1749,9 +1771,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return FormValidation.okWithMarkup(response.toString());
         }
 
-        private void validateEmailAddress(LDAPSecurityRealm realm, StringBuilder response,
+        private boolean isAnyManagerBlank(LDAPSecurityRealm realm) {
+            for (LDAPConfiguration configuration : realm.getConfigurations()) {
+                if (StringUtils.isBlank(configuration.getManagerDN())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void validateEmailAddress(LDAPConfiguration configuration, StringBuilder response,
                                           LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(realm.getMailAddressAttributeName());
+            Attribute attribute = details.getAttributes().get(configuration.getMailAddressAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
                 for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
@@ -1760,7 +1791,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 warning(response, testId,
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoEmailAddress(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                Util.escape(realm.getMailAddressAttributeName())
+                                Util.escape(configuration.getMailAddressAttributeName())
                         ),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                         alternatives);
@@ -1780,7 +1811,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         warning(response, testId,
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyEmailAddress(),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                        Util.escape(realm.getMailAddressAttributeName())
+                                        Util.escape(configuration.getMailAddressAttributeName())
                                 ),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                                 alternatives);
@@ -1793,7 +1824,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     error(response, testId,
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_CouldNotRetrieveEmailAddress(),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                    Util.escape(realm.getMailAddressAttributeName())
+                                    Util.escape(configuration.getMailAddressAttributeName())
                             ),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                             alternatives);
@@ -1801,9 +1832,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             }
         }
 
-        private void validateDisplayName(LDAPSecurityRealm realm, StringBuilder response,
+        private void validateDisplayName(LDAPConfiguration configuration, StringBuilder response,
                                          LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(realm.getDisplayNameAttributeName());
+            Attribute attribute = details.getAttributes().get(configuration.getDisplayNameAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
                 for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
@@ -1812,7 +1843,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 warning(response, testId,
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoDisplayName(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                Util.escape(realm.getDisplayNameAttributeName())
+                                Util.escape(configuration.getDisplayNameAttributeName())
                         ),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                         alternatives);
@@ -1832,7 +1863,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         warning(response, testId,
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmptyDisplayName(),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                        Util.escape(realm.getDisplayNameAttributeName())
+                                        Util.escape(configuration.getDisplayNameAttributeName())
                                 ),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                                 alternatives);
@@ -1845,7 +1876,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     error(response, testId,
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_CouldNotRetrieveDisplayName(),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_IsAttributeNameCorrect(
-                                    Util.escape(realm.getDisplayNameAttributeName())
+                                    Util.escape(configuration.getDisplayNameAttributeName())
                             ),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AvailableAttributes(),
                             alternatives);
