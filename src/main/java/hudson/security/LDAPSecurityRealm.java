@@ -896,7 +896,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (lastException != null) {
                 throw lastException;
             } else {
-                throw new UserMayOrMayNotExistException("This is not intentional.", authentication);
+                throw new UserMayOrMayNotExistException("No ldap server configuration", authentication);
             }
         }
 
@@ -1074,7 +1074,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (lastUNFE != null) {
                 throw  lastUNFE;
             } else {
-                throw new UserMayOrMayNotExistException("This is not intentional.", username);
+                throw new UsernameNotFoundException(username);
             }
         }
     }
