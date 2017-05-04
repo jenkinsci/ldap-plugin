@@ -46,16 +46,16 @@ public class LdapMultiEmbeddedTest {
         sevenSeasConf.setUserSearch(null);
         sevenSeasConf.setGroupSearchBase("ou=groups,o=sevenSeas");
         sevenSeasConf.setGroupSearchFilter(null);
-        sevenSeasConf.setGroupMembershipStrategy(new FromGroupSearchLDAPGroupMembershipStrategy(null));
+        sevenSeasConf.setGroupMembershipStrategy(new FromUserRecordLDAPGroupMembershipStrategy("memberof"));
         sevenSeasConf.setDisplayNameAttributeName("sn"); //Different than the next so we can see that difference is made
         sevenSeasConf.setMailAddressAttributeName(null);
 
         LDAPConfiguration planetExpressConf = new LDAPConfiguration(planetExpress.getUrl(), "dc=planetexpress,dc=com", false, "uid=admin,ou=system", Secret.fromString("pass"));
         planetExpressConf.setUserSearchBase("ou=people");
         planetExpressConf.setUserSearch(null);
-        planetExpressConf.setGroupSearchBase(null);
+        planetExpressConf.setGroupSearchBase("ou=groups");
         planetExpressConf.setGroupSearchFilter(null);
-        planetExpressConf.setGroupMembershipStrategy(new FromUserRecordLDAPGroupMembershipStrategy("ou"));
+        planetExpressConf.setGroupMembershipStrategy(new FromGroupSearchLDAPGroupMembershipStrategy("uniquemember={0}"));
         planetExpressConf.setDisplayNameAttributeName("cn"); //Different than the first so we can see that difference is made
         planetExpressConf.setMailAddressAttributeName("mail");
 
@@ -74,32 +74,32 @@ public class LdapMultiEmbeddedTest {
 
         //Second server
         User user = User.get("hhornblo");
-        assertThat(user.getAuthorities(), allOf(hasItem("HMS Lydia"), hasItem("ROLE_HMS LYDIA")));
+        assertThat(user.getAuthorities(), allOf(hasItem("HMS_Lydia"), hasItem("ROLE_HMS_LYDIA")));
         assertThat(user.getDisplayName(), is("Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         user = User.get("hnelson");
-        assertThat(user.getAuthorities(), allOf(hasItem("HMS Victory"), hasItem("ROLE_HMS VICTORY")));
+        assertThat(user.getAuthorities(), allOf(hasItem("HMS_Victory"), hasItem("ROLE_HMS_VICTORY")));
         assertThat(user.getDisplayName(), is("Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
 
         //First server
         user = User.get("fry");
-        assertThat(user.getAuthorities(), hasItem("Delivering Crew"));
+        assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("fry@planetexpress.com"));
 
         user = User.get("bender");
-        assertThat(user.getAuthorities(), hasItem("Delivering Crew"));
+        assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         //Has something encrypted as cn
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("bender@planetexpress.com"));
 
         user = User.get("amy");
-        assertThat(user.getAuthorities(), hasItem("Intern"));
+        assertThat(user.getAuthorities(), hasItem("staff"));
         assertThat(user.getDisplayName(), is("Amy Wong"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("amy@planetexpress.com"));
 
         user = User.get("professor");
-        assertThat(user.getAuthorities(), hasItem("Office Management"));
+        assertThat(user.getAuthorities(), allOf(hasItem("management"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Hubert J. Farnsworth"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("professor@planetexpress.com"));
 
