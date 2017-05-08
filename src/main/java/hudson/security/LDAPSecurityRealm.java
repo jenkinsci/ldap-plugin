@@ -1381,8 +1381,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
             } else {
                 final Object configurations = formData.get("configurations");
-                if (configurations instanceof JSONArray && ((JSONArray) configurations).isEmpty()) {
-                    throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                if (configurations instanceof JSONArray) {
+                    if (((JSONArray) configurations).isEmpty()) {
+                        throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                    }
                 } else if (!(configurations instanceof JSONObject)) {
                     throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
                 } else if (((JSONObject) configurations).isNullObject()) {

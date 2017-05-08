@@ -122,7 +122,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * Set in {@link #createApplicationContext(LDAPSecurityRealm)}
      */
-    private LdapTemplate ldapTemplate;
+    private transient LdapTemplate ldapTemplate;
 
     @DataBoundConstructor
     public LDAPConfiguration(@Nonnull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
