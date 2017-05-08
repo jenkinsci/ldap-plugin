@@ -25,9 +25,13 @@
 package hudson.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
@@ -242,4 +246,58 @@ public class LDAPSecurityRealmTest {
         assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
     }
 
+    @Test
+    public void configRoundTripTwo() throws Exception {
+        class TestConf {
+            final String server;
+            final String rootDN;
+            final String userSearchBase;
+            final String managerDN;
+            final String managerSecret;
+
+            public TestConf(String server, String rootDN, String userSearchBase, String managerDN, String managerSecret) {
+                this.server = server;
+                this.rootDN = rootDN;
+                this.userSearchBase = userSearchBase;
+                this.managerDN = managerDN;
+                this.managerSecret = managerSecret;
+            }
+        }
+        TestConf[] confs = new TestConf[2];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        r.submit(client.goTo("configureSecurity").getFormByName("config"));
+
+        LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        assertNotSame(realm, newRealm);
+        final List<LDAPConfiguration> configurations = newRealm.getConfigurations();
+        assertThat(configurations, hasSize(confs.length));
+        for (int i = 0; i < configurations.size(); i++) {
+            LDAPConfiguration config = configurations.get(i);
+            TestConf conf = confs[i];
+            assertEquals(conf.server, config.getServer());
+            assertEquals(conf.rootDN, config.getRootDN());
+            assertEquals(conf.userSearchBase, config.getUserSearchBase());
+            assertEquals(conf.managerDN, config.getManagerDN());
+            assertEquals(conf.managerSecret, config.getManagerPassword());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
+        }
+        assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+    }
 }
