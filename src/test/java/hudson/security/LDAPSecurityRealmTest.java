@@ -24,6 +24,7 @@
 
 package hudson.security;
 
+import java.io.IOException;
 import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -35,6 +36,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import javax.naming.directory.BasicAttributes;
+
+import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
@@ -52,6 +55,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.xml.sax.SAXException;
 
 public class LDAPSecurityRealmTest {
 
@@ -193,6 +197,49 @@ public class LDAPSecurityRealmTest {
             }
         }
         throw new AssertionError(String.format("Button [%s] not found", text));
+    }
+
+    @Test
+    public void configRoundTrip() throws Exception {
+        final String server = "ldap.itd.umich.edu";
+        final String rootDN = "ou=umich,ou.edu";
+        final String userSearchBase = "cn=users,ou=umich,ou.edu";
+        final String managerDN = "cn=admin,ou=umich,ou.edu";
+        final String managerSecret = "secret";
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                server,
+                rootDN,
+                userSearchBase,
+                null,
+                null,
+                null,
+                new FromUserRecordLDAPGroupMembershipStrategy("previousValue"),
+                managerDN,
+                Secret.fromString(managerSecret),
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        r.submit(client.goTo("configureSecurity").getFormByName("config"));
+
+        LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        assertNotSame(realm, newRealm);
+        LDAPConfiguration config = newRealm.getConfigurations().get(0);
+        assertEquals(server, config.getServer());
+        assertEquals(rootDN, config.getRootDN());
+        assertEquals(userSearchBase, config.getUserSearchBase());
+        assertEquals(managerDN, config.getManagerDN());
+        assertEquals(managerSecret, config.getManagerPassword());
+        assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
     }
 
 }
