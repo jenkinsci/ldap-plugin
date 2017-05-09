@@ -714,8 +714,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
-        LDAPAuthenticationManager manager = new LDAPAuthenticationManager();
         DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
+        LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
         for (LDAPConfiguration conf : configurations) {
             WebApplicationContext appContext = conf.createApplicationContext(this);
             manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
@@ -873,11 +873,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     private class LDAPAuthenticationManager implements AuthenticationManager {
-
-        private final List<ManagerEntry> delegates;
+        private final List<ManagerEntry> delegates = new ArrayList<>();;
+        private final DelegateLDAPUserDetailsService detailsService;
 
         private LDAPAuthenticationManager() {
-            this.delegates = new ArrayList<>();
+            detailsService = null;
+        }
+
+        private LDAPAuthenticationManager(DelegateLDAPUserDetailsService detailsService) {
+            this.detailsService = detailsService;
         }
 
         private void addDelegate(final AuthenticationManager delegate, final String server) {
@@ -891,7 +895,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     Authentication a = delegate.delegate.authenticate(authentication);
                     return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.server));
                 } catch (BadCredentialsException e) {
-                    lastException = e;
+                    if (detailsService != null && delegates.size() > 1) {
+                        try {
+                            UserDetails details = detailsService.loadUserByUsername(delegate.server, String.valueOf(authentication.getPrincipal()));
+                            if (details != null) {
+                                throw e; //the user actually exists on this server, so we should stop here and report
+                            }
+                        } catch (UsernameNotFoundException e1) {
+                            lastException = e; //all is as intended, let's move along
+                        }
+                    } else {
+                        lastException = e;
+                    }
                 }
             }
             if (lastException != null) {
@@ -912,7 +927,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    private static class DelegatedLdapAuthentication implements Authentication {
+    /*package access for testability*/
+    static class DelegatedLdapAuthentication implements Authentication {
         private final Authentication delegate;
         private final String server;
 
@@ -970,7 +986,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    private static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
+    /*package access for testability*/
+    static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
         private final String server;
@@ -1052,6 +1069,29 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public boolean contains(LDAPUserDetailsService delegate) {
             return delegates.contains(delegate);
+        }
+
+        /**
+         * Tries to load the user from a specified server key
+         * @param server the server to specifially load from
+         * @param username the username to search
+         * @return the user details or {@code null} if the server configuration could not be found
+         * @throws UsernameNotFoundException if the user could not be found on the given server
+         * @throws DataAccessException if some communication error occured
+         * @see #loadUserByUsername(String)
+         */
+        public DelegatedLdapUserDetails loadUserByUsername(String server, String username) throws UsernameNotFoundException, DataAccessException {
+            for (LDAPUserDetailsService delegate : delegates) {
+                if (delegate.server.equals(server)) {
+                    LdapUserDetails userDetails = delegate.loadUserByUsername(username);
+                    if (userDetails instanceof DelegatedLdapUserDetails) {
+                        return (DelegatedLdapUserDetails)userDetails;
+                    } else {
+                        return new DelegatedLdapUserDetails(userDetails, delegate.server);
+                    }
+                }
+            }
+            return null;
         }
 
         @Override
