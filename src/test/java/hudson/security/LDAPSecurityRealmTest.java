@@ -34,6 +34,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
@@ -246,23 +247,24 @@ public class LDAPSecurityRealmTest {
         assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
     }
 
+    static class TestConf {
+        final String server;
+        final String rootDN;
+        final String userSearchBase;
+        final String managerDN;
+        final String managerSecret;
+
+        public TestConf(String server, String rootDN, String userSearchBase, String managerDN, String managerSecret) {
+            this.server = server;
+            this.rootDN = rootDN;
+            this.userSearchBase = userSearchBase;
+            this.managerDN = managerDN;
+            this.managerSecret = managerSecret;
+        }
+    }
+
     @Test
     public void configRoundTripTwo() throws Exception {
-        class TestConf {
-            final String server;
-            final String rootDN;
-            final String userSearchBase;
-            final String managerDN;
-            final String managerSecret;
-
-            public TestConf(String server, String rootDN, String userSearchBase, String managerDN, String managerSecret) {
-                this.server = server;
-                this.rootDN = rootDN;
-                this.userSearchBase = userSearchBase;
-                this.managerDN = managerDN;
-                this.managerSecret = managerSecret;
-            }
-        }
         TestConf[] confs = new TestConf[2];
         confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
@@ -299,5 +301,60 @@ public class LDAPSecurityRealmTest {
             assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
         }
         assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+    }
+
+    @Test
+    public void configRoundTwoThreeSameName() throws Exception {
+        TestConf[] confs = new TestConf[2];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        try {
+            r.submit(client.goTo("configureSecurity").getFormByName("config"));
+            fail("Should not succeed");
+        } catch (FailingHttpStatusCodeException e) {
+            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
+        }
+    }
+
+    @Test
+    public void configRoundTripThreeSameName() throws Exception {
+        TestConf[] confs = new TestConf[3];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[2] = new TestConf("ldap.example.com", "ou=example3,ou.com", "cn=users,ou=example3,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        try {
+            r.submit(client.goTo("configureSecurity").getFormByName("config"));
+            fail("Should not succeed");
+        } catch (FailingHttpStatusCodeException e) {
+            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
+        }
     }
 }

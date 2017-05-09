@@ -74,6 +74,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.dao.DataAccessException;
@@ -1384,6 +1385,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 if (configurations instanceof JSONArray) {
                     if (((JSONArray) configurations).isEmpty()) {
                         throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
+                    } else if (((JSONArray) configurations).size() > 1) {
+                        //check server names
+                        JSONArray confs = (JSONArray) configurations;
+                        for (int i = 0; i < confs.size(); i++) {
+                            JSONObject ci = confs.getJSONObject(i);
+                            for (int k = i+1; k < confs.size(); k++) {
+                                JSONObject ck = confs.getJSONObject(k);
+                                if (ci.getString("server").equals(ck.getString("server"))) {
+                                    throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer(), "configurations");
+                                }
+                            }
+                        }
                     }
                 } else if (!(configurations instanceof JSONObject)) {
                     throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
