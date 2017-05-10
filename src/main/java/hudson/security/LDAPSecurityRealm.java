@@ -714,14 +714,25 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
-        DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
-        LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
-        for (LDAPConfiguration conf : configurations) {
+        if (configurations.size() > 1) {
+            DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
+            LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
+            for (LDAPConfiguration conf : configurations) {
+                WebApplicationContext appContext = conf.createApplicationContext(this);
+                manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
+                details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getServer()));
+            }
+            return new SecurityComponents(manager, details);
+        } else {
+            final LDAPConfiguration conf = configurations.get(0);
             WebApplicationContext appContext = conf.createApplicationContext(this);
-            manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
-            details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getServer()));
+            final LDAPAuthenticationManager manager = new LDAPAuthenticationManager();
+            manager.addDelegate(findBean(AuthenticationManager.class, appContext), "");
+            return new SecurityComponents(
+                    manager,
+                    new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), null)
+            );
         }
-        return new SecurityComponents(manager, details);
     }
 
     /**
@@ -889,6 +900,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+            if (delegates.size() == 1) {
+                return updateUserDetails(delegates.get(0).delegate.authenticate(authentication));
+            }
             BadCredentialsException lastException = null;
             for (ManagerEntry delegate : delegates) {
                 try {
@@ -1208,7 +1222,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                    ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), server);
+                    if (server != null) {
+                        ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), server);
+                    } else {
+                        ldapUser = user.createUserDetails();
+                    }
                 }
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails == this
