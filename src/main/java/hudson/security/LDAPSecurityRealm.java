@@ -718,14 +718,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
             LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
             for (LDAPConfiguration conf : configurations) {
-                WebApplicationContext appContext = conf.createApplicationContext(this);
+                WebApplicationContext appContext = conf.createApplicationContext(this, false);
                 manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
                 details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getServer()));
             }
             return new SecurityComponents(manager, details);
         } else {
             final LDAPConfiguration conf = configurations.get(0);
-            WebApplicationContext appContext = conf.createApplicationContext(this);
+            WebApplicationContext appContext = conf.createApplicationContext(this, true);
             final LDAPAuthenticationManager manager = new LDAPAuthenticationManager();
             manager.addDelegate(findBean(AuthenticationManager.class, appContext), "");
             return new SecurityComponents(
@@ -1463,6 +1463,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
             }
             return super.newInstance(req, formData);
+        }
+
+        public boolean hasCustomBindScript() {
+            return LDAPConfiguration.getLdapBindOverrideFile(Jenkins.getActiveInstance()).exists();
         }
 
         @RequirePOST

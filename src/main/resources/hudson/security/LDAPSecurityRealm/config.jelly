@@ -25,15 +25,22 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
          xmlns:v="/jenkins/security/plugins/ldap/validation">
+    <j:if test="${descriptor.hasCustomBindScript()}">
+        <f:description>
+            <j:out value="${%customBindingBlurb}"/>
+        </f:description>
+    </j:if>
     <f:entry>
-        <f:repeatable field="configurations" minimum="1" header="${%Server}" add="${%Add Server}">
+        <f:repeatable field="configurations" minimum="1" header="${%Server}" add="${%Add Server}" noAddButton="${descriptor.hasCustomBindScript()}">
             <table style="width:100%">
                 <st:include page="config.jelly" class="jenkins.security.plugins.ldap.LDAPConfiguration"/>
-                <f:entry title="">
-                    <div align="right">
-                        <f:repeatableDeleteButton/>
-                    </div>
-                </f:entry>
+                <j:if test="${descriptor.noCustomBindScript()}">
+                    <f:entry title="">
+                        <div align="right">
+                            <f:repeatableDeleteButton/>
+                        </div>
+                    </f:entry>
+                </j:if>
             </table>
         </f:repeatable>
     </f:entry>

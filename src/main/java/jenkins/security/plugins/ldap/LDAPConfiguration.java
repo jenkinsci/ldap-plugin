@@ -83,7 +83,9 @@ import static hudson.Util.fixNull;
  */
 public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration> {
 
-    public static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
+    private static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
+    @Restricted(NoExternalUse.class)
+    public static final String SECURITY_REALM_LDAPBIND_GROOVY = "LDAPBindSecurityRealm.groovy";
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
@@ -120,7 +122,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private String mailAddressAttributeName;
     private Map<String,String> extraEnvVars;
     /**
-     * Set in {@link #createApplicationContext(LDAPSecurityRealm)}
+     * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
      */
     private transient LdapTemplate ldapTemplate;
 
@@ -360,6 +362,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             return "ldap";
         }
 
+        public boolean noCustomBindScript() {
+            return !getLdapBindOverrideFile(Jenkins.getActiveInstance()).exists();
+        }
+
         // note that this works better in 1.528+ (JENKINS-19124)
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
             String server = value;
@@ -466,8 +472,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         else return "ldap://" + server;
     }
 
-
-    public WebApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
+    @Restricted(NoExternalUse.class)
+    public WebApplicationContext createApplicationContext(LDAPSecurityRealm realm, boolean usePotentialUserProvidedBinding) {
         Binding binding = new Binding();
         binding.setVariable("instance", this);
         binding.setVariable("realmInstance", realm);
@@ -478,14 +484,19 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
 
         BeanBuilder builder = new BeanBuilder(jenkins.pluginManager.uberClassLoader);
-        String fileName = "LDAPBindSecurityRealm.groovy";
         try {
-            File override = new File(jenkins.getRootDir(), fileName);
-            builder.parse(
-                    new AutoCloseInputStream(override.exists() ? new FileInputStream(override) :
-                            LDAPSecurityRealm.class.getResourceAsStream(fileName)), binding);
+            File override = getLdapBindOverrideFile(jenkins);
+            if (usePotentialUserProvidedBinding && override.exists()) {
+                builder.parse(new AutoCloseInputStream(new FileInputStream(override)), binding);
+            } else {
+                if (override.exists()) {
+                    LOGGER.warning("Not loading custom " + SECURITY_REALM_LDAPBIND_GROOVY);
+                }
+                builder.parse(new AutoCloseInputStream(LDAPSecurityRealm.class.getResourceAsStream(SECURITY_REALM_LDAPBIND_GROOVY)), binding);
+            }
+
         } catch (FileNotFoundException e) {
-            throw new IllegalStateException("Failed to load "+fileName, e);
+            throw new IllegalStateException("Failed to load "+ SECURITY_REALM_LDAPBIND_GROOVY, e);
         }
         WebApplicationContext appContext = builder.createApplicationContext();
 
@@ -501,5 +512,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     @Restricted(NoExternalUse.class)
     public LdapTemplate getLdapTemplate() {
         return ldapTemplate;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public static File getLdapBindOverrideFile(Jenkins jenkins) {
+        return new File(jenkins.getRootDir(), SECURITY_REALM_LDAPBIND_GROOVY);
     }
 }
