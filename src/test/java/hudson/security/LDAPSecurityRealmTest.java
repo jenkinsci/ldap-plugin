@@ -26,7 +26,6 @@ package hudson.security;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,25 +34,28 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+
 import javax.naming.directory.BasicAttributes;
 
+import com.gargoylesoftware.htmlunit.html.HtmlSpan;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
-import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.LDAPConfiguration;
-import jenkins.security.plugins.ldap.LDAPTestConfiguration;
+import jenkins.security.plugins.ldap.*;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.ldap.LdapDataAccessException;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -126,7 +128,7 @@ public class LDAPSecurityRealmTest {
         assertEquals("gSB", cnf.getGroupSearchBase());
         assertEquals("gSF", cnf.getGroupSearchFilter());
         assertThat(cnf.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
-        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy)cnf.getGroupMembershipStrategy()).getFilter(), is("gMF"));
+        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy) cnf.getGroupMembershipStrategy()).getFilter(), is("gMF"));
         assertNull(sr.groupMembershipFilter);
         assertEquals("mDN", cnf.getManagerDN());
         assertEquals("s3cr3t", cnf.getManagerPassword());
@@ -175,8 +177,8 @@ public class LDAPSecurityRealmTest {
                 null,
                 null,
                 null,
-                (IdStrategy)null,
-                (IdStrategy)null);
+                (IdStrategy) null,
+                (IdStrategy) null);
         r.jenkins.setSecurityRealm(realm);
         r.jenkins.getSecurityRealm().createSecurityComponents();
         final JenkinsRule.WebClient c = r.createWebClient();
@@ -189,16 +191,16 @@ public class LDAPSecurityRealmTest {
             }
         }
         getButtonByText(form, "Save").click();
-        final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm)r.jenkins.getSecurityRealm());
+        final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm) r.jenkins.getSecurityRealm());
         final LDAPConfiguration conf = changedRealm.getConfigurations().get(0);
-        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy)conf.getGroupMembershipStrategy()).getAttributeName();
+        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy) conf.getGroupMembershipStrategy()).getAttributeName();
         assertEquals("Value should be changed", testValue, changedValue);
     }
 
     private HtmlButton getButtonByText(HtmlForm form, String text) throws Exception {
         for (HtmlElement e : form.getElementsByTagName("button")) {
             if (text.equals(e.getTextContent())) {
-                return ((HtmlButton)e);
+                return ((HtmlButton) e);
             }
         }
         throw new AssertionError(String.format("Button [%s] not found", text));
@@ -355,6 +357,132 @@ public class LDAPSecurityRealmTest {
             fail("Should not succeed");
         } catch (FailingHttpStatusCodeException e) {
             assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
+        }
+    }
+
+    @Test
+    public void customBeanBindingHindersMultiServerConfig() throws IOException, SAXException, InterruptedException {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm("ldap.example.com",
+                "",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                true,
+                null,
+                null,
+                null,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        HtmlForm form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
+        //Smoke test
+        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
+        DomNodeList<HtmlElement> buttons = form.getElementsByTagName("button");
+        assertThat(buttons, hasItem(new RepeatableDeleteButtonMatcher()));
+        assertThat(buttons, hasItem(new AddServerButtonMatcher()));
+
+        //Verify with custom
+        r.jenkins.getRootPath().child(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY).copyFrom(LDAPSecurityRealm.class.getResourceAsStream(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY));
+
+        form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
+
+        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
+        buttons = form.getElementsByTagName("button");
+        assertThat(buttons, not(hasItem(new RepeatableDeleteButtonMatcher())));
+        assertThat(buttons, not(hasItem(new AddServerButtonMatcher())));
+        assertThat(form.getTextContent(), containsString("Ability to make multiple server configurations turned off due to the presence of custom LDAPBindSecurityRealm.groovy"));
+
+    }
+
+    private static class AddServerButtonMatcher extends BaseButtonMatcher {
+        protected AddServerButtonMatcher() {
+            super("Add Server");
+        }
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("Add LDAP Server button");
+        }
+
+        @Override
+        protected boolean matchesButton(HtmlButton button) {
+            final DomNode node = button.getParentNode().getParentNode();
+            if (node instanceof HtmlSpan) {
+                HtmlSpan span = (HtmlSpan) node;
+                return span.getAttribute("class").contains("repeatable-add");
+            }
+            return false;
+        }
+    }
+
+    private static class RepeatableDeleteButtonMatcher extends BaseButtonMatcher {
+        RepeatableDeleteButtonMatcher() {
+            super("Delete");
+        }
+
+        @Override
+        protected boolean matchesButton(HtmlButton button) {
+            final DomNode node = button.getParentNode().getParentNode();
+            if (node instanceof HtmlSpan) {
+                HtmlSpan span = (HtmlSpan) node;
+                return span.getAttribute("class").contains("repeatable-delete");
+            }
+
+            return false;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("Repeatable delete button");
+        }
+    }
+
+    private abstract static class BaseButtonMatcher extends BaseMatcher<HtmlButton> {
+        private final String text;
+
+        protected BaseButtonMatcher(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public boolean matches(Object item) {
+            if (item instanceof HtmlButton) {
+                HtmlButton button = (HtmlButton) item;
+                if (text.equals(button.getTextContent().trim())) {
+                    return matchesButton(button);
+                }
+            }
+            return false;
+        }
+
+        protected abstract boolean matchesButton(HtmlButton button);
+    }
+
+    private static class LDAPSelectionMatcher extends BaseMatcher<HtmlInput> {
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("LDAP selection");
+        }
+
+        @Override
+        public boolean matches(Object item) {
+            if (item instanceof HtmlInput) {
+                HtmlInput input = (HtmlInput) item;
+                if ("radio".equals(input.getAttribute("type"))) {
+                    if ("checked".equals(input.getAttribute("checked"))) {
+                        final DomNode node = input.getParentNode();
+                        if ("label".equals(node.getLocalName())) {
+                            return "LDAP".equals(node.getTextContent().trim());
+                        }
+                    }
+                }
+            }
+            return false;
         }
     }
 }
