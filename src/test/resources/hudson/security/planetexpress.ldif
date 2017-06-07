@@ -4,6 +4,12 @@ objectClass: organizationalUnit
 description: Planet Express crew
 ou: people
 
+dn: ou=groups,dc=planetexpress,dc=com
+objectclass: organizationalUnit
+objectclass: top
+description: Contains entries which describe groups
+ou: groups
+
 dn: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
 objectClass: top
 objectClass: person
@@ -19,14 +25,13 @@ uid: amy
 userPassword:: e3NzaGF9M3UzcUdCSmFMc2tiUEg0OVJrYlFtUk9HTktFb1lOUXZkU2lOZmc9P
  Q==
 
-dn:: Y249QmVuZGVyIEJlbmRpbmcgUm9kcsOtZ3VleixvdT1wZW9wbGUsZGM9cGxhbmV0ZXhwcmV
- zcyxkYz1jb20=
+dn: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
 objectClass: top
-cn:: QmVuZGVyIEJlbmRpbmcgUm9kcsOtZ3Vleg==
-sn:: Um9kcsOtZ3Vleg==
+cn: Bender Bending Rodríguez
+sn: Bending Rodríguez
 description: Robot
 displayName: Bender
 employeeType: Ship's Robot
@@ -2417,3 +2422,30 @@ title: Ph.D.
 uid: zoidberg
 userPassword:: e3NzaGF9UEgvVjZ3S3Mxc3lRems0RGFCd0hXdlJQNmhlZ2xQWmtCR2hWdUE9P
  Q==
+
+dn: cn=crew,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: crew
+uniquemember: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+
+dn: cn=management,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: management
+uniquemember: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Hubert J. Farnsworth,ou=people,dc=planetexpress,dc=com
+
+dn: cn=staff,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: staff
+uniquemember: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Hubert J. Farnsworth,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com

@@ -34,7 +34,7 @@ import java.util.Set;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.LDAPConfiguration;
+import jenkins.security.plugins.ldap.LDAPTestConfiguration;
 import jenkins.security.plugins.ldap.LDAPRule;
 import jenkins.security.plugins.ldap.LDAPSchema;
 import org.acegisecurity.GrantedAuthority;
@@ -56,7 +56,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-@LDAPConfiguration
+@LDAPTestConfiguration
 public class LDAPEmbeddedTest {
     public LDAPRule ads = new LDAPRule();
     public JenkinsRule r = new JenkinsRule();

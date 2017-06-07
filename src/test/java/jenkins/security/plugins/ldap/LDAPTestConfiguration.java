@@ -33,7 +33,7 @@ import java.lang.annotation.Target;
 @Documented
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface LDAPConfiguration {
+public @interface LDAPTestConfiguration {
     boolean ldapProtocol() default true;
     boolean ldapsProtocol() default false;
     boolean logStartup() default false;

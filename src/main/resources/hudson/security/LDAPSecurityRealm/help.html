@@ -1,0 +1,10 @@
+<p>
+    Provide configurations for the LDAP servers that Jenkins should search, minimum one.
+    Several servers with different configurations can be provided and Jenkins will query them in turn in the configured order.
+</p>
+<p>
+    To try to provide some form of consistency from normal operations;
+    if there is a communication issue with one of the servers during a login or search attempt with one of the configured servers,
+    any following servers will not be tried, in case of the same usernames existing on the different servers then users the lowered orders
+    servers will still be shadowed by those of higher order.
+</p>

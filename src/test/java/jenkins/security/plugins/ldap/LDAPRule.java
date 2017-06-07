@@ -103,7 +103,7 @@ public class LDAPRule implements TestRule, MethodRule {
      */
     private File workDir;
 
-    private LDAPConfiguration configuration;
+    private LDAPTestConfiguration configuration;
     private LDAPSchema ldapSchema;
     private Description currentTest;
 
@@ -172,9 +172,9 @@ public class LDAPRule implements TestRule, MethodRule {
             @Override
             public void evaluate() throws Throwable {
                 currentTest = description;
-                configuration = description.getAnnotation(LDAPConfiguration.class);
+                configuration = description.getAnnotation(LDAPTestConfiguration.class);
                 if (configuration == null) {
-                    configuration = description.getTestClass().getAnnotation(LDAPConfiguration.class);
+                    configuration = description.getTestClass().getAnnotation(LDAPTestConfiguration.class);
                 }
                 ldapSchema = description.getAnnotation(LDAPSchema.class);
                 if (ldapSchema == null) {

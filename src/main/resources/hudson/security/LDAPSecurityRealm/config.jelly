@@ -25,8 +25,24 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout"
          xmlns:v="/jenkins/security/plugins/ldap/validation">
-    <f:entry field="server" title="${%Server}">
-        <f:textbox/>
+    <j:if test="${descriptor.hasCustomBindScript()}">
+        <f:description>
+            <j:out value="${%customBindingBlurb}"/>
+        </f:description>
+    </j:if>
+    <f:entry>
+        <f:repeatable field="configurations" minimum="1" header="${%Server}" add="${%Add Server}" noAddButton="${descriptor.hasCustomBindScript()}">
+            <table style="width:100%">
+                <st:include page="config.jelly" class="jenkins.security.plugins.ldap.LDAPConfiguration"/>
+                <j:if test="${descriptor.noCustomBindScript()}">
+                    <f:entry title="">
+                        <div align="right">
+                            <f:repeatableDeleteButton/>
+                        </div>
+                    </f:entry>
+                </j:if>
+            </table>
+        </f:repeatable>
     </f:entry>
     <v:validate name="validateLdapSettings" method="validate" filter="useSecurity.realm"
                 title="${%Test LDAP settings}"
@@ -42,44 +58,13 @@ THE SOFTWARE.
             <f:password name="testPassword"/>
         </f:entry>
     </v:validate>
-    <f:advanced>
-        <f:entry field="rootDN" title="${%root DN}">
-            <f:textbox/>
-        </f:entry>
-        <f:entry field="inhibitInferRootDN">
-            <f:checkbox title="${%Allow blank rootDN}"/>
-        </f:entry>
-        <f:entry field="userSearchBase" title="${%User search base}">
-            <f:textbox/>
-        </f:entry>
-        <f:entry field="userSearch" title="${%User search filter}">
-            <f:textbox default="${descriptor.DEFAULT_USER_SEARCH}"/>
-        </f:entry>
+    <f:advanced title="${%Advanced Configuration}">
         <f:advanced title="${%Case sensitivity}">
-          <f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}" default="${descriptor.defaultIdStrategy}"/>
-          <f:dropdownDescriptorSelector field="groupIdStrategy" title="${%Group name case sensitivity}" default="${descriptor.defaultIdStrategy}"/>
+            <f:dropdownDescriptorSelector field="userIdStrategy" title="${%Login name case sensitivity}"
+                                          default="${descriptor.defaultIdStrategy}"/>
+            <f:dropdownDescriptorSelector field="groupIdStrategy" title="${%Group name case sensitivity}"
+                                          default="${descriptor.defaultIdStrategy}"/>
         </f:advanced>
-        <f:entry field="groupSearchBase" title="${%Group search base}">
-            <f:textbox/>
-        </f:entry>
-        <f:entry field="groupSearchFilter" title="${%Group search filter}">
-            <f:textbox/>
-        </f:entry>
-        <f:entry field="groupMembershipStrategy" title="${%Group membership}">
-            <f:hetero-radio field="groupMembershipStrategy" descriptors="${descriptor.groupMembershipStrategies}"/>
-        </f:entry>
-        <f:entry field="managerDN" title="${%Manager DN}">
-            <f:textbox autocomplete="off"/>
-        </f:entry>
-        <f:entry field="managerPasswordSecret" title="${%Manager Password}">
-            <f:password autocomplete="off"/>
-        </f:entry>
-        <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
-            <f:textbox default="${descriptor.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME}"/>
-        </f:entry>
-        <f:entry field="mailAddressAttributeName" title="${%Email Address LDAP attribute}">
-            <f:textbox default="${descriptor.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME}"/>
-        </f:entry>
         <f:entry field="disableMailAddressResolver">
             <f:checkbox title="${%Disable Ldap Email Resolver}"/>
         </f:entry>

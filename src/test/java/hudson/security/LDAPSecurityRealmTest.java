@@ -24,33 +24,45 @@
 
 package hudson.security;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+
 import javax.naming.directory.BasicAttributes;
+
+import com.gargoylesoftware.htmlunit.html.HtmlSpan;
+import hudson.util.Secret;
 import jenkins.model.IdStrategy;
-import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
-import junit.framework.TestCase;
+import jenkins.security.plugins.ldap.*;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.ldap.LdapDataAccessException;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.xml.sax.SAXException;
 
 public class LDAPSecurityRealmTest {
 
@@ -108,24 +120,25 @@ public class LDAPSecurityRealmTest {
 
     private void check() {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
-        assertEquals("s", sr.server);
-        assertEquals("rDN", sr.rootDN);
-        assertEquals("uSB", sr.userSearchBase);
-        assertEquals("uS", sr.userSearch);
-        assertEquals("gSB", sr.groupSearchBase);
-        assertEquals("gSF", sr.groupSearchFilter);
-        assertThat(sr.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
-        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy)sr.getGroupMembershipStrategy()).getFilter(), is("gMF"));
+        LDAPConfiguration cnf = sr.getConfigurationFor("s");
+        assertEquals("s", cnf.getServer());
+        assertEquals("rDN", cnf.getRootDN());
+        assertEquals("uSB", cnf.getUserSearchBase());
+        assertEquals("uS", cnf.getUserSearch());
+        assertEquals("gSB", cnf.getGroupSearchBase());
+        assertEquals("gSF", cnf.getGroupSearchFilter());
+        assertThat(cnf.getGroupMembershipStrategy(), instanceOf(FromGroupSearchLDAPGroupMembershipStrategy.class));
+        assertThat(((FromGroupSearchLDAPGroupMembershipStrategy) cnf.getGroupMembershipStrategy()).getFilter(), is("gMF"));
         assertNull(sr.groupMembershipFilter);
-        assertEquals("mDN", sr.managerDN);
-        assertEquals("s3cr3t", sr.getManagerPassword());
-        assertTrue(sr.inhibitInferRootDN);
+        assertEquals("mDN", cnf.getManagerDN());
+        assertEquals("s3cr3t", cnf.getManagerPassword());
+        assertTrue(cnf.isInhibitInferRootDN());
         assertTrue(sr.disableMailAddressResolver);
         assertEquals(Integer.valueOf(20), sr.getCacheSize());
         assertEquals(Integer.valueOf(60), sr.getCacheTTL());
-        assertEquals(Collections.singletonMap("k", "v"), sr.getExtraEnvVars());
-        assertEquals("dNAN", sr.getDisplayNameAttributeName());
-        assertEquals("mAAN", sr.getMailAddressAttributeName());
+        assertEquals(Collections.singletonMap("k", "v"), cnf.getExtraEnvVars());
+        assertEquals("dNAN", cnf.getDisplayNameAttributeName());
+        assertEquals("mAAN", cnf.getMailAddressAttributeName());
     }
 
     @Issue("JENKINS-8152")
@@ -164,8 +177,8 @@ public class LDAPSecurityRealmTest {
                 null,
                 null,
                 null,
-                (IdStrategy)null,
-                (IdStrategy)null);
+                (IdStrategy) null,
+                (IdStrategy) null);
         r.jenkins.setSecurityRealm(realm);
         r.jenkins.getSecurityRealm().createSecurityComponents();
         final JenkinsRule.WebClient c = r.createWebClient();
@@ -178,18 +191,298 @@ public class LDAPSecurityRealmTest {
             }
         }
         getButtonByText(form, "Save").click();
-        final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm)r.jenkins.getSecurityRealm());
-        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy)changedRealm.groupMembershipStrategy).getAttributeName();
+        final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm) r.jenkins.getSecurityRealm());
+        final LDAPConfiguration conf = changedRealm.getConfigurations().get(0);
+        final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy) conf.getGroupMembershipStrategy()).getAttributeName();
         assertEquals("Value should be changed", testValue, changedValue);
     }
 
     private HtmlButton getButtonByText(HtmlForm form, String text) throws Exception {
         for (HtmlElement e : form.getElementsByTagName("button")) {
             if (text.equals(e.getTextContent())) {
-                return ((HtmlButton)e);
+                return ((HtmlButton) e);
             }
         }
         throw new AssertionError(String.format("Button [%s] not found", text));
     }
 
+    @Test
+    public void configRoundTrip() throws Exception {
+        final String server = "ldap.itd.umich.edu";
+        final String rootDN = "ou=umich,ou.edu";
+        final String userSearchBase = "cn=users,ou=umich,ou.edu";
+        final String managerDN = "cn=admin,ou=umich,ou.edu";
+        final String managerSecret = "secret";
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                server,
+                rootDN,
+                userSearchBase,
+                null,
+                null,
+                null,
+                new FromUserRecordLDAPGroupMembershipStrategy("previousValue"),
+                managerDN,
+                Secret.fromString(managerSecret),
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        r.submit(client.goTo("configureSecurity").getFormByName("config"));
+
+        LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        assertNotSame(realm, newRealm);
+        LDAPConfiguration config = newRealm.getConfigurations().get(0);
+        assertEquals(server, config.getServer());
+        assertEquals(rootDN, config.getRootDN());
+        assertEquals(userSearchBase, config.getUserSearchBase());
+        assertEquals(managerDN, config.getManagerDN());
+        assertEquals(managerSecret, config.getManagerPassword());
+        assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
+    }
+
+    static class TestConf {
+        final String server;
+        final String rootDN;
+        final String userSearchBase;
+        final String managerDN;
+        final String managerSecret;
+
+        public TestConf(String server, String rootDN, String userSearchBase, String managerDN, String managerSecret) {
+            this.server = server;
+            this.rootDN = rootDN;
+            this.userSearchBase = userSearchBase;
+            this.managerDN = managerDN;
+            this.managerSecret = managerSecret;
+        }
+    }
+
+    @Test
+    public void configRoundTripTwo() throws Exception {
+        TestConf[] confs = new TestConf[2];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        r.submit(client.goTo("configureSecurity").getFormByName("config"));
+
+        LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        assertNotSame(realm, newRealm);
+        final List<LDAPConfiguration> configurations = newRealm.getConfigurations();
+        assertThat(configurations, hasSize(confs.length));
+        for (int i = 0; i < configurations.size(); i++) {
+            LDAPConfiguration config = configurations.get(i);
+            TestConf conf = confs[i];
+            assertEquals(conf.server, config.getServer());
+            assertEquals(conf.rootDN, config.getRootDN());
+            assertEquals(conf.userSearchBase, config.getUserSearchBase());
+            assertEquals(conf.managerDN, config.getManagerDN());
+            assertEquals(conf.managerSecret, config.getManagerPassword());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
+            assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
+        }
+        assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+    }
+
+    @Test
+    public void configRoundTwoThreeSameName() throws Exception {
+        TestConf[] confs = new TestConf[2];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        try {
+            r.submit(client.goTo("configureSecurity").getFormByName("config"));
+            fail("Should not succeed");
+        } catch (FailingHttpStatusCodeException e) {
+            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
+        }
+    }
+
+    @Test
+    public void configRoundTripThreeSameName() throws Exception {
+        TestConf[] confs = new TestConf[3];
+        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[2] = new TestConf("ldap.example.com", "ou=example3,ou.com", "cn=users,ou=example3,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
+        List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
+        for (int i = 0; i < confs.length; i++) {
+            TestConf conf = confs[i];
+            final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
+            configuration.setUserSearchBase(conf.userSearchBase);
+            ldapConfigurations.add(configuration);
+        }
+        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                true,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        final JenkinsRule.WebClient client = r.createWebClient();
+        try {
+            r.submit(client.goTo("configureSecurity").getFormByName("config"));
+            fail("Should not succeed");
+        } catch (FailingHttpStatusCodeException e) {
+            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
+        }
+    }
+
+    @Test
+    public void customBeanBindingHindersMultiServerConfig() throws IOException, SAXException, InterruptedException {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm("ldap.example.com",
+                "",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                true,
+                null,
+                null,
+                null,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        HtmlForm form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
+        //Smoke test
+        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
+        DomNodeList<HtmlElement> buttons = form.getElementsByTagName("button");
+        assertThat(buttons, hasItem(new RepeatableDeleteButtonMatcher()));
+        assertThat(buttons, hasItem(new AddServerButtonMatcher()));
+
+        //Verify with custom
+        r.jenkins.getRootPath().child(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY).copyFrom(LDAPSecurityRealm.class.getResourceAsStream(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY));
+
+        form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
+
+        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
+        buttons = form.getElementsByTagName("button");
+        assertThat(buttons, not(hasItem(new RepeatableDeleteButtonMatcher())));
+        assertThat(buttons, not(hasItem(new AddServerButtonMatcher())));
+        assertThat(form.getTextContent(), containsString("Ability to make multiple server configurations turned off due to the presence of custom LDAPBindSecurityRealm.groovy"));
+
+    }
+
+    private static class AddServerButtonMatcher extends BaseButtonMatcher {
+        protected AddServerButtonMatcher() {
+            super("Add Server");
+        }
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("Add LDAP Server button");
+        }
+
+        @Override
+        protected boolean matchesButton(HtmlButton button) {
+            final DomNode node = button.getParentNode().getParentNode();
+            if (node instanceof HtmlSpan) {
+                HtmlSpan span = (HtmlSpan) node;
+                return span.getAttribute("class").contains("repeatable-add");
+            }
+            return false;
+        }
+    }
+
+    private static class RepeatableDeleteButtonMatcher extends BaseButtonMatcher {
+        RepeatableDeleteButtonMatcher() {
+            super("Delete");
+        }
+
+        @Override
+        protected boolean matchesButton(HtmlButton button) {
+            final DomNode node = button.getParentNode().getParentNode();
+            if (node instanceof HtmlSpan) {
+                HtmlSpan span = (HtmlSpan) node;
+                return span.getAttribute("class").contains("repeatable-delete");
+            }
+
+            return false;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("Repeatable delete button");
+        }
+    }
+
+    private abstract static class BaseButtonMatcher extends BaseMatcher<HtmlButton> {
+        private final String text;
+
+        protected BaseButtonMatcher(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public boolean matches(Object item) {
+            if (item instanceof HtmlButton) {
+                HtmlButton button = (HtmlButton) item;
+                if (text.equals(button.getTextContent().trim())) {
+                    return matchesButton(button);
+                }
+            }
+            return false;
+        }
+
+        protected abstract boolean matchesButton(HtmlButton button);
+    }
+
+    private static class LDAPSelectionMatcher extends BaseMatcher<HtmlInput> {
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("LDAP selection");
+        }
+
+        @Override
+        public boolean matches(Object item) {
+            if (item instanceof HtmlInput) {
+                HtmlInput input = (HtmlInput) item;
+                if ("radio".equals(input.getAttribute("type"))) {
+                    if ("checked".equals(input.getAttribute("checked"))) {
+                        final DomNode node = input.getParentNode();
+                        if ("label".equals(node.getLocalName())) {
+                            return "LDAP".equals(node.getTextContent().trim());
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+    }
 }
