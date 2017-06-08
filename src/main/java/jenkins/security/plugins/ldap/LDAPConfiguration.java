@@ -25,6 +25,7 @@
  */
 package jenkins.security.plugins.ldap;
 
+import com.trilead.ssh2.crypto.Base64;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
@@ -33,6 +34,7 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.security.LDAPSecurityRealm;
 import hudson.security.SecurityRealm;
+import hudson.util.Digester2;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.spring.BeanBuilder;
@@ -41,6 +43,9 @@ import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.digester.Digester;
+import org.apache.commons.httpclient.util.URIUtil;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -64,10 +69,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -125,6 +135,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
      */
     private transient LdapTemplate ldapTemplate;
+    private transient String id;
 
     @DataBoundConstructor
     public LDAPConfiguration(@Nonnull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
@@ -350,6 +361,17 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 : LDAPSecurityRealm.EnvironmentProperty.toMap(Arrays.asList(environmentProperties));
     }
 
+    public String getId() {
+        if (StringUtils.isEmpty(this.id)) {
+            this.id = generateId();
+        }
+        return this.id;
+    }
+
+    public boolean isConfiguration(String id) {
+        return getId().equals(id);
+    }
+
     @Extension
     public static final class LDAPConfigurationDescriptor extends Descriptor<LDAPConfiguration> {
         //For jelly usage
@@ -470,6 +492,55 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private static String addPrefix(String server) {
         if (server.contains("://")) return server;
         else return "ldap://" + server;
+    }
+
+    private String generateId() {
+        return generateId(server, rootDN, userSearchBase, userSearch);
+    }
+
+    @Restricted(NoExternalUse.class)
+    static String generateId(String serverUrl, String rootDN, String userSearchBase, String userSearch) {
+        final MessageDigest digest = DigestUtils.getMd5Digest();
+        digest.update(normalizeServer(serverUrl).getBytes());
+        if (StringUtils.isNotBlank(rootDN)) {
+            digest.update(rootDN.getBytes()); //Should have been inferred in the constructor if needed
+        } else {
+            digest.update(new byte[]{0});
+        }
+        if (StringUtils.isNotBlank(userSearchBase)) {
+            digest.update(userSearchBase.getBytes());
+        } else {
+            digest.update(new byte[]{0});
+        }
+        if (StringUtils.isNotBlank(userSearch)) {
+            digest.update(userSearch.getBytes());
+        } else {
+            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes());
+        }
+        return new String(Base64.encode(digest.digest()));
+    }
+
+    @Restricted(NoExternalUse.class)
+    static String normalizeServer(String server) { /*package scope for testing*/
+        String[] urls = Util.fixNull(server).split("\\s+");
+        List<String> normalised = new ArrayList<>(urls.length);
+        for (String url : urls) {
+            if (StringUtils.isBlank(url)) {
+                continue;
+            }
+            url = addPrefix(url);
+            try {
+                URI uri = new URI(url);
+                if (uri.getPort() < 0) {
+                    uri = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), 389, uri.getPath(), uri.getQuery(), uri.getFragment());
+                }
+                normalised.add(uri.toString());
+            } catch (URISyntaxException e) {
+                LOGGER.warning("Unable to parse " + url + " into an URI");
+            }
+        }
+        Collections.sort(normalised);
+        return StringUtils.join(normalised, ' ');
     }
 
     @Restricted(NoExternalUse.class)

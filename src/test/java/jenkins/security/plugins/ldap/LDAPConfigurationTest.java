@@ -25,6 +25,7 @@ package jenkins.security.plugins.ldap;
 
 import hudson.security.LDAPSecurityRealm;
 import jenkins.model.IdStrategy;
+import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -36,6 +37,7 @@ import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
 import static org.junit.Assert.*;
 
 /**
@@ -88,6 +90,87 @@ public class LDAPConfigurationTest {
         //Should avoid loading when told to
         assertNotNull(configuration.createApplicationContext(realm, false));
         assertThat(new String(logg.toByteArray()), containsString("Not loading custom " + LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY));
+    }
+
+    @Test
+    public void getId() {
+        LDAPConfiguration c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null);
+        String id = c.getId();
+        c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null); //Same so far
+        c.setUserSearchBase("cn=users,dc=example,dc=com");
+        String id2 = c.getId();
+        c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null); //Same so far
+        c.setUserSearchBase("cn=users,dc=example,dc=com"); //Same so far
+        c.setUserSearch("sAMAccountName={}");
+        String id3 = c.getId();
+
+        c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null); //Same so far
+        c.setUserSearchBase("cn=users,dc=example,dc=com"); //Same so far
+        c.setUserSearch("sAMAccountName={}"); //Same as well
+        String id3Ident = c.getId(); //New instance with same data as id3
+
+        c = new LDAPConfiguration("ldap://ldap.example.com:389", "dc=example,dc=com", true, null, null); //Same but different
+        c.setUserSearchBase("cn=users,dc=example,dc=com"); //Same so far
+        c.setUserSearch("sAMAccountName={}"); //New instance with same but different data as id3
+        String id3IdentButDifferent = c.getId();
+
+        assertNotEquals(id, id2);
+        assertNotEquals(id, id3);
+        assertNotEquals(id2, id3);
+        assertEquals(id3, id3Ident);
+        assertEquals(id3, id3IdentButDifferent);
+    }
+
+    @Test
+    public void generateId() {
+        String id1 = LDAPConfiguration.generateId("ldap.example.com ldap://ad.example.com ldaps://ad2.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
+        String id2 = LDAPConfiguration.generateId("ldap://ldap.example.com ad.example.com ldaps://ad2.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", LDAPConfiguration.LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH);
+        String id3 = LDAPConfiguration.generateId("ad.example.com ldaps://ad2.example.com ldap://ldap.example.com ", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
+
+        String idDiff = LDAPConfiguration.generateId("ad.example.com ldaps://ad2.example.com ldap://ldap.example.com ", "dc=example2,dc=com", "cn=users,dc=example,dc=com", null);
+
+        assertEquals(id1, id2);
+        assertEquals(id1, id3);
+        assertEquals(id2, id3);
+
+        assertNotEquals(id1, idDiff);
+    }
+
+    @Test
+    public void generateIdJustOneServer() {
+        String id1 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
+        String id2 = LDAPConfiguration.generateId("ldap://ldap.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", LDAPConfiguration.LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH);
+        String id3 = LDAPConfiguration.generateId("ldap://ldap.example.com:389 ", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
+
+        String idDiff = LDAPConfiguration.generateId("ldap.example.com ", "dc=example2,dc=com", "cn=users,dc=example,dc=com", null);
+
+        assertEquals(id1, id2);
+        assertEquals(id1, id3);
+        assertEquals(id2, id3);
+
+        assertNotEquals(id1, idDiff);
+    }
+
+    @Test
+    public void normalizeServerSameButDifferent() {
+        String s1 = "ldap.example.com ldap://ad.example.com ldaps://ad2.example.com";
+        String s2 = "ldap://ldap.example.com ad.example.com ldaps://ad2.example.com";
+        assertNotEquals(s1, s2); //Duh
+        String n1 = LDAPConfiguration.normalizeServer(s1);
+        String n2 = LDAPConfiguration.normalizeServer(s2);
+        assertEquals(n1, n2);
+        assertThat(n1.split("\\s+"), arrayWithSize(s1.split("\\s+").length));
+    }
+
+    @Test
+    public void normalizeServerSameButDifferentOrder() {
+        String s1 = "ad2.example.com b.example.com ad.example.com";
+        String s2 = "ad.example.com b.example.com ad2.example.com ";
+        assertNotEquals(s1, s2); //Duh
+        String n1 = LDAPConfiguration.normalizeServer(s1);
+        String n2 = LDAPConfiguration.normalizeServer(s2);
+        assertEquals(n1, n2);
+        assertThat(n1.split("\\s+"), arrayWithSize(s1.split("\\s+").length));
     }
 
 }

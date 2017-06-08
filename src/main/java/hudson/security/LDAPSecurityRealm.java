@@ -27,6 +27,7 @@ package hudson.security;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.Main;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -74,7 +75,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.dao.DataAccessException;
@@ -491,6 +491,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             //Correct FormException should be handled by DescriptorImpl.newInstance
             throw new IllegalArgumentException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne());
         }
+        if (configurations.size() > 1) {
+            //Configuration as code is a hot topic these days, so newInstance might not have been used.
+            if (!Main.isUnitTest || !Boolean.getBoolean(LDAPSecurityRealm.class.getName() + "do a bad thing during testing")) {  //Only during unit testing do we want to work around this limitation, but only explicitly.
+                for (int i = 0; i < configurations.size(); i++) {
+                    LDAPConfiguration ci = configurations.get(i);
+                    for (int k = i + 1; k < configurations.size(); k++) {
+                        LDAPConfiguration ck = configurations.get(k);
+                        if (ci.isConfiguration(ck.getId())) {
+                            throw new IllegalArgumentException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer());
+                        }
+                    }
+                }
+            }
+        }
         this.configurations = configurations;
         this.disableMailAddressResolver = disableMailAddressResolver;
         this.cache = cache;
@@ -646,7 +660,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     @CheckForNull @Restricted(NoExternalUse.class)
     public LDAPConfiguration getConfigurationFor(LdapUserDetails d) {
         if (d instanceof DelegatedLdapUserDetails) {
-            return getConfigurationFor(((DelegatedLdapUserDetails) d).getServer());
+            return getConfigurationFor(((DelegatedLdapUserDetails) d).getConfigurationId());
         } else if (hasConfiguration() && configurations.size() == 1) {
             return configurations.get(0);
         } else {
@@ -660,11 +674,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     @CheckForNull @Restricted(NoExternalUse.class)
-    public LDAPConfiguration getConfigurationFor(String server) {
+    public LDAPConfiguration getConfigurationFor(String configurationId) {
         for (LDAPConfiguration configuration : configurations) {
-            if (configuration.getServer().equals(server)) {
+            if (configuration.isConfiguration(configurationId)) {
                 return configuration;
             }
+        }
+        if (configurations != null && configurations.size() == 1) {
+            return configurations.get(0);
         }
         return null;
     }
@@ -719,8 +736,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
             for (LDAPConfiguration conf : configurations) {
                 WebApplicationContext appContext = conf.createApplicationContext(this, false);
-                manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getServer());
-                details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getServer()));
+                manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getId());
+                details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getId()));
             }
             return new SecurityComponents(manager, details);
         } else {
@@ -895,8 +912,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this.detailsService = detailsService;
         }
 
-        private void addDelegate(final AuthenticationManager delegate, final String server) {
-            this.delegates.add(new ManagerEntry(delegate, server));
+        private void addDelegate(final AuthenticationManager delegate, final String configurationId) {
+            this.delegates.add(new ManagerEntry(delegate, configurationId));
         }
 
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -907,11 +924,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (ManagerEntry delegate : delegates) {
                 try {
                     Authentication a = delegate.delegate.authenticate(authentication);
-                    return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.server));
+                    return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.configurationId));
                 } catch (BadCredentialsException e) {
                     if (detailsService != null && delegates.size() > 1) {
                         try {
-                            UserDetails details = detailsService.loadUserByUsername(delegate.server, String.valueOf(authentication.getPrincipal()));
+                            UserDetails details = detailsService.loadUserByUsername(delegate.configurationId, String.valueOf(authentication.getPrincipal()));
                             if (details != null) {
                                 throw e; //the user actually exists on this server, so we should stop here and report
                             }
@@ -932,11 +949,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private class ManagerEntry {
             final AuthenticationManager delegate;
-            final String server;
+            final String configurationId;
 
-            public ManagerEntry(AuthenticationManager delegate, String server) {
+            public ManagerEntry(AuthenticationManager delegate, String configurationId) {
                 this.delegate = delegate;
-                this.server = server;
+                this.configurationId = configurationId;
             }
         }
     }
@@ -944,11 +961,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /*package access for testability*/
     static class DelegatedLdapAuthentication implements Authentication {
         private final Authentication delegate;
-        private final String server;
+        private final String configurationId;
 
-        public DelegatedLdapAuthentication(Authentication delegate, String server) {
+        public DelegatedLdapAuthentication(Authentication delegate, String configurationId) {
             this.delegate = delegate;
-            this.server = server;
+            this.configurationId = configurationId;
         }
 
         @Override
@@ -970,7 +987,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public Object getPrincipal() {
             Object principal = delegate.getPrincipal();
             if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
-                return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.server);
+                return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.configurationId);
             } else {
                 return principal;
             }
@@ -995,8 +1012,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return delegate;
         }
 
-        public String getServer() {
-            return server;
+        public String getConfigurationId() {
+            return configurationId;
         }
     }
 
@@ -1004,11 +1021,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
-        private final String server;
+        private final String configurationId;
 
-        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @Nonnull String server) {
+        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @Nonnull String configurationId) {
             this.userDetails = userDetails;
-            this.server = server;
+            this.configurationId = configurationId;
         }
 
         @Override
@@ -1065,8 +1082,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return userDetails;
         }
 
-        public String getServer() {
-            return server;
+        public String getConfigurationId() {
+            return configurationId;
         }
     }
 
@@ -1087,21 +1104,21 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         /**
          * Tries to load the user from a specified server key
-         * @param server the server to specifially load from
+         * @param configurationId the server to specifically load from
          * @param username the username to search
          * @return the user details or {@code null} if the server configuration could not be found
          * @throws UsernameNotFoundException if the user could not be found on the given server
          * @throws DataAccessException if some communication error occured
          * @see #loadUserByUsername(String)
          */
-        public DelegatedLdapUserDetails loadUserByUsername(String server, String username) throws UsernameNotFoundException, DataAccessException {
+        public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException, DataAccessException {
             for (LDAPUserDetailsService delegate : delegates) {
-                if (delegate.server.equals(server)) {
+                if (delegate.configurationId.equals(configurationId)) {
                     LdapUserDetails userDetails = delegate.loadUserByUsername(username);
                     if (userDetails instanceof DelegatedLdapUserDetails) {
                         return (DelegatedLdapUserDetails)userDetails;
                     } else {
-                        return new DelegatedLdapUserDetails(userDetails, delegate.server);
+                        return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
                     }
                 }
             }
@@ -1117,12 +1134,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     if (userDetails instanceof DelegatedLdapUserDetails) {
                         return userDetails;
                     } else {
-                        return new DelegatedLdapUserDetails(userDetails, delegate.server);
+                        return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
                     }
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (DataAccessException e) {
-                    LOGGER.log(Level.WARNING, "LDAP connection " + delegate.server + " seems to be broken, will _not_ try the next configuration.", e);
+                    LOGGER.log(Level.WARNING, "LDAP connection " + delegate.configurationId + " seems to be broken, will _not_ try the next configuration.", e);
                     throw e;
                 }
             }
@@ -1138,7 +1155,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public final LdapUserSearch ldapSearch;
         public final LdapAuthoritiesPopulator authoritiesPopulator;
         public final LDAPGroupMembershipStrategy groupMembershipStrategy;
-        public final String server;
+        public final String configurationId;
         /**
          * {@link BasicAttributes} in LDAP tend to be bulky (about 20K at size), so interning them
          * to keep the size under control. When a programmatic client is not smart enough to
@@ -1156,11 +1173,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this(ldapSearch, authoritiesPopulator, null, null);
         }
 
-        LDAPUserDetailsService(LdapUserSearch ldapSearch, LdapAuthoritiesPopulator authoritiesPopulator, LDAPGroupMembershipStrategy groupMembershipStrategy, String server) {
+        LDAPUserDetailsService(LdapUserSearch ldapSearch, LdapAuthoritiesPopulator authoritiesPopulator, LDAPGroupMembershipStrategy groupMembershipStrategy, String configurationId) {
             this.ldapSearch = ldapSearch;
             this.authoritiesPopulator = authoritiesPopulator;
             this.groupMembershipStrategy = groupMembershipStrategy;
-            this.server = server;
+            this.configurationId = configurationId;
         }
 
         @Deprecated
@@ -1170,8 +1187,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public LDAPUserDetailsService(WebApplicationContext appContext,
-                                      LDAPGroupMembershipStrategy groupMembershipStrategy, String server) {
-            this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy, server);
+                                      LDAPGroupMembershipStrategy groupMembershipStrategy, String configurationId) {
+            this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy, configurationId);
         }
 
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
@@ -1222,8 +1239,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                    if (server != null) {
-                        ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), server);
+                    if (StringUtils.isNotEmpty(configurationId)) {
+                        ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
                     } else {
                         ldapUser = user.createUserDetails();
                     }
@@ -1445,12 +1462,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
                     } else if (((JSONArray) configurations).size() > 1) {
                         //check server names
-                        JSONArray confs = (JSONArray) configurations;
+                        List<LDAPConfiguration> confs = req.bindJSONToList(LDAPConfiguration.class, configurations);
                         for (int i = 0; i < confs.size(); i++) {
-                            JSONObject ci = confs.getJSONObject(i);
+                            LDAPConfiguration ci = confs.get(i);
                             for (int k = i+1; k < confs.size(); k++) {
-                                JSONObject ck = confs.getJSONObject(k);
-                                if (ci.getString("server").equals(ck.getString("server"))) {
+                                LDAPConfiguration ck = confs.get(k);
+                                if (ci.isConfiguration(ck.getId())) {
                                     throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer(), "configurations");
                                 }
                             }
