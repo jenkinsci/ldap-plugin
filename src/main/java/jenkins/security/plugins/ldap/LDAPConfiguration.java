@@ -43,6 +43,7 @@ import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
+import org.apache.commons.codec.Charsets;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.digester.Digester;
 import org.apache.commons.httpclient.util.URIUtil;
@@ -501,21 +502,21 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     @Restricted(NoExternalUse.class)
     static String generateId(String serverUrl, String rootDN, String userSearchBase, String userSearch) {
         final MessageDigest digest = DigestUtils.getMd5Digest();
-        digest.update(normalizeServer(serverUrl).getBytes());
+        digest.update(normalizeServer(serverUrl).getBytes(Charsets.UTF_8));
         if (StringUtils.isNotBlank(rootDN)) {
-            digest.update(rootDN.getBytes()); //Should have been inferred in the constructor if needed
+            digest.update(rootDN.getBytes(Charsets.UTF_8)); //Should have been inferred in the constructor if needed
         } else {
             digest.update(new byte[]{0});
         }
         if (StringUtils.isNotBlank(userSearchBase)) {
-            digest.update(userSearchBase.getBytes());
+            digest.update(userSearchBase.getBytes(Charsets.UTF_8));
         } else {
             digest.update(new byte[]{0});
         }
         if (StringUtils.isNotBlank(userSearch)) {
-            digest.update(userSearch.getBytes());
+            digest.update(userSearch.getBytes(Charsets.UTF_8));
         } else {
-            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes());
+            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(Charsets.UTF_8));
         }
         return new String(Base64.encode(digest.digest()));
     }

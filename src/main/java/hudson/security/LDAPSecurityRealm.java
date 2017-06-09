@@ -675,13 +675,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull @Restricted(NoExternalUse.class)
     public LDAPConfiguration getConfigurationFor(String configurationId) {
-        for (LDAPConfiguration configuration : configurations) {
-            if (configuration.isConfiguration(configurationId)) {
-                return configuration;
+        if (configurations != null) {
+            for (LDAPConfiguration configuration : configurations) {
+                if (configuration.isConfiguration(configurationId)) {
+                    return configuration;
+                }
             }
-        }
-        if (configurations != null && configurations.size() == 1) {
-            return configurations.get(0);
+            if (configurations.size() == 1) {
+                return configurations.get(0);
+            }
         }
         return null;
     }
