@@ -88,6 +88,8 @@ import java.util.regex.Pattern;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
  * A configuration for one ldap connection
@@ -503,17 +505,13 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     static String generateId(String serverUrl, String rootDN, String userSearchBase, String userSearch) {
         final MessageDigest digest = DigestUtils.getMd5Digest();
         digest.update(normalizeServer(serverUrl).getBytes(Charsets.UTF_8));
-        if (StringUtils.isNotBlank(rootDN)) {
-            digest.update(rootDN.getBytes(Charsets.UTF_8)); //Should have been inferred in the constructor if needed
+        String userSearchBaseNormalized = normalizeUserSearchBase(rootDN, userSearchBase);
+        if (isNotBlank(userSearchBaseNormalized)) {
+            digest.update(userSearchBaseNormalized.getBytes(Charsets.UTF_8));
         } else {
             digest.update(new byte[]{0});
         }
-        if (StringUtils.isNotBlank(userSearchBase)) {
-            digest.update(userSearchBase.getBytes(Charsets.UTF_8));
-        } else {
-            digest.update(new byte[]{0});
-        }
-        if (StringUtils.isNotBlank(userSearch)) {
+        if (isNotBlank(userSearch)) {
             digest.update(userSearch.getBytes(Charsets.UTF_8));
         } else {
             digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(Charsets.UTF_8));
@@ -521,12 +519,30 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return new String(Base64.encode(digest.digest()));
     }
 
+    private static String normalizeUserSearchBase(String rootDN, String userSearchBase) {
+        if (isBlank(rootDN) && isBlank(userSearchBase)) {
+            return "";
+        }
+        if (isBlank(rootDN)) {
+            return userSearchBase;
+        }
+        if (isBlank(userSearchBase)) {
+            return rootDN;
+        }
+        rootDN = rootDN.trim();
+        userSearchBase = userSearchBase.trim();
+        if (userSearchBase.endsWith(rootDN)) {
+            return userSearchBase;
+        }
+        return userSearchBase + "," + rootDN;
+    }
+
     @Restricted(NoExternalUse.class)
     static String normalizeServer(String server) { /*package scope for testing*/
         String[] urls = Util.fixNull(server).split("\\s+");
         List<String> normalised = new ArrayList<>(urls.length);
         for (String url : urls) {
-            if (StringUtils.isBlank(url)) {
+            if (isBlank(url)) {
                 continue;
             }
             url = addPrefix(url);

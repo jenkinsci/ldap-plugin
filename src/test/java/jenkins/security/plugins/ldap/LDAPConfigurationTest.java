@@ -36,7 +36,9 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
 import static org.junit.Assert.*;
 
@@ -149,6 +151,29 @@ public class LDAPConfigurationTest {
         assertEquals(id2, id3);
 
         assertNotEquals(id1, idDiff);
+    }
+
+    @Test
+    public void generateIdWithNormalizedUserSearchBase() {
+        String id1 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "dc=users,dc=example,dc=com", null);
+        String id2 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "dc=users", null);
+        String id3 = LDAPConfiguration.generateId("ldap.example.com", "dc=com", "dc=users,dc=example", null);
+        String id4 = LDAPConfiguration.generateId("ldap.example.com", null, "dc=users,dc=example,dc=com", null);
+        String id5 = LDAPConfiguration.generateId("ldap.example.com", "", "dc=users,dc=example,dc=com", null);
+        String id6 = LDAPConfiguration.generateId("ldap.example.com", "dc=users,dc=example,dc=com", "", null);
+        String id7 = LDAPConfiguration.generateId("ldap.example.com", "dc=users,dc=example,dc=com", null, null);
+
+        assertEquals(id1, id2);
+        assertEquals(id1, id3);
+        assertEquals(id1, id4);
+        assertEquals(id1, id5);
+        assertEquals(id1, id6);
+        assertEquals(id1, id7);
+
+        id1 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "dc=users", null);
+        id2 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "dc=expats", null);
+
+        assertNotEquals(id1, id2);
     }
 
     @Test
