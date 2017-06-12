@@ -25,7 +25,6 @@
  */
 package jenkins.security.plugins.ldap;
 
-import com.trilead.ssh2.crypto.Base64;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
@@ -34,7 +33,6 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.security.LDAPSecurityRealm;
 import hudson.security.SecurityRealm;
-import hudson.util.Digester2;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.spring.BeanBuilder;
@@ -44,9 +42,8 @@ import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.apache.commons.codec.Charsets;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.digester.Digester;
-import org.apache.commons.httpclient.util.URIUtil;
 import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -516,7 +513,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         } else {
             digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(Charsets.UTF_8));
         }
-        return new String(Base64.encode(digest.digest()));
+        return Base64.encodeBase64String(digest.digest());
     }
 
     private static String normalizeUserSearchBase(String rootDN, String userSearchBase) {
