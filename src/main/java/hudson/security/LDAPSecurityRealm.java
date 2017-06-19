@@ -1540,6 +1540,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LoginHeader())
                     .append("</div>");
             boolean potentialLockout = false;
+            boolean likelyLockout = false;
 
             // can we login?
             LdapUserDetails loginDetails = null;
@@ -1557,6 +1558,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     error(response, "authentication",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailed(user));
                     potentialLockout = true;
+                    likelyLockout = true;
                 }
             }
             Set<String> loginAuthorities = new HashSet<>();
@@ -1820,7 +1822,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         .append(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_LockoutHeader())
                         .append("</div>");
                 error(response, "lockout",
-                        jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_PotentialLockout(user)
+                        likelyLockout ? jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_PotentialLockout(user)
+                                : jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_PotentialLockout2(user)
                 );
             }
             // and we are done, report the results
