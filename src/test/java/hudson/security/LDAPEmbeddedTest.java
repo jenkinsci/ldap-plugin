@@ -268,6 +268,46 @@ public class LDAPEmbeddedTest {
     }
 
     @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void login2() throws Exception {
+        LDAPSecurityRealm realm =
+                new LDAPSecurityRealm(ads.getUrl(), "dc=com", "dc=planetexpress", null, "dc=planetexpress", null, null,
+                        "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                        null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        assertThat(content, containsString("Philip J. Fry"));
+
+
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
+
+        String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
+        assertThat(leelaEmail, is("leela@planetexpress.com"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void login3() throws Exception {
+        LDAPSecurityRealm realm =
+                new LDAPSecurityRealm(ads.getUrl(), "", "dc=planetexpress,dc=com", null, "dc=planetexpress,dc=com", null, null,
+                        "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                        null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        assertThat(content, containsString("Philip J. Fry"));
+
+
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
+
+        String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
+        assertThat(leelaEmail, is("leela@planetexpress.com"));
+    }
+
+    @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
     public void validate() throws Exception {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
