@@ -528,9 +528,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         rootDN = rootDN.trim();
         userSearchBase = userSearchBase.trim();
-        if (userSearchBase.endsWith(rootDN)) {
-            return userSearchBase;
-        }
         return userSearchBase + "," + rootDN;
     }
 
