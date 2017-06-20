@@ -306,10 +306,10 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void configRoundTwoThreeSameName() throws Exception {
+    public void configRoundTwoThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[2];
         confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[1] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -317,12 +317,28 @@ public class LDAPSecurityRealmTest {
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
         }
-        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
-                true,
-                null,
-                IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE);
-        r.jenkins.setSecurityRealm(realm);
+        try {
+            final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                    true,
+                    null,
+                    IdStrategy.CASE_INSENSITIVE,
+                    IdStrategy.CASE_INSENSITIVE);
+            r.jenkins.setSecurityRealm(realm);
+            fail("Should have thrown exception");
+        } catch (IllegalArgumentException e) {
+            //Expected
+            try {
+                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
+                LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                        true,
+                        null,
+                        IdStrategy.CASE_INSENSITIVE,
+                        IdStrategy.CASE_INSENSITIVE);
+                r.jenkins.setSecurityRealm(realm);
+            } finally {
+                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
+            }
+        }
         final JenkinsRule.WebClient client = r.createWebClient();
         try {
             r.submit(client.goTo("configureSecurity").getFormByName("config"));
@@ -333,11 +349,11 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void configRoundTripThreeSameName() throws Exception {
+    public void configRoundTripThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[3];
         confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
-        confs[2] = new TestConf("ldap.example.com", "ou=example3,ou.com", "cn=users,ou=example3,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
+        confs[2] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -345,12 +361,29 @@ public class LDAPSecurityRealmTest {
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
         }
-        final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
-                true,
-                null,
-                IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE);
-        r.jenkins.setSecurityRealm(realm);
+        try {
+            LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                    true,
+                    null,
+                    IdStrategy.CASE_INSENSITIVE,
+                    IdStrategy.CASE_INSENSITIVE);
+            r.jenkins.setSecurityRealm(realm);
+            fail("Should have thrown exception");
+        } catch (IllegalArgumentException e) {
+            //Expected
+            try {
+                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
+                LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+                        true,
+                        null,
+                        IdStrategy.CASE_INSENSITIVE,
+                        IdStrategy.CASE_INSENSITIVE);
+                r.jenkins.setSecurityRealm(realm);
+            } finally {
+                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
+            }
+
+        }
         final JenkinsRule.WebClient client = r.createWebClient();
         try {
             r.submit(client.goTo("configureSecurity").getFormByName("config"));

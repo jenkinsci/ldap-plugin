@@ -20,14 +20,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -43,13 +41,15 @@ public class LdapMultiEmbedded2Test {
     public JenkinsRule r = new JenkinsRule();
     @Rule
     public RuleChain chain = RuleChain.outerRule(sevenSeas).around(planetExpress).around(r);
+    private LDAPConfiguration sevenSeasConf;
+    private LDAPConfiguration planetExpressConf;
 
     @Before
     public void setup() throws Exception {
         sevenSeas.loadSchema("sevenSeas", "o=sevenSeas", getClass().getResourceAsStream("/hudson/security/sevenSeas.ldif"));
         planetExpress.loadSchema("planetexpress", "dc=planetexpress,dc=com", getClass().getResourceAsStream("/hudson/security/planetexpressWithHNelson.ldif"));
 
-        LDAPConfiguration sevenSeasConf = new LDAPConfiguration(
+        sevenSeasConf = new LDAPConfiguration(
                 sevenSeas.getUrl(),
                 null,
                 false,
@@ -63,7 +63,7 @@ public class LdapMultiEmbedded2Test {
         sevenSeasConf.setDisplayNameAttributeName("sn"); //Different than the next so we can see that difference is made
         sevenSeasConf.setMailAddressAttributeName(null);
 
-        LDAPConfiguration planetExpressConf = new LDAPConfiguration(planetExpress.getUrl(), "dc=planetexpress,dc=com", false, "uid=admin,ou=system", Secret.fromString("pass"));
+        planetExpressConf = new LDAPConfiguration(planetExpress.getUrl(), "dc=planetexpress,dc=com", false, "uid=admin,ou=system", Secret.fromString("pass"));
         planetExpressConf.setUserSearchBase("ou=people");
         planetExpressConf.setUserSearch(null);
         planetExpressConf.setGroupSearchBase("ou=groups");
@@ -92,7 +92,7 @@ public class LdapMultiEmbedded2Test {
 
         UserDetails details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails.loadUserByUsername("hnelson");
         assertThat(details, instanceOf(LDAPSecurityRealm.DelegatedLdapUserDetails.class));
-        assertEquals(sevenSeas.getUrl(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getServer());
+        assertEquals(sevenSeasConf.getId(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getConfigurationId());
 
         //Second server
         user = User.get("fry");
@@ -101,7 +101,7 @@ public class LdapMultiEmbedded2Test {
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("fry@planetexpress.com"));
         details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails.loadUserByUsername("fry");
         assertThat(details, instanceOf(LDAPSecurityRealm.DelegatedLdapUserDetails.class));
-        assertEquals(planetExpress.getUrl(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getServer());
+        assertEquals(planetExpressConf.getId(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getConfigurationId());
     }
 
     @Test
@@ -111,13 +111,13 @@ public class LdapMultiEmbedded2Test {
         Authentication auth = manager.authenticate(new UsernamePasswordAuthenticationToken("hnelson", "pass"));
         assertNotNull(auth);
         assertThat(auth, instanceOf(LDAPSecurityRealm.DelegatedLdapAuthentication.class));
-        assertEquals(sevenSeas.getUrl(), ((LDAPSecurityRealm.DelegatedLdapAuthentication)auth).getServer());
+        assertEquals(sevenSeasConf.getId(), ((LDAPSecurityRealm.DelegatedLdapAuthentication)auth).getConfigurationId());
 
         //Second Server
         auth = manager.authenticate(new UsernamePasswordAuthenticationToken("fry", "fry"));
         assertNotNull(auth);
         assertThat(auth, instanceOf(LDAPSecurityRealm.DelegatedLdapAuthentication.class));
-        assertEquals(planetExpress.getUrl(), ((LDAPSecurityRealm.DelegatedLdapAuthentication)auth).getServer());
+        assertEquals(planetExpressConf.getId(), ((LDAPSecurityRealm.DelegatedLdapAuthentication)auth).getConfigurationId());
 
         //Exists on both servers with different passwords, trying passwd from server 2 should fail
         try {
