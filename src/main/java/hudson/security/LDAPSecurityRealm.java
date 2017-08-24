@@ -50,6 +50,7 @@ import org.acegisecurity.AcegiSecurityException;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
+import org.acegisecurity.AuthenticationServiceException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -688,6 +689,17 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return null;
     }
 
+    @CheckForNull
+    private static LDAPConfiguration _getConfigurationFor(String configurationId) {
+        final Jenkins jenkins = Jenkins.getInstance();
+        final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
+        if (securityRealm instanceof LDAPSecurityRealm) {
+            return ((LDAPSecurityRealm) securityRealm).getConfigurationFor(configurationId);
+        }
+
+        return null;
+    }
+
     @Restricted(NoExternalUse.class)
     public static String toProviderUrl(String serverUrl, String rootDN) {
         StringBuilder buf = new StringBuilder();
@@ -920,7 +932,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
             if (delegates.size() == 1) {
-                return updateUserDetails(delegates.get(0).delegate.authenticate(authentication));
+                try {
+                    return updateUserDetails(delegates.get(0).delegate.authenticate(authentication));
+                } catch (AuthenticationServiceException e) {
+                    LOGGER.log(Level.WARNING, "Failed communication with ldap server.", e);
+                }
             }
             BadCredentialsException lastException = null;
             for (ManagerEntry delegate : delegates) {
@@ -940,6 +956,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } else {
                         lastException = e;
                     }
+                } catch (AuthenticationServiceException e) {
+                    final LDAPConfiguration configuration = getConfigurationFor(delegate.configurationId);
+                    LOGGER.log(Level.WARNING,
+                            String.format("Failed communication with ldap server %s (%s)",
+                                    delegate.configurationId, configuration != null ? configuration.getServer() : "null"),
+                            e);
+                    throw e;
                 }
             }
             if (lastException != null) {
@@ -1116,11 +1139,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException, DataAccessException {
             for (LDAPUserDetailsService delegate : delegates) {
                 if (delegate.configurationId.equals(configurationId)) {
-                    LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                    if (userDetails instanceof DelegatedLdapUserDetails) {
-                        return (DelegatedLdapUserDetails)userDetails;
-                    } else {
-                        return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
+                    try {
+                        LdapUserDetails userDetails = delegate.loadUserByUsername(username);
+                        if (userDetails instanceof DelegatedLdapUserDetails) {
+                            return (DelegatedLdapUserDetails)userDetails;
+                        } else {
+                            return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
+                        }
+                    } catch (DataAccessException e) {
+                        final LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
+                        LOGGER.log(Level.WARNING,
+                                String.format("Failed communication with ldap server %s (%s)",
+                                        delegate.configurationId, configuration != null ? configuration.getServer() : "null"),
+                                e);
+                        throw e;
                     }
                 }
             }
