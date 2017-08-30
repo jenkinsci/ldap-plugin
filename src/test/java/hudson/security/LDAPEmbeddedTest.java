@@ -489,4 +489,34 @@ public class LDAPEmbeddedTest {
         assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
     }
 
+    @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void usingEnvironmentProperties() throws Exception {
+        LDAPConfiguration c = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
+
+        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.ldap.typesOnly", "true")};
+        c.setEnvironmentProperties(environmentProperties);
+
+        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        configurations.add(c);
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+            configurations,
+            false,
+            new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+            IdStrategy.CASE_INSENSITIVE,
+            IdStrategy.CASE_INSENSITIVE
+        );
+
+        r.jenkins.setSecurityRealm(realm);
+        r.submit(r.createWebClient().goTo("configureSecurity").getFormByName("config"));
+
+        try {
+            r.createWebClient().login("fry", "fry");
+            fail("Should not be able to login");
+        } catch (FailingHttpStatusCodeException e) {
+            System.out.println("Got a bad login==good");
+        }
+    }
+
+
 }
