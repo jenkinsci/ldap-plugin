@@ -464,19 +464,19 @@ public class LDAPSecurityRealmTest {
 
         LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
         assertNotSame(realm, newRealm);
-        LDAPConfiguration config = newRealm.getConfigurations().get(0);
-        assertEquals(server, config.getServer());
-        assertEquals(rootDN, config.getRootDN());
-        assertEquals(userSearchBase, config.getUserSearchBase());
-        assertEquals(managerDN, config.getManagerDN());
-        assertEquals(managerSecret, config.getManagerPassword());
+        LDAPConfiguration newConfig = newRealm.getConfigurations().get(0);
+        assertEquals(server, newConfig.getServer());
+        assertEquals(rootDN, newConfig.getRootDN());
+        assertEquals(userSearchBase, newConfig.getUserSearchBase());
+        assertEquals(managerDN, newConfig.getManagerDN());
+        assertEquals(managerSecret, newConfig.getManagerPassword());
         assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
-        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
-        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
-        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
-        assertTrue(config.getEnvironmentProperties().length > 0);
-        assertEquals(config.getEnvironmentProperties()[0].getName(), c.getEnvironmentProperties()[0].getName());
-        assertEquals(config.getEnvironmentProperties()[0].getValue(), c.getEnvironmentProperties()[0].getValue());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, newConfig.getUserSearch());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, newConfig.getDisplayNameAttributeName());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, newConfig.getMailAddressAttributeName());
+        assertTrue(newConfig.getEnvironmentProperties().length > 0);
+        assertEquals(newConfig.getEnvironmentProperties()[0].getName(), c.getEnvironmentProperties()[0].getName());
+        assertEquals(newConfig.getEnvironmentProperties()[0].getValue(), c.getEnvironmentProperties()[0].getValue());
     }
 
 
