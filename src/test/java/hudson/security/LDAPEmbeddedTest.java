@@ -24,19 +24,19 @@
 
 package hudson.security;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import jenkins.model.IdStrategy;
-import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.LDAPTestConfiguration;
-import jenkins.security.plugins.ldap.LDAPRule;
-import jenkins.security.plugins.ldap.LDAPSchema;
+import jenkins.security.plugins.ldap.*;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
@@ -55,6 +55,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @LDAPTestConfiguration
 public class LDAPEmbeddedTest {
@@ -487,5 +488,36 @@ public class LDAPEmbeddedTest {
                 containsString("validation-ok"));
         assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
     }
+
+    @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void usingEnvironmentProperties() throws Exception {
+        LDAPConfiguration c = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
+
+        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.ldap.typesOnly", "true")};
+        c.setEnvironmentProperties(environmentProperties);
+
+        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        configurations.add(c);
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+            configurations,
+            false,
+            new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+            IdStrategy.CASE_INSENSITIVE,
+            IdStrategy.CASE_INSENSITIVE
+        );
+
+        r.jenkins.setSecurityRealm(realm);
+        r.submit(r.createWebClient().goTo("configureSecurity").getFormByName("config"));
+        //r.configRoundtrip();
+
+        try {
+            r.createWebClient().login("fry", "fry");
+            fail("Should not be able to login");
+        } catch (FailingHttpStatusCodeException e) {
+            System.out.println("Got a bad login==good");
+        }
+    }
+
 
 }
