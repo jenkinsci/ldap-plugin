@@ -433,6 +433,53 @@ public class LDAPSecurityRealmTest {
 
     }
 
+    @Test
+    public void configRoundTripEnvironmentProperties() throws Exception {
+        final String server = "ldap.itd.umich.edu";
+        final String rootDN = "ou=umich,ou.edu";
+        final String userSearchBase = "cn=users,ou=umich,ou.edu";
+        final String managerDN = "cn=admin,ou=umich,ou.edu";
+        final String managerSecret = "secret";
+
+        LDAPConfiguration c = new LDAPConfiguration(server, rootDN, false, managerDN, Secret.fromString(managerSecret));
+
+        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.ldap.typesOnly", "true")};
+        c.setEnvironmentProperties(environmentProperties);
+        c.setUserSearchBase(userSearchBase);
+
+        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        configurations.add(c);
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                configurations,
+                false,
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE
+        );
+
+        r.jenkins.setSecurityRealm(realm);
+
+        final JenkinsRule.WebClient client = r.createWebClient();
+        r.submit(client.goTo("configureSecurity").getFormByName("config"));
+
+        LDAPSecurityRealm newRealm = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
+        assertNotSame(realm, newRealm);
+        LDAPConfiguration newConfig = newRealm.getConfigurations().get(0);
+        assertEquals(server, newConfig.getServer());
+        assertEquals(rootDN, newConfig.getRootDN());
+        assertEquals(userSearchBase, newConfig.getUserSearchBase());
+        assertEquals(managerDN, newConfig.getManagerDN());
+        assertEquals(managerSecret, newConfig.getManagerPassword());
+        assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, newConfig.getUserSearch());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, newConfig.getDisplayNameAttributeName());
+        assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, newConfig.getMailAddressAttributeName());
+        assertTrue(newConfig.getEnvironmentProperties().length > 0);
+        assertEquals(newConfig.getEnvironmentProperties()[0].getName(), c.getEnvironmentProperties()[0].getName());
+        assertEquals(newConfig.getEnvironmentProperties()[0].getValue(), c.getEnvironmentProperties()[0].getValue());
+    }
+
+
     private static class AddServerButtonMatcher extends BaseButtonMatcher {
         protected AddServerButtonMatcher() {
             super("Add Server");
