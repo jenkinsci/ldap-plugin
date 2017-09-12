@@ -25,6 +25,7 @@
  */
 package jenkins.security.plugins.ldap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
@@ -389,6 +390,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
@@ -442,6 +444,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             }
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public DescriptorExtensionList<LDAPGroupMembershipStrategy, Descriptor<LDAPGroupMembershipStrategy>> getGroupMembershipStrategies() {
             final Jenkins jenkins = Jenkins.getInstance();
             if (jenkins != null) {
