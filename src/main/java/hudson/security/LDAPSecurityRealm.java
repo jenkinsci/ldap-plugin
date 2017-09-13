@@ -1193,6 +1193,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy, configurationId);
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
             username = fixUsername(username);
             try {
@@ -1287,6 +1288,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Extension
     public static final class MailAdressResolverImpl extends MailAddressResolver {
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public String findMailAddressFor(User u) {
             final Jenkins jenkins = Jenkins.getInstance();
             if (jenkins == null) {
