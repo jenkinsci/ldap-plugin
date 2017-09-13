@@ -16,6 +16,9 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertThat;
+
 public class CaptureLogRule extends Handler implements TestRule {
 
     private final String logId;
@@ -46,16 +49,36 @@ public class CaptureLogRule extends Handler implements TestRule {
 
     }
 
+    public void assertRecorded(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        assertThat(this, recorded(level, message, thrown));
+    }
+
+    public void assertNotRecorded(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        assertThat(this, not(recorded(level, message, thrown)));
+    }
+
     public Matcher<CaptureLogRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return new RecordedMatcher(level, message, thrown);
+    }
+
+    public void assertRecorded(@CheckForNull Level level, @Nonnull Matcher<String> message) {
+        assertThat(this, recorded(level, message));
     }
 
     public Matcher<CaptureLogRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message) {
         return recorded(level, message, null);
     }
 
+    public void assertRecorded(@Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        assertThat(this, recorded(message, thrown));
+    }
+
     public Matcher<CaptureLogRule> recorded(@Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return recorded(null, message, thrown);
+    }
+
+    public void assertRecorded(@Nonnull Matcher<String> message) {
+        assertThat(this, recorded(message));
     }
 
     public Matcher<CaptureLogRule> recorded(@Nonnull Matcher<String> message) {

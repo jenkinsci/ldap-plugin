@@ -1173,7 +1173,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (DataAccessException e) {
-                    LOGGER.log(Level.WARNING, "LDAP connection " + delegate.configurationId + " seems to be broken, will _not_ try the next configuration.", e);
+                    LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
+                    LOGGER.log(Level.WARNING,
+                            "LDAP connection "
+                                    + delegate.configurationId
+                                    + (configuration != null ? "("+configuration.getServer()+")" : "")
+                                    + " seems to be broken, will _not_ try the next configuration.", e);
                     throw e;
                 }
             }
