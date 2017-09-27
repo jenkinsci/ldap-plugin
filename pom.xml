@@ -25,7 +25,7 @@
   <properties>
     <apacheds.version>2.0.0-M23</apacheds.version>
     <apacheds.jdbm.version>2.0.0-M3</apacheds.jdbm.version>
-    <jenkins.version>1.648</jenkins.version>
+    <jenkins.version>1.651.3</jenkins.version>
   </properties>
 
   <scm>
