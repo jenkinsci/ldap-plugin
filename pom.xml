@@ -64,6 +64,10 @@
           <groupId>com.google.inject</groupId>
           <artifactId>guice</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.jenkins-ci</groupId> <!-- pending https://github.com/jenkinsci/docker-fixtures/pull/7 -->
+          <artifactId>annotation-indexer</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
 
