@@ -4,7 +4,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.30</version>
+    <version>2.36</version>
+    <relativePath />
   </parent>
 
   <artifactId>ldap</artifactId>
@@ -58,6 +59,12 @@
       <artifactId>docker-fixtures</artifactId>
       <version>1.0</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion> <!-- pending release of https://github.com/jenkinsci/docker-fixtures/pull/6 in 1.1 -->
+          <groupId>com.google.inject</groupId>
+          <artifactId>guice</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -76,6 +83,10 @@
         <exclusion>
           <groupId>org.bouncycastle</groupId>
           <artifactId>bcprov-jdk15on</artifactId>
+        </exclusion>
+        <exclusion> <!-- core provides something else -->
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -247,11 +258,6 @@
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <configuration>
-          <systemProperties>
-            <hudson.bundled.plugins>${basedir}/work/plugins/ldap.hpl</hudson.bundled.plugins>
-          </systemProperties>
-        </configuration>
         <executions>
           <execution>
             <goals>
