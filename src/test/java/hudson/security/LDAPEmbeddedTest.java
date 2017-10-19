@@ -245,7 +245,35 @@ public class LDAPEmbeddedTest {
         GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty");
         assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
         assertThat(groupDetails.getName(), is("HMS Bounty"));
-        assertThat("LDAP security realm does not support group member query", groupDetails.getMembers(), nullValue());
+        assertThat("LDAP security realm does not fetch group members by default", groupDetails.getMembers(), nullValue());
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void groupLookupWithMembers() throws Exception {
+        r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE)
+        );
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty", true);
+        assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
+        assertThat(groupDetails.getName(), is("HMS Bounty"));
+        assertThat(groupDetails.getMembers(), containsInAnyOrder("William Bligh", "Fletcher Christian", "John Fryer", "John Hallett"));
     }
 
     @Test

@@ -54,7 +54,10 @@ import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.ldap.InitialDirContextFactory;
+import org.acegisecurity.ldap.LdapCallback;
 import org.acegisecurity.ldap.LdapDataAccessException;
+import org.acegisecurity.ldap.LdapEntryMapper;
+import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -82,11 +85,17 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.naming.InvalidNameException;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
 import javax.naming.ldap.Control;
+import javax.naming.ldap.LdapName;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
@@ -392,7 +401,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * The group details cache.
      */
-    private transient Map<String,CacheEntry<Set<String>>> groupDetailsCache = null;
+    private transient Map<String,CacheEntry<GroupDetails>> groupDetailsCache = null;
 
     @Deprecated @Restricted(NoExternalUse.class)
     private transient Map<String,String> extraEnvVars;
@@ -830,10 +839,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+        return loadGroupByGroupname(groupname, false);
+    }
+
+    @Override
+    public GroupDetails loadGroupByGroupname(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
         groupname = fixGroupname(groupname);
-        Set<String> cachedGroups;
+        GroupDetails cachedGroups;
         if (cache != null) {
-            final CacheEntry<Set<String>> cached;
+            final CacheEntry<GroupDetails> cached;
             synchronized (this) {
                 cached = groupDetailsCache != null ? groupDetailsCache.get(groupname) : null;
             }
@@ -848,32 +862,75 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         // TODO: obtain a DN instead so that we can obtain multiple attributes later
 
-        final Set<String> groups = cachedGroups != null
+        final GroupDetails groups = cachedGroups != null
                 ? cachedGroups
-                : searchForGroupName(groupname);
-        if (cache != null && cachedGroups == null && !groups.isEmpty()) {
+                : searchForGroupName(groupname, fetchMembers);
+        if (cache != null && cachedGroups == null) {
             synchronized (this) {
                 if (groupDetailsCache == null) {
-                    groupDetailsCache = new CacheMap<String, Set<String>>(cache.getSize());
+                    groupDetailsCache = new CacheMap<>(cache.getSize());
                 }
-                groupDetailsCache.put(groupname, new CacheEntry<Set<String>>(cache.getTtl(), groups));
+                groupDetailsCache.put(groupname, new CacheEntry<>(cache.getTtl(), groups));
             }
         }
 
-        if(groups.isEmpty())
-            throw new UsernameNotFoundException(groupname);
-
-        return new GroupDetailsImpl(fixGroupname(groups.iterator().next()));
+        return groups;
     }
 
-    private Set<String> searchForGroupName(String groupname) {
-        Set<String> groups = new TreeSet<>();
+    private @Nonnull GroupDetails searchForGroupName(String groupname, boolean fetchMembers) {
         for (LDAPConfiguration conf : configurations) {
             String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
             String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
-            groups.addAll(conf.getLdapTemplate().searchForSingleAttributeValues(searchBase, searchFilter, new String[]{groupname}, "cn"));
+            if (fetchMembers) {
+                return (GroupDetails)searchForFirstEntry(conf.getLdapTemplate(), searchBase, searchFilter, new String[]{groupname}, new LdapGroupDetailsMapper());
+            } else {
+                Set<String> groups = conf.getLdapTemplate().searchForSingleAttributeValues(searchBase, searchFilter, new String[]{groupname}, "cn");
+                if (!groups.isEmpty()) {
+                    return new GroupDetailsImpl(fixGroupname(groups.iterator().next()));
+                }
+            }
         }
-        return groups;
+        throw new UsernameNotFoundException(groupname);
+    }
+
+    /**
+     * Adapted from {@link LdapTemplate#searchForSingleEntry} to return the first result instead
+     * of throwing an error if there are multiple results.
+     */
+    private static Object searchForFirstEntry(LdapTemplate template, final String base, final String filter, final Object[] params, final LdapEntryMapper mapper) {
+        return template.execute(new LdapCallback() {
+            @Override
+            public Object doInDirContext(DirContext ctx) throws NamingException {
+                SearchControls defaultControls = new SearchControls();
+                defaultControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+                NamingEnumeration results = ctx.search(base, filter, params, defaultControls);
+                try {
+                    if (results.hasMore()) {
+                        SearchResult searchResult = (SearchResult) results.next();
+                        // Work out the DN of the matched entry
+                        StringBuilder dn = new StringBuilder(searchResult.getName());
+
+                        if (base.length() > 0) {
+                            dn.append(",");
+                            dn.append(base);
+                        }
+
+                        String nameInNamespace = ctx.getNameInNamespace();
+
+                        if (org.springframework.util.StringUtils.hasLength(nameInNamespace)) {
+                            dn.append(",");
+                            dn.append(nameInNamespace);
+                        }
+
+                        return mapper.mapAttributes(dn.toString(), searchResult.getAttributes());
+                    }
+                } finally {
+                    results.close();
+                }
+
+                return null;
+            }
+        });
     }
 
     private static String fixGroupname(String groupname) {
@@ -892,13 +949,63 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private static class GroupDetailsImpl extends GroupDetails {
 
         private String name;
+        private final Set<String> members;
 
         public GroupDetailsImpl(String name) {
             this.name = name;
+            this.members = null;
+        }
+
+        public GroupDetailsImpl(String name, Set<String> members) {
+            this.name = name;
+            this.members = members;
         }
 
         public String getName() {
             return name;
+        }
+
+        @Override
+        public Set<String> getMembers() {
+            return members;
+        }
+    }
+
+    private static class LdapGroupDetailsMapper implements LdapEntryMapper {
+        @Override
+        public Object mapAttributes(String dn, Attributes attributes) throws NamingException {
+            String cn = fixGroupname(String.valueOf(attributes.get("cn").get()));
+            NamingEnumeration<?> enumeration;
+            boolean expectingUidInsteadOfDn = false;
+            if (attributes.get("member") != null) {
+                enumeration = attributes.get("member").getAll();
+            } else if (attributes.get("uniqueMember") != null) {
+                enumeration = attributes.get("uniqueMember").getAll();
+            } else if (attributes.get("memberUid") != null) {
+                enumeration = attributes.get("memberUid").getAll();
+                expectingUidInsteadOfDn = true;
+            } else {
+                return new GroupDetailsImpl(cn);
+            }
+
+            Set<String> members = new TreeSet<>();
+            while (enumeration.hasMore()) {
+                String memberDn = String.valueOf(enumeration.next());
+                if (expectingUidInsteadOfDn) {
+                    members.add(fixUsername(memberDn));
+                } else {
+                    try {
+                        LdapName memberName = new LdapName(memberDn);
+                        Attributes memberAttributes = memberName.getRdn(memberName.size() - 1).toAttributes();
+                        if (memberAttributes.get("cn") != null) {
+                            members.add(String.valueOf(memberAttributes.get("cn").get()));
+                        }
+                    } catch (InvalidNameException e) {
+                        LOGGER.log(Level.FINEST, "Expecting DN but found {0}", memberDn);
+                    }
+                }
+            }
+            return new GroupDetailsImpl(cn, members);
         }
     }
 
