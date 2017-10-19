@@ -845,36 +845,36 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     @Override
     public GroupDetails loadGroupByGroupname(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
         groupname = fixGroupname(groupname);
-        GroupDetails cachedGroups;
+        GroupDetails cachedGroup;
         if (cache != null) {
             final CacheEntry<GroupDetails> cached;
             synchronized (this) {
                 cached = groupDetailsCache != null ? groupDetailsCache.get(groupname) : null;
             }
             if (cached != null && cached.isValid()) {
-                cachedGroups = cached.getValue();
+                cachedGroup = cached.getValue();
             } else {
-                cachedGroups = null;
+                cachedGroup = null;
             }
         } else {
-            cachedGroups = null;
+            cachedGroup = null;
         }
 
         // TODO: obtain a DN instead so that we can obtain multiple attributes later
 
-        final GroupDetails groups = cachedGroups != null
-                ? cachedGroups
+        final GroupDetails group = cachedGroup != null
+                ? cachedGroup
                 : searchForGroupName(groupname, fetchMembers);
-        if (cache != null && cachedGroups == null) {
+        if (cache != null && cachedGroup == null) {
             synchronized (this) {
                 if (groupDetailsCache == null) {
                     groupDetailsCache = new CacheMap<>(cache.getSize());
                 }
-                groupDetailsCache.put(groupname, new CacheEntry<>(cache.getTtl(), groups));
+                groupDetailsCache.put(groupname, new CacheEntry<>(cache.getTtl(), group));
             }
         }
 
-        return groups;
+        return group;
     }
 
     private @Nonnull GroupDetails searchForGroupName(String groupname, boolean fetchMembers) {
