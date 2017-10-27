@@ -250,7 +250,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void groupLookupWithMembers() throws Exception {
+    public void groupLookup_membersFromGroupSearch() throws Exception {
         r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -273,6 +273,34 @@ public class LDAPEmbeddedTest {
         GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty", true);
         assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
         assertThat(groupDetails.getName(), is("HMS Bounty"));
+        assertThat(groupDetails.getMembers(), containsInAnyOrder("William Bligh", "Fletcher Christian", "John Fryer", "John Hallett"));
+    }
+
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void groupLookup_membersFromUserRecord() throws Exception {
+        r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                "(& (cn={0}) (objectclass=simulatedMicrosoftSecurityGroup))",
+                new FromUserRecordLDAPGroupMembershipStrategy("memberOf"),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE)
+        );
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS_Bounty", true);
+        assertThat(groupDetails.getDisplayName(), is("HMS_Bounty"));
+        assertThat(groupDetails.getName(), is("HMS_Bounty"));
         assertThat(groupDetails.getMembers(), containsInAnyOrder("William Bligh", "Fletcher Christian", "John Fryer", "John Hallett"));
     }
 
