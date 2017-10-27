@@ -28,9 +28,12 @@ import hudson.security.LDAPSecurityRealm;
 import java.util.Set;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
+import org.acegisecurity.ldap.LdapEntryMapper;
+import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.springframework.dao.DataAccessException;
 
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
@@ -39,6 +42,7 @@ import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -51,6 +55,7 @@ import java.util.logging.Logger;
 public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembershipStrategy {
 
     private static final Logger LOGGER = Logger.getLogger(FromUserRecordLDAPGroupMembershipStrategy.class.getName());
+    private static final String USER_SEARCH_FILTER = "({0}={1})";
     private final String attributeName;
 
     @DataBoundConstructor
@@ -114,6 +119,27 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
         }
 
         return result.toArray(new GrantedAuthority[result.size()]);
+    }
+
+    @Override
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+        LdapTemplate template = conf.getLdapTemplate();
+        String attributeName = getAttributeName();
+        String[] params = { attributeName, groupDn };
+        String[] attributeNames = { attributeName };
+        return new HashSet<>((List<String>)LDAPSearchUtils.searchForAllEntries(template, conf.getUserSearchBase(),
+                USER_SEARCH_FILTER, params, attributeNames, new UserRecordMapper()));
+    }
+
+    /**
+     * Maps users records to names.
+     */
+    private static class UserRecordMapper implements LdapEntryMapper {
+        @Override
+        public String mapAttributes(String dn, Attributes attributes) throws NamingException {
+            LdapName name = new LdapName(dn);
+            return String.valueOf(name.getRdn(name.size() - 1).getValue());
+        }
     }
 
     @Extension
