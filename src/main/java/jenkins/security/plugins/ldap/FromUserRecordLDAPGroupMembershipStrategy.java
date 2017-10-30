@@ -29,7 +29,6 @@ import java.util.Set;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -123,12 +122,12 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
 
     @Override
     public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
-        LdapTemplate template = conf.getLdapTemplate();
+        LDAPExtendedTemplate template = conf.getLdapTemplate();
         String attributeName = getAttributeName();
         String[] params = { attributeName, groupDn };
         String[] attributeNames = { attributeName };
-        return new HashSet<>((List<String>)LDAPSearchUtils.searchForAllEntries(template, conf.getUserSearchBase(),
-                USER_SEARCH_FILTER, params, attributeNames, new UserRecordMapper()));
+        return new HashSet<>((List<String>)template.searchForAllEntries(conf.getUserSearchBase(), USER_SEARCH_FILTER,
+                params, attributeNames, new UserRecordMapper()));
     }
 
     /**

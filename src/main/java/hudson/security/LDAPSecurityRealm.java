@@ -44,7 +44,7 @@ import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
-import jenkins.security.plugins.ldap.LDAPSearchUtils;
+import jenkins.security.plugins.ldap.LDAPExtendedTemplate;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AcegiSecurityException;
@@ -57,7 +57,6 @@ import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapDataAccessException;
 import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -880,8 +879,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         for (LDAPConfiguration conf : configurations) {
             String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
             String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
-            LdapTemplate template = conf.getLdapTemplate();
-            GroupDetailsImpl groupDetails = (GroupDetailsImpl)LDAPSearchUtils.searchForFirstEntry(template, searchBase, searchFilter, new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
+            LDAPExtendedTemplate template = conf.getLdapTemplate();
+            GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
+                    new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
             if (groupDetails != null) {
                 if (fetchMembers) {
                     Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);

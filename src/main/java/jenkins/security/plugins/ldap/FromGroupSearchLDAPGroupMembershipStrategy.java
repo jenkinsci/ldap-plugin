@@ -37,7 +37,6 @@ import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
@@ -84,7 +83,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
 
     @Override
     public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
-        LdapTemplate template = conf.getLdapTemplate();
+        LDAPExtendedTemplate template = conf.getLdapTemplate();
         String[] memberAttributes = { "member", "uniqueMember", "memberUid" };
         return (Set<String>) template.retrieveEntry(groupDn, new GroupMembersMapper(), memberAttributes);
     }

@@ -32,6 +32,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapCallback;
 import org.acegisecurity.ldap.LdapDataAccessException;
 import org.acegisecurity.ldap.LdapEntryMapper;
@@ -41,13 +42,16 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.dao.DataAccessException;
 
 @Restricted(NoExternalUse.class)
-public class LDAPSearchUtils {
+public class LDAPExtendedTemplate extends LdapTemplate {
+
+    public LDAPExtendedTemplate(InitialDirContextFactory dirContextFactory) {
+        super(dirContextFactory);
+    }
 
     /**
      * Performs a search using the specified filter and returns the first matching entry using the
      * given {@link LdapEntryMapper} to convert the entry into a result.
      *
-     * @param template the {@link LdapTemplate} to use.
      * @param base the DN to search in.
      * @param filter the search filter to use.
      * @param params the parameters to substitute in the search filter.
@@ -58,9 +62,9 @@ public class LDAPSearchUtils {
      *
      * @see LdapTemplate#searchForSingleEntry
      */
-    public static Object searchForFirstEntry(LdapTemplate template, final String base, final String filter,
-            final Object[] params, final String[] attributeNames, final LdapEntryMapper mapper) throws DataAccessException {
-        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(template, base, filter, params, attributeNames, mapper)) {
+    public Object searchForFirstEntry(final String base, final String filter, final Object[] params,
+            final String[] attributeNames, final LdapEntryMapper mapper) throws DataAccessException {
+        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(base, filter, params, attributeNames, mapper)) {
             return searchEnum.next();
         } catch (NamingException e) {
             throw new LdapDataAccessException("Unable to get first element", e);
@@ -71,7 +75,6 @@ public class LDAPSearchUtils {
      * Performs a search using the specified filter and returns a List of all matching entries
      * using the given {@link LdapEntryMapper} to convert each entry into a result.
      *
-     * @param template the {@link LdapTemplate} to use.
      * @param base the DN to search in.
      * @param filter the search filter to use.
      * @param params the parameters to substitute in the search filter.
@@ -82,11 +85,11 @@ public class LDAPSearchUtils {
      *
      * @see LdapTemplate#searchForSingleEntry
      */
-    public static @Nonnull List<? extends Object> searchForAllEntries(LdapTemplate template, final String base,
-            final String filter, final Object[] params, final String[] attributeNames, final LdapEntryMapper mapper)
+    public @Nonnull List<? extends Object> searchForAllEntries(final String base, final String filter,
+            final Object[] params, final String[] attributeNames, final LdapEntryMapper mapper)
             throws DataAccessException {
         List<Object> results = new ArrayList<>();
-        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(template, base, filter, params, attributeNames, mapper)) {
+        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(base, filter, params, attributeNames, mapper)) {
             while (searchEnum.hasMore()) {
                 results.add(searchEnum.next());
             }
@@ -96,10 +99,10 @@ public class LDAPSearchUtils {
         return results;
     }
 
-    private static @Nonnull SearchResultEnumeration searchForAllEntriesEnum(LdapTemplate template, final String base,
+    private @Nonnull SearchResultEnumeration searchForAllEntriesEnum(final String base,
             final String filter, final Object[] params, final String[] attributeNames, final LdapEntryMapper mapper)
             throws DataAccessException {
-        return (SearchResultEnumeration)template.execute(new LdapCallback() {
+        return (SearchResultEnumeration)execute(new LdapCallback() {
             @Override
             public SearchResultEnumeration doInDirContext(DirContext ctx) throws NamingException {
                 SearchControls controls = new SearchControls();
