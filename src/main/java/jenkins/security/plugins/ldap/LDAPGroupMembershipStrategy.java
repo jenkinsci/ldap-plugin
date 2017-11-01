@@ -25,10 +25,8 @@ package jenkins.security.plugins.ldap;
 
 import hudson.model.AbstractDescribableImpl;
 import java.util.Set;
-import javax.annotation.CheckForNull;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.springframework.dao.DataAccessException;
 
@@ -74,9 +72,12 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
      *
      * @param groupDn the DN of the group whose members will be returned.
      * @param conf the {@link LDAPConfiguration} that controls some search variables.
-     * @return a set of all members in the specified group.
-     * @throws UsernameNotFoundException if a group with the specified DN does not exist.
+     *
+     * @return a set of all members in the specified group, or null if the members could not be found.
      * @throws DataAccessException if there is an error performing the search.
+     * @since 1.18
      */
-    public abstract @CheckForNull Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException;
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+        return null;
+    }
 }
