@@ -91,8 +91,8 @@ public class LDAPExtendedTemplateTest {
                 new String[]{"cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas"}, null, new DnEntryMapper());
         assertThat(matchingEntries, containsInAnyOrder(
                 "cn=Horatio Hornblower,ou=people,o=sevenSeas",
-                "cn=William Bush,ou=people,o=sevenSeas", 
-                "cn=Thomas Quist,ou=people,o=sevenSeas", 
+                "cn=William Bush,ou=people,o=sevenSeas",
+                "cn=Thomas Quist,ou=people,o=sevenSeas",
                 "cn=Moultrie Crystal,ou=people,o=sevenSeas"));
     }
 
