@@ -58,14 +58,15 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      * @param attributeNames the attributes whose values will be retrieved. Passing null returns all attributes.
      * @param mapper the {@link LdapEntryMapper} that will convert the search results into returned values.
      *
-     * @return the first matching entry converted using the specified {@link LdapEntryMapper}.
+     * @return the first matching entry converted using the specified {@link LdapEntryMapper}, or null if no matching
+     * entry was found.
      *
      * @see LdapTemplate#searchForSingleEntry
      */
     public Object searchForFirstEntry(final String base, final String filter, final Object[] params,
             final String[] attributeNames, final LdapEntryMapper mapper) throws DataAccessException {
         try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(base, filter, params, attributeNames, mapper)) {
-            return searchEnum.next();
+            return searchEnum.hasMore() ? searchEnum.next() : null;
         } catch (NamingException e) {
             throw new LdapDataAccessException("Unable to get first element", e);
         }
