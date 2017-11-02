@@ -24,11 +24,12 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.model.AbstractDescribableImpl;
-import java.util.Set;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.springframework.dao.DataAccessException;
+
+import java.util.Set;
 
 /**
  * A strategy for determining the groups that a user belongs to.

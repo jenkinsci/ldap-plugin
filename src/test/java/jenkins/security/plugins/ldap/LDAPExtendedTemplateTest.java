@@ -26,9 +26,6 @@ package jenkins.security.plugins.ldap;
 import hudson.security.LDAPSecurityRealm;
 import hudson.security.LDAPSecurityRealm.CacheConfiguration;
 import hudson.util.Secret;
-import java.util.Arrays;
-import java.util.List;
-import javax.naming.directory.Attributes;
 import jenkins.model.IdStrategy;
 import org.acegisecurity.ldap.LdapEntryMapper;
 import org.junit.Test;
@@ -36,6 +33,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.util.Arrays;
+import java.util.List;
+import javax.naming.directory.Attributes;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;

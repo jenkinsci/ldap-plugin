@@ -24,14 +24,6 @@
 
 package jenkins.security.plugins.ldap;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
 import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapCallback;
 import org.acegisecurity.ldap.LdapDataAccessException;
@@ -40,6 +32,15 @@ import org.acegisecurity.ldap.LdapTemplate;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.dao.DataAccessException;
+
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
 
 @Restricted(NoExternalUse.class)
 public class LDAPExtendedTemplate extends LdapTemplate {
