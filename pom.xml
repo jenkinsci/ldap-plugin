@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>1.18-SNAPSHOT</version>
+  <version>1.18</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
@@ -32,7 +32,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>ldap-1.18</tag>
   </scm>
 
   <repositories>
