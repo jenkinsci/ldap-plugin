@@ -691,8 +691,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull
     private static LDAPConfiguration _getConfigurationFor(String configurationId) {
-        final Jenkins jenkins = Jenkins.getInstance();
-        final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
+        final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
         if (securityRealm instanceof LDAPSecurityRealm) {
             return ((LDAPSecurityRealm) securityRealm).getConfigurationFor(configurationId);
         }
