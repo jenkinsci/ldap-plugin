@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.springframework.dao.DataAccessException;
 
@@ -27,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.jvnet.hudson.test.LoggerRule.recorded;
 
 /**
  * Tests connecting to two different embedded servers using slightly different configurations.
@@ -36,7 +38,7 @@ public class LdapMultiEmbeddedTest {
     public LDAPRule sevenSeas = new LDAPRule();
     public LDAPRule planetExpress = new LDAPRule();
     public JenkinsRule r = new JenkinsRule();
-    public CaptureLogRule log = new CaptureLogRule(LDAPSecurityRealm.class.getName(), Level.WARNING);
+    public LoggerRule log = new LoggerRule().record(LDAPSecurityRealm.class, Level.WARNING).capture(100);
     @Rule
     public RuleChain chain = RuleChain.outerRule(sevenSeas).around(planetExpress).around(r).around(log);
 
@@ -186,9 +188,10 @@ public class LdapMultiEmbeddedTest {
         } catch (FailingHttpStatusCodeException e) {
             assertEquals(500, e.getStatusCode());
         }
-        log.assertRecorded(Level.WARNING,
-                allOf(CoreMatchers.containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER), CoreMatchers.containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -200,9 +203,10 @@ public class LdapMultiEmbeddedTest {
         } catch (FailingHttpStatusCodeException e) {
             assertEquals(500, e.getStatusCode());
         }
-        log.assertRecorded(Level.WARNING,
-                allOf(CoreMatchers.containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER), CoreMatchers.containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -214,9 +218,10 @@ public class LdapMultiEmbeddedTest {
         } catch (FailingHttpStatusCodeException e) {
             assertEquals(500, e.getStatusCode());
         }
-        log.assertRecorded(Level.WARNING,
-                allOf(CoreMatchers.containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER), CoreMatchers.containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(sevenSeas.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -224,9 +229,9 @@ public class LdapMultiEmbeddedTest {
         setBadPwd(sevenSeas);
         r.createWebClient().login("fry", "fry");
 
-        log.assertNotRecorded(Level.WARNING,
-                CoreMatchers.containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class))));
     }
 
 
@@ -239,11 +244,11 @@ public class LdapMultiEmbeddedTest {
         } catch (DataAccessException _) {
             //all is as expected
         }
-        log.assertRecorded(Level.WARNING,
+        assertThat(log, recorded(Level.WARNING,
                 allOf(containsString("LDAP connection"),
                         containsString("seems to be broken, will _not_ try the next configuration"),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -255,11 +260,11 @@ public class LdapMultiEmbeddedTest {
         } catch (DataAccessException _) {
             //all is as expected
         }
-        log.assertRecorded(Level.WARNING,
+        assertThat(log, recorded(Level.WARNING,
                 allOf(containsString("LDAP connection"),
                         containsString("seems to be broken, will _not_ try the next configuration"),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -271,11 +276,11 @@ public class LdapMultiEmbeddedTest {
         } catch (DataAccessException _) {
             //all is as expected
         }
-        log.assertRecorded(Level.WARNING,
+        assertThat(log, recorded(Level.WARNING,
                 allOf(containsString("LDAP connection"),
                         containsString("seems to be broken, will _not_ try the next configuration"),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
@@ -286,8 +291,8 @@ public class LdapMultiEmbeddedTest {
         } catch (DataAccessException _) {
             fail("No exception should be thrown when first is working");
         }
-        log.assertNotRecorded(Level.WARNING,
-                CoreMatchers.containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class));
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class))));
     }
 }
