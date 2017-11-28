@@ -292,7 +292,6 @@ public class LdapMultiEmbeddedTest {
             fail("No exception should be thrown when first is working");
         }
         assertThat(log, not(recorded(Level.WARNING,
-                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class))));
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
     }
 }
