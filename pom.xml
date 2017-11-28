@@ -27,6 +27,7 @@
     <apacheds.version>2.0.0-M23</apacheds.version>
     <apacheds.jdbm.version>2.0.0-M3</apacheds.jdbm.version>
     <jenkins.version>1.651.3</jenkins.version>
+    <jenkins-test-harness.version>2.32</jenkins-test-harness.version>
   </properties>
 
   <scm>
@@ -253,14 +254,6 @@
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
       <version>1.10.2</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- TODO: Remove once parent has a version of jenkins-test-harness with https://github.com/jenkinsci/jenkins-test-harness/pull/86. -->
-    <dependency>
-      <groupId>org.jenkins-ci.main</groupId>
-      <artifactId>jenkins-test-harness</artifactId>
-      <version>2.32-20171115.175148-3</version> <!-- TODO: Use non-snapshot version after merge and release of https://github.com/jenkinsci/jenkins-test-harness/pull/86 -->
       <scope>test</scope>
     </dependency>
   </dependencies>
