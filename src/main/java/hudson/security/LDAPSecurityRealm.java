@@ -935,6 +935,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     return updateUserDetails(delegates.get(0).delegate.authenticate(authentication));
                 } catch (AuthenticationServiceException e) {
                     LOGGER.log(Level.WARNING, "Failed communication with ldap server.", e);
+                    throw e;
                 }
             }
             BadCredentialsException lastException = null;
