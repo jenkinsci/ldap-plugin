@@ -230,8 +230,7 @@ public class LdapMultiEmbeddedTest {
         r.createWebClient().login("fry", "fry");
 
         assertThat(log, not(recorded(Level.WARNING,
-                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class))));
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
     }
 
 
