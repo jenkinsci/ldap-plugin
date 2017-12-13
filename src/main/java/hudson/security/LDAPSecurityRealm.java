@@ -888,17 +888,25 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
         for (LDAPConfiguration conf : configurations) {
-            String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
-            String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
-            LDAPExtendedTemplate template = conf.getLdapTemplate();
-            GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
-                    new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
-            if (groupDetails != null) {
-                if (fetchMembers) {
-                    Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);
-                    groupDetails = new GroupDetailsImpl(groupDetails.getDn(), groupDetails.getName(), members);
+            try {
+                String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
+                String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
+                LDAPExtendedTemplate template = conf.getLdapTemplate();
+                GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
+                        new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
+                if (groupDetails != null) {
+                    if (fetchMembers) {
+                        Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);
+                        groupDetails = new GroupDetailsImpl(groupDetails.getDn(), groupDetails.getName(), members);
+                    }
+                    return groupDetails;
                 }
-                return groupDetails;
+            } catch (DataAccessException e) {
+                LOGGER.log(Level.WARNING,
+                        String.format("Failed communication with ldap server %s (%s)",
+                                conf.getId(), conf.getServer()),
+                        e);
+                throw e;
             }
         }
         throw new UsernameNotFoundException(groupname);
