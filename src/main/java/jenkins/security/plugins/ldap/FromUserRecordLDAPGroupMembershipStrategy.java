@@ -123,11 +123,10 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     @Override
     public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
-        String attributeName = getAttributeName();
-        String[] params = { attributeName, groupDn };
-        String[] attributeNames = { attributeName };
-        return new HashSet<>((List<String>)template.searchForAllEntries(conf.getUserSearchBase(), USER_SEARCH_FILTER,
-                params, attributeNames, new UserRecordMapper()));
+        String searchBase = conf.getUserSearchBase() != null ? conf.getUserSearchBase() : "";
+        String[] filterArgs = { getAttributeName(), groupDn };
+        return new HashSet<>((List<String>)template.searchForAllEntries(searchBase, USER_SEARCH_FILTER,
+                filterArgs, new String[]{}, new UserRecordMapper()));
     }
 
     /**
