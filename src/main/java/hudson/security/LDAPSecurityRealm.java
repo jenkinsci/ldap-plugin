@@ -870,7 +870,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             cachedGroup = null;
         }
 
-        // TODO: obtain a DN instead so that we can obtain multiple attributes later
         final GroupDetailsImpl group = cachedGroup != null
                 ? cachedGroup
                 : searchForGroupName(groupname, fetchMembers);
