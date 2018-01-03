@@ -26,7 +26,7 @@
   <properties>
     <apacheds.version>2.0.0-M23</apacheds.version>
     <apacheds.jdbm.version>2.0.0-M3</apacheds.jdbm.version>
-    <jenkins.version>1.651.3</jenkins.version>
+    <jenkins.version>2.16</jenkins.version>
     <jenkins-test-harness.version>2.32</jenkins-test-harness.version>
   </properties>
 
