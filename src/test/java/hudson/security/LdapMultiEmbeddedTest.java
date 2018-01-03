@@ -1,24 +1,34 @@
 package hudson.security;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.springframework.dao.DataAccessException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.jvnet.hudson.test.LoggerRule.recorded;
 
 /**
  * Tests connecting to two different embedded servers using slightly different configurations.
@@ -28,8 +38,9 @@ public class LdapMultiEmbeddedTest {
     public LDAPRule sevenSeas = new LDAPRule();
     public LDAPRule planetExpress = new LDAPRule();
     public JenkinsRule r = new JenkinsRule();
+    public LoggerRule log = new LoggerRule().record(LDAPSecurityRealm.class, Level.WARNING).capture(100);
     @Rule
-    public RuleChain chain = RuleChain.outerRule(sevenSeas).around(planetExpress).around(r);
+    public RuleChain chain = RuleChain.outerRule(sevenSeas).around(planetExpress).around(r).around(log);
 
     @Before
     public void setup() throws Exception {
@@ -134,5 +145,152 @@ public class LdapMultiEmbeddedTest {
             assertEquals(401, e.getStatusCode());
         }
 
+    }
+
+    public static final String FAILED_COMMUNICATION_WITH_LDAP_SERVER = "Failed communication with ldap server";
+
+    private void setBadPwd(LDAPRule rule) {
+        final LDAPSecurityRealm realm = (LDAPSecurityRealm)r.jenkins.getSecurityRealm();
+        LDAPConfiguration repl = null;
+        int index = -1;
+        final List<LDAPConfiguration> configurations = realm.getConfigurations();
+        for (int i = 0; i < configurations.size(); i++) {
+            LDAPConfiguration configuration = configurations.get(i);
+            if (configuration.getServer().equals(rule.getUrl())) {
+                repl = configuration;
+                index = i;
+                break;
+            }
+        }
+        assertNotNull(repl);
+        assertTrue(index >= 0);
+
+        LDAPConfiguration nc = new LDAPConfiguration(
+                repl.getServer(),
+                repl.getRootDN(),
+                true,
+                repl.getManagerDN(),
+                Secret.fromString("something completely wrong"));
+        configurations.set(index, nc);
+        r.jenkins.setSecurityRealm(new LDAPSecurityRealm(configurations,
+                realm.disableMailAddressResolver,
+                realm.getCache(),
+                realm.getUserIdStrategy(),
+                realm.getGroupIdStrategy()));
+    }
+
+    @Test
+    public void when_first_is_wrong_and_login_on_first_then_log() throws Exception {
+        setBadPwd(planetExpress);
+        try {
+            r.createWebClient().login("fry", "fry");
+            fail("Login should fail");
+        } catch (FailingHttpStatusCodeException e) {
+            assertEquals(500, e.getStatusCode());
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_first_is_wrong_and_login_on_second_then_log() throws Exception {
+        setBadPwd(planetExpress);
+        try {
+            r.createWebClient().login("hnelson", "pass");
+            fail("Login should fail");
+        } catch (FailingHttpStatusCodeException e) {
+            assertEquals(500, e.getStatusCode());
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_second_is_wrong_and_login_on_second_then_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.createWebClient().login("hnelson", "pass");
+            fail("Login should fail");
+        } catch (FailingHttpStatusCodeException e) {
+            assertEquals(500, e.getStatusCode());
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(sevenSeas.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_second_is_wrong_and_login_on_first_no_log() throws Exception {
+        setBadPwd(sevenSeas);
+        r.createWebClient().login("fry", "fry");
+
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
+    }
+
+
+    @Test
+    public void when_first_is_wrong_and_lookup_on_first_then_log() throws Exception {
+        setBadPwd(planetExpress);
+
+        try {
+            r.jenkins.getSecurityRealm().loadUserByUsername("fry");
+        } catch (DataAccessException _) {
+            //all is as expected
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString("LDAP connection"),
+                        containsString("seems to be broken, will _not_ try the next configuration"),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_first_is_wrong_and_lookup_on_second_then_log() throws Exception {
+        setBadPwd(planetExpress);
+        try {
+            r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
+            fail("Expected a DataAccessException");
+        } catch (DataAccessException _) {
+            //all is as expected
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString("LDAP connection"),
+                        containsString("seems to be broken, will _not_ try the next configuration"),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_second_is_wrong_and_lookup_on_second_then_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
+            fail("Expected a DataAccessException");
+        } catch (DataAccessException _) {
+            //all is as expected
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString("LDAP connection"),
+                        containsString("seems to be broken, will _not_ try the next configuration"),
+                        containsString(sevenSeas.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_second_is_wrong_and_lookup_on_first_no_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadUserByUsername("fry");
+        } catch (DataAccessException _) {
+            fail("No exception should be thrown when first is working");
+        }
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
     }
 }
