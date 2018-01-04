@@ -1324,7 +1324,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * If the security realm is LDAP, try to pick up e-mail address from LDAP.
      */
     @Extension
-    public static final class MailAdressResolverImpl extends MailAddressResolver {
+    public static final class MailAddressResolverImpl extends MailAddressResolver {
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public String findMailAddressFor(User u) {
             final Jenkins jenkins = Jenkins.getInstance();

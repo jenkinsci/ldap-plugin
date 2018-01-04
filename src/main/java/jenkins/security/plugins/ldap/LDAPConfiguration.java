@@ -423,11 +423,11 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                     return FormValidation.error(hudson.security.Messages.LDAPSecurityRealm_SyntaxOfServerField());
 
                 try {
-                    InetAddress adrs = InetAddress.getByName(m.group(2));
+                    InetAddress address = InetAddress.getByName(m.group(2));
                     int port = m.group(1)!=null ? 636 : 389;
                     if(m.group(3)!=null)
                         port = Integer.parseInt(m.group(3));
-                    Socket s = new Socket(adrs,port);
+                    Socket s = new Socket(address,port);
                     s.close();
                 } catch (UnknownHostException x) {
                     return FormValidation.error(hudson.security.Messages.LDAPSecurityRealm_UnknownHost(x.getMessage()));
