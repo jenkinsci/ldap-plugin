@@ -342,7 +342,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         group search filter (uniquemember={1} seems like a reasonable default)
         group target (CN is a reasonable default)
 
-        manager dn/password if anonyomus search is not allowed.
+        manager dn/password if anonymous search is not allowed.
 
         See GF configuration at http://weblogs.java.net/blog/tchangu/archive/2007/01/ldap_security_r.html
         Geronimo configuration at http://cwiki.apache.org/GMOxDOC11/ldap-realm.html
