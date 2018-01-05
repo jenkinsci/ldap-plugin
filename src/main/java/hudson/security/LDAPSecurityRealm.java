@@ -241,7 +241,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceGroupnameLowercase");
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")

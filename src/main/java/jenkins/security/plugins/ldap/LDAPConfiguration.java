@@ -100,7 +100,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     private final String server;
 
@@ -158,7 +158,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     public String getServer() {
         return server;
