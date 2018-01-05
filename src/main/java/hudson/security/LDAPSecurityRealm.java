@@ -1133,7 +1133,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * @param username the username to search
          * @return the user details or {@code null} if the server configuration could not be found
          * @throws UsernameNotFoundException if the user could not be found on the given server
-         * @throws DataAccessException if some communication error occured
+         * @throws DataAccessException if some communication error occurred
          * @see #loadUserByUsername(String)
          */
         public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException, DataAccessException {
