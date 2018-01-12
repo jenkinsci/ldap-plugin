@@ -131,6 +131,12 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private final Secret managerPasswordSecret;
     private String displayNameAttributeName;
     private String mailAddressAttributeName;
+    /**
+     * If true, then any operation using this configuration which fails to connect to the server will try
+     * again using the next configuration. This could be a security issue if the same username exists in
+     * multiple LDAP configurations but should not correspond to the same Jenkins user, so it defaults to false.
+     */
+    private boolean ignoreIfUnavailable;
     private Map<String,String> extraEnvVars;
     /**
      * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
@@ -330,6 +336,15 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     @DataBoundSetter
     public void setMailAddressAttributeName(String mailAddressAttributeName) {
         this.mailAddressAttributeName = mailAddressAttributeName;
+    }
+
+    public boolean isIgnoreIfUnavailable() {
+        return ignoreIfUnavailable;
+    }
+
+    @DataBoundSetter
+    public void setIgnoreIfUnavailable(boolean ignoreIfUnavailable) {
+        this.ignoreIfUnavailable = ignoreIfUnavailable;
     }
 
     public Map<String,String> getExtraEnvVars() {

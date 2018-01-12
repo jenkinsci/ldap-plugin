@@ -47,5 +47,8 @@
                 </f:entry>
             </f:repeatableProperty>
         </f:entry>
+        <f:entry field="ignoreIfUnavailable">
+            <f:checkbox title="${%Ignore if Unavailable}"/>
+        </f:entry>
     </f:advanced>
 </j:jelly>

@@ -1,0 +1,11 @@
+<div>
+    <p>
+    If checked, this option indicates that authentication and user/group membership lookups
+    will be attempted against subsequent LDAP domains even if this domain is unavailable.
+    <p>
+    If unchecked (the default), authentication and user/group memberships for users in
+    subsequent LDAP domains will fail if this domain is unavailable.
+    <p>
+    The latter is useful when there is a concern that the same username may exist
+    across domains and should not map to the same Jenkins user.
+</div>
