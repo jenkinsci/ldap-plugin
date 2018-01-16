@@ -885,8 +885,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
             String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
             groups.addAll(conf.getLdapTemplate().searchForSingleAttributeValues(searchBase, searchFilter, new String[]{groupname}, "cn"));
+            // Make sure we don't throw BadCredentialsException. Catch logic matches LDAPUserDetailsService#loadUserByUsername.
             } catch (DataAccessException e) {
                 throwUnlessConfigIsIgnorable(e, conf);
+            } catch (RuntimeException e) {
+                throwUnlessConfigIsIgnorable(new LdapDataAccessException("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
         return groups;
