@@ -155,6 +155,7 @@ public class LdapMultiEmbeddedTest {
     public static final String FAILED_COMMUNICATION_WITH_LDAP_SERVER = "Failed communication with ldap server";
     public static final String WILL_NOT_TRY_NEXT_CONFIGURATION = ", will _not_ try the next configuration";
     public static final String WILL_TRY_NEXT_CONFIGURATION = ", will try the next configuration";
+    public static final String INVALID_URL_PREFIX = "ldap://invalid_host_for_testing:"; // TEST-NET-1 as defined by RFC 5737, will not resolve to a real address.
 
     private void setBadPwd(LDAPRule rule) {
         reconfigure(rule, EnumSet.of(LdapConfigOption.BAD_PASSWORD));
@@ -182,7 +183,7 @@ public class LdapMultiEmbeddedTest {
 
         LDAPConfiguration nc = new LDAPConfiguration(
                 options.contains(LdapConfigOption.BAD_SERVER_URL)
-                        ? "invalid" + repl.getServer()
+                        ? INVALID_URL_PREFIX + rule.getPort()
                         : repl.getServer(),
                 repl.getRootDN(),
                 true,
@@ -317,21 +318,6 @@ public class LdapMultiEmbeddedTest {
     }
 
     @Test
-    public void when_first_is_ignorable_and_login_with_wrong_password_then_stop() throws Exception {
-        reconfigure(planetExpress, EnumSet.of(LdapConfigOption.IGNORE_IF_UNAVAILABLE));
-        try {
-            r.createWebClient().login("fry", "invalid");
-            fail("Login should fail");
-        } catch (FailingHttpStatusCodeException e) {
-            assertEquals(401, e.getStatusCode());
-        }
-        assertThat(log, not(recorded(allOf(
-                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                containsString(WILL_TRY_NEXT_CONFIGURATION),
-                containsString(planetExpress.getUrl())))));
-    }
-
-    @Test
     public void when_first_is_unavailable_and_login_on_second_then_no_login() throws Exception {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_SERVER_URL));
         try {
@@ -343,7 +329,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
+                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
                 CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
@@ -365,7 +351,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
+                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
                 CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
@@ -382,45 +368,18 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
+                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
                 CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(sevenSeas.getUrl())),
+                        containsString(INVALID_URL_PREFIX + sevenSeas.getPort())),
                 CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
-    }
-
-    @Test
-    public void when_first_is_unavailable_and_lookup_on_second_then_failure() throws Exception {
-        reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_SERVER_URL));
-        try {
-            assertThat(r.jenkins.getSecurityRealm().loadUserByUsername("hnelson"), nullValue());
-            fail("Expected a DataAccessException");
-        } catch (DataAccessException e) {
-            //all is as expected
-        }
-        assertThat(log, recorded(Level.WARNING,
-                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                        containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
     @Test
     public void when_first_is_wrong_but_ignorable_and_lookup_on_second_then_success() throws Exception {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
-        assertThat(r.jenkins.getSecurityRealm().loadUserByUsername("hnelson"), notNullValue());
-        assertThat(log, recorded(Level.WARNING,
-                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
-                        containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
-    }
-
-    @Test
-    public void when_first_is_unavailable_but_ignorable_and_lookup_on_second_then_success() throws Exception {
-        reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_SERVER_URL, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
         assertThat(r.jenkins.getSecurityRealm().loadUserByUsername("hnelson"), notNullValue());
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
@@ -442,12 +401,39 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(planetExpress.getUrl())),
+                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
                 CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(sevenSeas.getUrl())),
+                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_first_is_wrong_and_lookup_group_on_second_then_failure() {
+        reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD));
+        try {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Lydia");
+            fail("Expected a DataAccessException");
+        } catch (DataAccessException e) {
+            //all is as expected
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
+                        containsString(planetExpress.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_first_is_wrong_but_ignorable_and_lookup_group_on_second_then_success() {
+        reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Lydia"), notNullValue());
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(WILL_TRY_NEXT_CONFIGURATION),
+                        containsString(planetExpress.getUrl())),
                 CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 }
