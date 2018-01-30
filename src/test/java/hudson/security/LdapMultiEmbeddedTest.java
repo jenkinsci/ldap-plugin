@@ -293,4 +293,31 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, not(recorded(Level.WARNING,
                 containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
     }
+
+    @Test
+    public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Victory");
+            fail("Expected a DataAccessException");
+        } catch (DataAccessException e) {
+            // Expected.
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(sevenSeas.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    @Test
+    public void when_second_is_wrong_and_lookup_group_on_first_then_no_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname("crew");
+        } catch (DataAccessException e) {
+            fail("No exception should be thrown when first is working");
+        }
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
+    }
 }

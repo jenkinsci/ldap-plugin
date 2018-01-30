@@ -27,6 +27,9 @@ import hudson.model.AbstractDescribableImpl;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.dao.DataAccessException;
+
+import java.util.Set;
 
 /**
  * A strategy for determining the groups that a user belongs to.
@@ -64,4 +67,18 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
      * @return the {@link GrantedAuthority}s that the specified user belongs to.
      */
     public abstract GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser);
+
+    /**
+     * Returns a {@link Set} of all members in the specified group.
+     *
+     * @param groupDn the DN of the group whose members will be returned.
+     * @param conf the {@link LDAPConfiguration} that controls some search variables.
+     *
+     * @return a set of all members in the specified group, or null if the members could not be found.
+     * @throws DataAccessException if there is an error performing the search.
+     * @since 1.18
+     */
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+        return null;
+    }
 }
