@@ -44,6 +44,7 @@ import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
+import jenkins.security.plugins.ldap.LDAPExtendedTemplate;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AcegiSecurityException;
@@ -56,6 +57,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapDataAccessException;
+import org.acegisecurity.ldap.LdapEntryMapper;
 import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -88,6 +90,7 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.ldap.Control;
+import javax.naming.ldap.LdapName;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
@@ -393,7 +396,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * The group details cache.
      */
-    private transient Map<String,CacheEntry<Set<String>>> groupDetailsCache = null;
+    private transient Map<String,CacheEntry<GroupDetailsImpl>> groupDetailsCache = null;
 
     @Deprecated @Restricted(NoExternalUse.class)
     private transient Map<String,String> extraEnvVars;
@@ -842,49 +845,62 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @Override
     public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+        return loadGroupByGroupname(groupname, false);
+    }
+
+    @Override
+    public GroupDetails loadGroupByGroupname(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
         groupname = fixGroupname(groupname);
-        Set<String> cachedGroups;
+        GroupDetailsImpl cachedGroup;
         if (cache != null) {
-            final CacheEntry<Set<String>> cached;
+            final CacheEntry<GroupDetailsImpl> cached;
             synchronized (this) {
                 cached = groupDetailsCache != null ? groupDetailsCache.get(groupname) : null;
             }
             if (cached != null && cached.isValid()) {
-                cachedGroups = cached.getValue();
+                GroupDetailsImpl cachedValue = cached.getValue();
+                if (!fetchMembers || cachedValue.getMembers() != null) {
+                    cachedGroup = cachedValue;
+                } else {
+                    cachedGroup = null;
+                }
             } else {
-                cachedGroups = null;
+                cachedGroup = null;
             }
         } else {
-            cachedGroups = null;
+            cachedGroup = null;
         }
 
-        // TODO: obtain a DN instead so that we can obtain multiple attributes later
-
-        final Set<String> groups = cachedGroups != null
-                ? cachedGroups
-                : searchForGroupName(groupname);
-        if (cache != null && cachedGroups == null && !groups.isEmpty()) {
+        final GroupDetailsImpl group = cachedGroup != null
+                ? cachedGroup
+                : searchForGroupName(groupname, fetchMembers);
+        if (cache != null && cachedGroup == null) {
             synchronized (this) {
                 if (groupDetailsCache == null) {
-                    groupDetailsCache = new CacheMap<String, Set<String>>(cache.getSize());
+                    groupDetailsCache = new CacheMap<>(cache.getSize());
                 }
-                groupDetailsCache.put(groupname, new CacheEntry<Set<String>>(cache.getTtl(), groups));
+                groupDetailsCache.put(groupname, new CacheEntry<>(cache.getTtl(), group));
             }
         }
 
-        if(groups.isEmpty())
-            throw new UsernameNotFoundException(groupname);
-
-        return new GroupDetailsImpl(fixGroupname(groups.iterator().next()));
+        return group;
     }
 
-    private Set<String> searchForGroupName(String groupname) {
-        Set<String> groups = new TreeSet<>();
+    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
         for (LDAPConfiguration conf : configurations) {
             try {
-            String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
-            String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
-            groups.addAll(conf.getLdapTemplate().searchForSingleAttributeValues(searchBase, searchFilter, new String[]{groupname}, "cn"));
+                String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
+                String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
+                LDAPExtendedTemplate template = conf.getLdapTemplate();
+                GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
+                        new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
+                if (groupDetails != null) {
+                    if (fetchMembers) {
+                        Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);
+                        groupDetails = new GroupDetailsImpl(groupDetails.getDn(), groupDetails.getName(), members);
+                    }
+                    return groupDetails;
+                }
             // Make sure we don't throw BadCredentialsException. Catch logic matches LDAPUserDetailsService#loadUserByUsername.
             } catch (DataAccessException e) {
                 throwUnlessConfigIsIgnorable(e, conf);
@@ -892,7 +908,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 throwUnlessConfigIsIgnorable(new LdapDataAccessException("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
-        return groups;
+        throw new UsernameNotFoundException(groupname);
     }
 
     private static String fixGroupname(String groupname) {
@@ -921,14 +937,41 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     private static class GroupDetailsImpl extends GroupDetails {
 
-        private String name;
+        private final String dn;
+        private final String name;
+        private final Set<String> members;
 
-        public GroupDetailsImpl(String name) {
-            this.name = name;
+        public GroupDetailsImpl(String dn, String name) {
+            this(dn, name, null);
         }
 
+        public GroupDetailsImpl(String dn, String name, Set<String> members) {
+            this.dn = dn;
+            this.name = name;
+            this.members = members;
+        }
+
+        public String getDn() {
+            return dn;
+        }
+
+        @Override
         public String getName() {
             return name;
+        }
+
+        @Override
+        public Set<String> getMembers() {
+            return members;
+        }
+    }
+
+    private static class GroupDetailsMapper implements LdapEntryMapper {
+        @Override
+        public GroupDetailsImpl mapAttributes(String dn, Attributes attributes) throws NamingException {
+            LdapName name = new LdapName(dn);
+            String groupName = fixGroupname(String.valueOf(name.getRdn(name.size() - 1).getValue()));
+            return new GroupDetailsImpl(dn, groupName);
         }
     }
 

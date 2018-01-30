@@ -141,7 +141,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
      */
-    private transient LdapTemplate ldapTemplate;
+    private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
 
     @DataBoundConstructor
@@ -600,7 +600,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         WebApplicationContext appContext = builder.createApplicationContext();
 
-        ldapTemplate = new LdapTemplate(SecurityRealm.findBean(InitialDirContextFactory.class, appContext));
+        ldapTemplate = new LDAPExtendedTemplate(SecurityRealm.findBean(InitialDirContextFactory.class, appContext));
 
         if (groupMembershipStrategy != null) {
             groupMembershipStrategy.setAuthoritiesPopulator(SecurityRealm.findBean(LdapAuthoritiesPopulator.class, appContext));
@@ -610,7 +610,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     @Restricted(NoExternalUse.class)
-    public LdapTemplate getLdapTemplate() {
+    public LDAPExtendedTemplate getLdapTemplate() {
         return ldapTemplate;
     }
 

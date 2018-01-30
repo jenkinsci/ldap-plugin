@@ -410,6 +410,20 @@ public class LdapMultiEmbeddedTest {
                 CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
     }
 
+    public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Victory");
+            fail("Expected a DataAccessException");
+        } catch (DataAccessException e) {
+            // Expected.
+        }
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(sevenSeas.getUrl())),
+                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
     @Test
     public void when_first_is_wrong_and_lookup_group_on_second_then_failure() {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD));
@@ -435,5 +449,16 @@ public class LdapMultiEmbeddedTest {
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
                 CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+    }
+
+    public void when_second_is_wrong_and_lookup_group_on_first_then_no_log() throws Exception {
+        setBadPwd(sevenSeas);
+        try {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname("crew");
+        } catch (DataAccessException e) {
+            fail("No exception should be thrown when first is working");
+        }
+        assertThat(log, not(recorded(Level.WARNING,
+                containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER))));
     }
 }
