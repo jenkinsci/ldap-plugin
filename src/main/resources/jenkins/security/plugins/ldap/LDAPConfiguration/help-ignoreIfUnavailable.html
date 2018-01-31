@@ -1,11 +1,18 @@
 <div>
     <p>
     If checked, this option indicates that authentication and user/group membership lookups
-    will be attempted against subsequent LDAP domains even if this domain is unavailable.
+    which fail due to communication errors (e.g., LDAP server is unreachable, manager password is
+    incorrect) will be reattempted using the next configuration. Other types of failures, such as
+    a user attempting to authenticate with an incorrect password, will not be reattempted.
+    </p>
     <p>
-    If unchecked (the default), authentication and user/group memberships for users in
-    subsequent LDAP domains will fail if this domain is unavailable.
+    If unchecked (the default), authentication and user/group membership lookups which fail due to
+    communication errors will not be reattempted using the next configuration.
+    </p>
     <p>
-    The latter is useful when there is a concern that the same username may exist
-    across domains and should not map to the same Jenkins user.
+    The default is intended to prevent users or groups with the same name in distinct LDAP domains
+    from being inadvertently mapped to the same user or group in Jenkins if one of the domains is
+    unavailable. Consequently, this option should only be enabled if all configured domains have
+    distinct user and group names.
+    </p>
 </div>
