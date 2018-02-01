@@ -155,7 +155,7 @@ public class LdapMultiEmbeddedTest {
     public static final String FAILED_COMMUNICATION_WITH_LDAP_SERVER = "Failed communication with ldap server";
     public static final String WILL_NOT_TRY_NEXT_CONFIGURATION = ", will _not_ try the next configuration";
     public static final String WILL_TRY_NEXT_CONFIGURATION = ", will try the next configuration";
-    public static final String INVALID_URL_PREFIX = "ldap://invalid_host_for_testing:"; // TEST-NET-1 as defined by RFC 5737, will not resolve to a real address.
+    public static final String INVALID_URL_PREFIX = "ldap://invalid_host_for_testing:";
 
     private void setBadPwd(LDAPRule rule) {
         reconfigure(rule, EnumSet.of(LdapConfigOption.BAD_PASSWORD));
