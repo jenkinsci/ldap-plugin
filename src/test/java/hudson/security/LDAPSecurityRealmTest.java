@@ -275,6 +275,7 @@ public class LDAPSecurityRealmTest {
             TestConf conf = confs[i];
             final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
             configuration.setUserSearchBase(conf.userSearchBase);
+            configuration.setIgnoreIfUnavailable(i % 2 == 0);
             ldapConfigurations.add(configuration);
         }
         final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
@@ -301,6 +302,7 @@ public class LDAPSecurityRealmTest {
             assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH, config.getUserSearch());
             assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME, config.getDisplayNameAttributeName());
             assertEquals(LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME, config.getMailAddressAttributeName());
+            assertEquals(i % 2 == 0, config.isIgnoreIfUnavailable());
         }
         assertThat(newRealm.getUserIdStrategy(), instanceOf(IdStrategy.CaseInsensitive.class));
     }

@@ -689,6 +689,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return configurations.get(0);
             }
         }
+        LOGGER.log(Level.FINE, "Unable to find configuration for {0}", configurationId);
         return null;
     }
 
@@ -900,12 +901,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                     return groupDetails;
                 }
+            // Make sure we don't throw BadCredentialsException. Catch logic matches LDAPUserDetailsService#loadUserByUsername.
             } catch (DataAccessException e) {
-                LOGGER.log(Level.WARNING,
-                        String.format("Failed communication with ldap server %s (%s)",
-                                conf.getId(), conf.getServer()),
-                        e);
-                throw e;
+                throwUnlessConfigIsIgnorable(e, conf);
+            } catch (RuntimeException e) {
+                throwUnlessConfigIsIgnorable(new LdapDataAccessException("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
         throw new UsernameNotFoundException(groupname);
@@ -922,6 +922,17 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl) super.getDescriptor();
+    }
+
+    private static <T extends Exception> void throwUnlessConfigIsIgnorable(T e, @CheckForNull LDAPConfiguration config) throws T {
+        boolean shouldThrow = config == null || !config.isIgnoreIfUnavailable();
+        LOGGER.log(Level.WARNING, String.format("Failed communication with ldap server %s (%s), will %s the next configuration",
+                config == null ? "null" : config.getId(),
+                config == null ? "null" : config.getServer(),
+                shouldThrow ? "_not_ try" : "try"), e);
+        if (shouldThrow) {
+            throw e;
+        }
     }
 
     private static class GroupDetailsImpl extends GroupDetails {
@@ -989,7 +1000,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     throw e;
                 }
             }
-            BadCredentialsException lastException = null;
+            AuthenticationException lastException = null;
             for (ManagerEntry delegate : delegates) {
                 try {
                     Authentication a = delegate.delegate.authenticate(authentication);
@@ -1003,17 +1014,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             }
                         } catch (UsernameNotFoundException e1) {
                             lastException = e; //all is as intended, let's move along
+                        } catch (DataAccessException e1) {
+                            final LDAPConfiguration configuration = getConfigurationFor(delegate.configurationId);
+                            throwUnlessConfigIsIgnorable(e1, configuration);
+                            lastException = e;
                         }
                     } else {
                         lastException = e;
                     }
                 } catch (AuthenticationServiceException e) {
                     final LDAPConfiguration configuration = getConfigurationFor(delegate.configurationId);
-                    LOGGER.log(Level.WARNING,
-                            String.format("Failed communication with ldap server %s (%s)",
-                                    delegate.configurationId, configuration != null ? configuration.getServer() : "null"),
-                            e);
-                    throw e;
+                    throwUnlessConfigIsIgnorable(e, configuration);
+                    lastException = e;
                 }
             }
             if (lastException != null) {
@@ -1225,12 +1237,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     lastUNFE = e;
                 } catch (DataAccessException e) {
                     LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
-                    LOGGER.log(Level.WARNING,
-                            "LDAP connection "
-                                    + delegate.configurationId
-                                    + (configuration != null ? "("+configuration.getServer()+")" : "")
-                                    + " seems to be broken, will _not_ try the next configuration.", e);
-                    throw e;
+                    throwUnlessConfigIsIgnorable(e, configuration);
                 }
             }
             if (lastUNFE != null) {
@@ -1357,16 +1364,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
 
                 return ldapUser;
-            } catch (LdapDataAccessException e) {
-                // TODO why not throw all DataAccessException up? that is why it is in the declared clause
-                LOGGER.log(Level.WARNING, "Failed to search LDAP for username="+username,e);
-                throw new UserMayOrMayNotExistException(e.getMessage(),e);
-            } catch (UsernameNotFoundException x) {
-                throw x;
-            } catch (DataAccessException x) {
+            } catch (DataAccessException | UsernameNotFoundException x) {
                 throw x;
             } catch (RuntimeException x) {
-                throw new LdapDataAccessException("Failed to search LDAP for " + username + ": " + x, x);
+                throw new LdapDataAccessException("Failed to search LDAP for " + username, x);
             }
         }
     }
