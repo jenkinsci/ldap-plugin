@@ -23,6 +23,7 @@
  */
 package jenkins.security.plugins.ldap;
 
+import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
@@ -36,7 +37,7 @@ import java.util.Set;
  *
  * @since 1.10
  */
-public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImpl<LDAPGroupMembershipStrategy> {
+public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImpl<LDAPGroupMembershipStrategy> implements ExtensionPoint {
     /**
      * The standard group member of searcher.
      */
