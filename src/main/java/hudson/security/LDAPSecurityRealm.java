@@ -25,6 +25,7 @@
  */
 package hudson.security;
 
+import com.iwombat.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Main;
@@ -85,6 +86,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.naming.InvalidNameException;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -95,15 +98,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -412,6 +407,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private final IdStrategy groupIdStrategy;
 
     private boolean disableRolePrefixing;
+
+
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Diagnostic fields are left mutable so that groovy console can be used to dynamically turn/off probes.")
+    public static boolean GET_CN_FROM_ATTRIBUTES = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
 
     /**
      * @deprecated retained for backwards binary compatibility.
@@ -970,11 +969,32 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public GroupDetailsImpl mapAttributes(String dn, Attributes attributes) throws NamingException {
             LdapName name = new LdapName(dn);
-            String groupName = fixGroupname(String.valueOf(name.getRdn(name.size() - 1).getValue()));
+            String groupName = fixGroupname(extractGroupName(name, attributes));
             return new GroupDetailsImpl(dn, groupName);
         }
-    }
 
+        static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
+            final String CN = "cn";
+            String groupName = StringUtils.EMPTY;
+            if (!GET_CN_FROM_ATTRIBUTES) {
+                groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
+            } else {
+                for (NamingEnumeration ae = attributes.getAll(); ae.hasMore(); ) {
+                    Attribute attr = (Attribute) ae.next();
+                    if (CN.equals(attr.getID())) {
+                        for (NamingEnumeration e = attr.getAll(); groupName.equals(StringUtils.EMPTY);) {
+                            groupName = e.next().toString();
+                            if (e.hasMore()) {
+                                LOGGER.log(Level.WARNING,"The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
+                            }
+                        }
+                    }
+                }
+            }
+            return groupName;
+        }
+
+    }
     private class LDAPAuthenticationManager implements AuthenticationManager {
         private final List<ManagerEntry> delegates = new ArrayList<>();;
         private final DelegateLDAPUserDetailsService detailsService;
