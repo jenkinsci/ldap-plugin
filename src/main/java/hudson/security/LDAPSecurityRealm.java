@@ -86,7 +86,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.naming.InvalidNameException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -98,7 +97,15 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -407,7 +414,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private final IdStrategy groupIdStrategy;
 
     private boolean disableRolePrefixing;
-
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Diagnostic fields are left mutable so that groovy console can be used to dynamically turn/off probes.")
     public static boolean GET_CN_FROM_ATTRIBUTES = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
