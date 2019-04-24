@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>1.20-ZD-72806-SNAPSHOT-v.1</version>
+  <version>1.21-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
