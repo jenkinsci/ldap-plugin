@@ -556,7 +556,7 @@ public class LDAPSecurityRealmTest {
             if (item instanceof HtmlInput) {
                 HtmlInput input = (HtmlInput) item;
                 if ("radio".equals(input.getAttribute("type"))) {
-                    if ("checked".equals(input.getAttribute("checked"))) {
+                    if ("true".equals(input.getAttribute("checked"))) {
                         final DomNode node = input.getParentNode();
                         if ("label".equals(node.getLocalName())) {
                             return "LDAP".equals(node.getTextContent().trim());
