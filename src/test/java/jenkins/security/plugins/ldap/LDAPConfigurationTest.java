@@ -25,7 +25,6 @@ package jenkins.security.plugins.ldap;
 
 import hudson.security.LDAPSecurityRealm;
 import jenkins.model.IdStrategy;
-import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -36,9 +35,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
 
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
 import static org.junit.Assert.*;
 

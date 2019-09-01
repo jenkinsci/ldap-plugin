@@ -115,7 +115,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
                     SearchControls controls = new SearchControls();
                     controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
                     controls.setReturningAttributes(attributeNames);
-                    NamingEnumeration searchResults = ctx.search(base, filter, params, controls);
+                    NamingEnumeration<SearchResult> searchResults = ctx.search(base, filter, params, controls);
                     return new SearchResultEnumeration(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
                 }
             });
@@ -137,11 +137,11 @@ public class LDAPExtendedTemplate extends LdapTemplate {
 
     private static final class SearchResultEnumeration implements AutoCloseable, NamingEnumeration {
 
-        private final NamingEnumeration searchResults;
+        private final NamingEnumeration<SearchResult> searchResults;
         private final LdapEntryMapper mapper;
         private final String dnSuffix;
 
-        public SearchResultEnumeration(NamingEnumeration searchResults, LdapEntryMapper mapper, String dnSuffix) {
+        public SearchResultEnumeration(NamingEnumeration<SearchResult> searchResults, LdapEntryMapper mapper, String dnSuffix) {
             this.searchResults = searchResults;
             this.mapper = mapper;
             this.dnSuffix = dnSuffix;
@@ -159,7 +159,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
 
         @Override
         public Object next() throws NamingException {
-            SearchResult searchResult = (SearchResult) searchResults.next();
+            SearchResult searchResult = searchResults.next();
             return mapper.mapAttributes(searchResult.getName() + dnSuffix, searchResult.getAttributes());
         }
 

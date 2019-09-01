@@ -25,7 +25,6 @@
 
   <properties>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <apacheds.jdbm.version>2.0.0-M3</apacheds.jdbm.version>
     <jenkins.version>2.60.3</jenkins.version>
     <java.level>8</java.level>
   </properties>
@@ -125,14 +124,6 @@
       <groupId>org.apache.directory.server</groupId>
       <artifactId>apacheds-interceptor-kerberos</artifactId>
       <version>${apacheds.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.directory.jdbm</groupId>
-      <artifactId>apacheds-jdbm1</artifactId>
-      <!--type>bundle</type-->
-      <version>${apacheds.jdbm.version}</version>
       <scope>test</scope>
     </dependency>
 
