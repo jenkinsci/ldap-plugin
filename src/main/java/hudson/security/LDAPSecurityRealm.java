@@ -25,7 +25,6 @@
  */
 package hudson.security;
 
-import com.iwombat.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Main;
@@ -416,7 +415,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private boolean disableRolePrefixing;
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Diagnostic fields are left mutable so that groovy console can be used to dynamically turn/off probes.")
-    public static boolean GET_CN_FROM_ATTRIBUTES = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
+    public static boolean getCnFromAttributes = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
 
     /**
      * @deprecated retained for backwards binary compatibility.
@@ -981,14 +980,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
             final String CN = "cn";
-            String groupName = StringUtils.EMPTY;
-            if (!GET_CN_FROM_ATTRIBUTES) {
+            String groupName = "";
+            if (!getCnFromAttributes) {
                 groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
             } else {
                 for (NamingEnumeration ae = attributes.getAll(); ae.hasMore(); ) {
                     Attribute attr = (Attribute) ae.next();
                     if (CN.equals(attr.getID())) {
-                        for (NamingEnumeration e = attr.getAll(); groupName.equals(StringUtils.EMPTY);) {
+                        for (NamingEnumeration e = attr.getAll(); groupName.equals("");e.hasMore()) {
                             groupName = e.next().toString();
                             if (e.hasMore()) {
                                 LOGGER.log(Level.WARNING,"The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
