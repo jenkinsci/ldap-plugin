@@ -583,10 +583,10 @@ public class LDAPEmbeddedTest {
                         null, "cn", "mail", null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        hudson.security.LDAPSecurityRealm.getCnFromAttributes=true;
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("ccc_c3alm-support-technical-lead1"));
         hudson.security.LDAPSecurityRealm.getCnFromAttributes=false;
         assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("technical-lead-doble-cn_field"));
+        hudson.security.LDAPSecurityRealm.getCnFromAttributes=true;
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("ccc_c3alm-support-technical-lead1"));
     }
 
 }

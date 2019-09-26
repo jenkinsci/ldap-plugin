@@ -984,13 +984,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (!getCnFromAttributes) {
                 groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
             } else {
-                for (NamingEnumeration ae = attributes.getAll(); ae.hasMore(); ) {
+                for (NamingEnumeration ae = attributes.getAll(); ae.hasMore() && ae != null;) {
                     Attribute attr = (Attribute) ae.next();
                     if (CN.equals(attr.getID())) {
                         for (NamingEnumeration e = attr.getAll(); groupName.equals("");e.hasMore()) {
                             groupName = e.next().toString();
                             if (e.hasMore()) {
-                                LOGGER.log(Level.WARNING,"The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
+                                LOGGER.log(Level.FINE,"The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
                             }
                         }
                     }
