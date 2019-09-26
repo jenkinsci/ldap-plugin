@@ -575,18 +575,14 @@ public class LDAPEmbeddedTest {
     }
 
     @Test
-    @LDAPSchema(ldif = "planetexpressExtGroups_dnWithoutCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void extGroup() throws Exception {
+    @LDAPSchema(ldif = "planetexpressExtGroups_withCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void extGroupWithCN() throws Exception {
         LDAPSecurityRealm realm =
                 new LDAPSecurityRealm(ads.getUrl(), "", "dc=planetexpress,dc=com", null, "dc=planetexpress,dc=com", null, null,
                         "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
                         null, "cn", "mail", null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        hudson.security.LDAPSecurityRealm.getCnFromAttributes=false;
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("technical-lead-doble-cn_field"));
-        hudson.security.LDAPSecurityRealm.getCnFromAttributes=true;
         assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("ccc_c3alm-support-technical-lead1"));
     }
-
 }

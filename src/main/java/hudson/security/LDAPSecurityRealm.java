@@ -978,7 +978,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return new GroupDetailsImpl(dn, groupName);
         }
 
-        static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
+/*        static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
             final String CN = "cn";
             String groupName = "";
             if (!getCnFromAttributes) {
@@ -997,9 +997,31 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
             }
             return groupName;
-        }
+        }*/
 
+        static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
+            final String CN = "cn";
+            boolean isCN = false;
+            String groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
+            for (NamingEnumeration ae = attributes.getAll(); ae.hasMore();) {
+                Attribute attr = (Attribute) ae.next();
+                if (CN.equals(attr.getID())) {
+                    for (NamingEnumeration e = attr.getAll(); e.hasMore()&&!isCN;) {
+                        groupName = e.next().toString();
+                        isCN = true;
+                        if (e.hasMore()) {
+                            LOGGER.log(Level.FINE, "The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
+                        }
+                    }
+                }
+            }
+            if (!isCN){
+                LOGGER.log(Level.SEVERE, "The group " + name.getRdns() + " has not defined a cn attribute. The last value from the dn (" + groupName + ") has been assigned as external group name");
+            }
+            return groupName;
+        }
     }
+
     private class LDAPAuthenticationManager implements AuthenticationManager {
         private final List<ManagerEntry> delegates = new ArrayList<>();;
         private final DelegateLDAPUserDetailsService detailsService;
