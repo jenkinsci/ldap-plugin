@@ -1006,7 +1006,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (NamingEnumeration ae = attributes.getAll(); ae.hasMore();) {
                 Attribute attr = (Attribute) ae.next();
                 if (CN.equals(attr.getID())) {
-                    for (NamingEnumeration e = attr.getAll(); e.hasMore()&&!isCN;) {
+                    for (NamingEnumeration e = attr.getAll(); e.hasMore() && !isCN;) {
                         groupName = e.next().toString();
                         isCN = true;
                         if (e.hasMore()) {
