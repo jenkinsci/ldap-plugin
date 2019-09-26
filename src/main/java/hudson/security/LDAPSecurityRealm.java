@@ -415,7 +415,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     private boolean disableRolePrefixing;
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Diagnostic fields are left mutable so that groovy console can be used to dynamically turn/off probes.")
-    public static boolean getCnFromAttributes = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
+    //public static boolean getCnFromAttributes = Boolean.getBoolean(LDAPSecurityRealm.class.getName()+".getcnfromattributes");
 
     /**
      * @deprecated retained for backwards binary compatibility.
