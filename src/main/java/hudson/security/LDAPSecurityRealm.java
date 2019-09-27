@@ -894,7 +894,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
                 LDAPExtendedTemplate template = conf.getLdapTemplate();
                 GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
-                        new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
+                        new Object[]{groupname}, null, new GroupDetailsMapper());
                 if (groupDetails != null) {
                     if (fetchMembers) {
                         Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);
@@ -979,20 +979,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             final String CN = "cn";
             boolean isCN = false;
             String groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
-            for (NamingEnumeration ae = attributes.getAll(); ae.hasMore();) {
-                Attribute attr = (Attribute) ae.next();
-                if (CN.equals(attr.getID())) {
-                    for (NamingEnumeration e = attr.getAll(); e.hasMore() && !isCN;) {
-                        groupName = e.next().toString();
-                        isCN = true;
-                        if (e.hasMore()) {
-                            LOGGER.log(Level.FINE, "The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
-                        }
+            Attribute cnAttribute = attributes.get(CN);
+            if (cnAttribute != null) {
+                for (NamingEnumeration e = cnAttribute.getAll(); e.hasMore() && !isCN;) {
+                    groupName = e.next().toString();
+                    isCN = true;
+                    if (e.hasMore()) {
+                        LOGGER.log(Level.FINE, "The group {0} has more than one cn value. The first one ({1}) has been assigned as external group name", new Object[] {name.getRdns(), groupName});
                     }
                 }
-            }
-            if (!isCN){
-                LOGGER.log(Level.SEVERE, "The group " + name.getRdns() + " has not defined a cn attribute. The last value from the dn (" + groupName + ") has been assigned as external group name");
+            } else {
+                // Note: this should never happen as LDAP server requires to have at least one CN for each entry.
+                LOGGER.log(Level.SEVERE, "The group {0} has not defined a cn attribute. The last value from the dn ({1}) has been assigned as external group name", new Object[] {name.getRdns(), groupName});
             }
             return groupName;
         }

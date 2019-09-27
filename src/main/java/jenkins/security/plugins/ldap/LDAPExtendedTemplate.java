@@ -114,7 +114,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
                 public SearchResultEnumeration doInDirContext(DirContext ctx) throws NamingException {
                     SearchControls controls = new SearchControls();
                     controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-                    controls.setReturningAttributes(null);
+                    controls.setReturningAttributes(attributeNames);
                     NamingEnumeration searchResults = ctx.search(base, filter, params, controls);
                     return new SearchResultEnumeration(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
                 }

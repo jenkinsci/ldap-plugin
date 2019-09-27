@@ -205,11 +205,11 @@ cn: ccc_c3alm-support-technical-lead
 member: uid=bender,ou=people,dc=planetexpress,dc=com
 ou: technical-lead
 
-dn: ou=technical-lead-doble-cn_field,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=technical-lead-double-cn_field,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
 objectClass: groupOfNames
 objectClass: top
 cn: ccc_c3alm-support-technical-lead1
 cn: ccc_c3alm-support-technical-lead2
 member: uid=bender,ou=people,dc=planetexpress,dc=com
 ou: technical-lead
-ou: technical-lead-doble-cn_field
+ou: technical-lead-double-cn_field
