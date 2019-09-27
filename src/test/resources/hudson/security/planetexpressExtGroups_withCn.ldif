@@ -159,15 +159,15 @@ uniquemember: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
 uniquemember: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
 uniquemember: cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com
 
-dn: ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: top
 objectClass: groupOfNames
-cn: C3ALM
+cn: C_EXAMPLE
 member: uid=zoidberg,ou=people,dc=planetexpress,dc=com
-description: C3ALM
-ou: C3ALM
+description: C_EXAMPLE
+ou: C_EXAMPLE
 
-dn: ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: top
 objectClass: groupOfNames
 cn: teams
@@ -175,7 +175,7 @@ member: uid=hermes,ou=people,dc=planetexpress,dc=com
 description: teams
 ou: teams
 
-dn: ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=ccc_aas,ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: top
 objectClass: groupOfNames
 cn: ccc_aas
@@ -183,33 +183,33 @@ member: uid=leela,ou=people,dc=planetexpress,dc=com
 description: ccc_aas
 ou: ccc_aas
 
-dn: ou=developer,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=developer,ou=ccc_aas,ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: groupOfNames
 objectClass: top
-cn: ccc_c3alm-support-developer
+cn: ccc_c_example-support-developer
 member: uid=leela,ou=people,dc=planetexpress,dc=com
 member: uid=bender,ou=people,dc=planetexpress,dc=com
 ou: developer
 
-dn: ou=product-owner,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=product-owner,ou=ccc_aas,ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: groupOfNames
 objectClass: top
-cn: ccc_c3alm-support-product-owner
+cn: ccc_c_example-support-product-owner
 member: uid=leela,ou=people,dc=planetexpress,dc=com
 ou: product-owner
 
-dn: ou=technical-lead,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=technical-lead,ou=ccc_aas,ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: groupOfNames
 objectClass: top
-cn: ccc_c3alm-support-technical-lead
+cn: cn_example3
 member: uid=bender,ou=people,dc=planetexpress,dc=com
 ou: technical-lead
 
-dn: ou=technical-lead-double-cn_field,ou=ccc_aas,ou=teams,ou=C3ALM,ou=people,dc=planetexpress,dc=com
+dn: ou=technical-lead-double-cn_field,ou=ccc_aas,ou=teams,ou=C_EXAMPLE,ou=people,dc=planetexpress,dc=com
 objectClass: groupOfNames
 objectClass: top
-cn: ccc_c3alm-support-technical-lead1
-cn: ccc_c3alm-support-technical-lead2
+cn: cn_example1
+cn: cn_example2
 member: uid=bender,ou=people,dc=planetexpress,dc=com
 ou: technical-lead
 ou: technical-lead-double-cn_field

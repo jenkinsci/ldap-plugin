@@ -585,7 +585,7 @@ public class LDAPEmbeddedTest {
               new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead").getDisplayName(), is("ccc_c3alm-support-technical-lead"));
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example3").getDisplayName(), is("cn_example3"));
     }
 
     @Test
@@ -597,10 +597,10 @@ public class LDAPEmbeddedTest {
               new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("ccc_c3alm-support-technical-lead1").getDisplayName(), is("ccc_c3alm-support-technical-lead1"));
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example1").getDisplayName(), is("cn_example1"));
         boolean found = false;
         for (String message : log.getMessages()) {
-            if (message.endsWith("The first one (ccc_c3alm-support-technical-lead1) has been assigned as external group name")) {
+            if (message.endsWith("The first one (cn_example1) has been assigned as external group name")) {
                 found = true;
                 break;
             }
