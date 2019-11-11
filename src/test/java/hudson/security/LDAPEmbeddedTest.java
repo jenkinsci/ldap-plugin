@@ -57,6 +57,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.*;
 
 @LDAPTestConfiguration
 public class LDAPEmbeddedTest {
@@ -598,15 +599,6 @@ public class LDAPEmbeddedTest {
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
         assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example1").getDisplayName(), is("cn_example1"));
-        boolean found = false;
-        for (String message : log.getMessages()) {
-            if (message.endsWith("The first one (cn_example1) has been assigned as external group name")) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            fail("We didn't find the multiple CN message in the logs.");
-        }
+        assertThat(log.getMessages(), hasItem(endsWith("The first one  (cn_example1) has been assigned as external group name")));
     }
 }

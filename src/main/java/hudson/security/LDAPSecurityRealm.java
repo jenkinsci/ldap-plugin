@@ -981,11 +981,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
             Attribute cnAttribute = attributes.get(CN);
             if (cnAttribute != null) {
-                for (NamingEnumeration e = cnAttribute.getAll(); e.hasMore() && !isCN;) {
+                NamingEnumeration e = cnAttribute.getAll();
+                while (e.hasMore() && !isCN) {
                     groupName = e.next().toString();
                     isCN = true;
                     if (e.hasMore()) {
-                        LOGGER.log(Level.FINE, "The group {0} has more than one cn value. The first one ({1}) has been assigned as external group name", new Object[] {name.getRdns(), groupName});
+                        LOGGER.log(Level.FINE, "The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
                     }
                 }
             } else {
