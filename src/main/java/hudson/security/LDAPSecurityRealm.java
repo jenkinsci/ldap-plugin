@@ -85,6 +85,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -893,7 +894,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
                 LDAPExtendedTemplate template = conf.getLdapTemplate();
                 GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
-                        new Object[]{groupname}, new String[]{}, new GroupDetailsMapper());
+                        new Object[]{groupname}, null, new GroupDetailsMapper());
                 if (groupDetails != null) {
                     if (fetchMembers) {
                         Set<String> members = conf.getGroupMembershipStrategy().getGroupMembers(groupDetails.getDn(), conf);
@@ -970,8 +971,29 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public GroupDetailsImpl mapAttributes(String dn, Attributes attributes) throws NamingException {
             LdapName name = new LdapName(dn);
-            String groupName = fixGroupname(String.valueOf(name.getRdn(name.size() - 1).getValue()));
+            String groupName = fixGroupname(extractGroupName(name, attributes));
             return new GroupDetailsImpl(dn, groupName);
+        }
+
+        static String extractGroupName(LdapName name, Attributes attributes) throws NamingException {
+            final String CN = "cn";
+            boolean isCN = false;
+            String groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
+            Attribute cnAttribute = attributes.get(CN);
+            if (cnAttribute != null) {
+                NamingEnumeration e = cnAttribute.getAll();
+                while (e.hasMore() && !isCN) {
+                    groupName = e.next().toString();
+                    isCN = true;
+                    if (e.hasMore()) {
+                        LOGGER.log(Level.FINE, "The group " + name.getRdns() + " has more than one cn value. The first one  (" + groupName + ") has been assigned as external group name");
+                    }
+                }
+            } else {
+                // Note: this should never happen as LDAP server requires to have at least one CN for each entry.
+                LOGGER.log(Level.SEVERE, "The group {0} has not defined a cn attribute. The last value from the dn ({1}) has been assigned as external group name", new Object[] {name.getRdns(), groupName});
+            }
+            return groupName;
         }
     }
 

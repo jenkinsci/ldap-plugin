@@ -31,10 +31,9 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.logging.Level;
+
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
 import org.acegisecurity.GrantedAuthority;
@@ -45,7 +44,9 @@ import org.jsoup.nodes.Document;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.LoggerRule;
 
 import static hudson.security.SecurityRealm.AUTHENTICATED_AUTHORITY;
 import static org.hamcrest.Matchers.allOf;
@@ -56,6 +57,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.*;
 
 @LDAPTestConfiguration
 public class LDAPEmbeddedTest {
@@ -63,6 +65,8 @@ public class LDAPEmbeddedTest {
     public JenkinsRule r = new JenkinsRule();
     @Rule
     public RuleChain chain = RuleChain.outerRule(ads).around(r);
+    @Rule
+    public LoggerRule log = new LoggerRule();
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
@@ -574,5 +578,27 @@ public class LDAPEmbeddedTest {
         }
     }
 
+    @Test
+    @LDAPSchema(ldif = "planetexpressExtGroups_withCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void extGroupWithOneCN() throws Exception {
+        LDAPConfiguration ldapConfiguration = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
+        LDAPSecurityRealm realm =
+              new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example3").getDisplayName(), is("cn_example3"));
+    }
 
+    @Test
+    @LDAPSchema(ldif = "planetexpressExtGroups_withCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void extGroupWithMultipleCN() throws Exception {
+        log.record(LDAPSecurityRealm.class, Level.ALL).capture(10);
+        LDAPConfiguration ldapConfiguration = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
+        LDAPSecurityRealm realm =
+              new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example1").getDisplayName(), is("cn_example1"));
+        assertThat(log.getMessages(), hasItem(endsWith("The first one  (cn_example1) has been assigned as external group name")));
+    }
 }
