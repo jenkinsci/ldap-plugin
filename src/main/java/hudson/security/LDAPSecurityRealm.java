@@ -1559,7 +1559,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public static final String DEFAULT_USER_SEARCH = "uid={0}";
 
         public String getDisplayName() {
-            return Messages.LDAPSecurityRealm_DisplayName();
+            return jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayName();
         }
 
         public IdStrategy getDefaultIdStrategy() {

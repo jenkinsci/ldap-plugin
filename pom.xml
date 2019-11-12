@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.36</version>
+    <version>3.50</version>
     <relativePath />
   </parent>
 
@@ -18,16 +18,15 @@
   <licenses>
     <license>
       <name>The MIT license</name>
-      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <url>https://www.opensource.org/licenses/mit-license.php</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
 
   <properties>
-    <apacheds.version>2.0.0-M23</apacheds.version>
-    <apacheds.jdbm.version>2.0.0-M3</apacheds.jdbm.version>
-    <jenkins.version>1.651.3</jenkins.version>
-    <jenkins-test-harness.version>2.32</jenkins-test-harness.version>
+    <apacheds.version>2.0.0.AM25</apacheds.version>
+    <jenkins.version>2.60.3</jenkins.version>
+    <java.level>8</java.level>
   </properties>
 
   <scm>
@@ -58,18 +57,8 @@
     <dependency>
       <groupId>org.jenkins-ci.test</groupId>
       <artifactId>docker-fixtures</artifactId>
-      <version>1.0</version>
+      <version>1.8</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion> <!-- pending release of https://github.com/jenkinsci/docker-fixtures/pull/6 in 1.1 -->
-          <groupId>com.google.inject</groupId>
-          <artifactId>guice</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.jenkins-ci</groupId> <!-- pending https://github.com/jenkinsci/docker-fixtures/pull/7 -->
-          <artifactId>annotation-indexer</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
@@ -135,14 +124,6 @@
       <groupId>org.apache.directory.server</groupId>
       <artifactId>apacheds-interceptor-kerberos</artifactId>
       <version>${apacheds.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.directory.jdbm</groupId>
-      <artifactId>apacheds-jdbm1</artifactId>
-      <!--type>bundle</type-->
-      <version>${apacheds.jdbm.version}</version>
       <scope>test</scope>
     </dependency>
 

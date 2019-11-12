@@ -263,7 +263,7 @@ public class LdapMultiEmbeddedTest {
 
         try {
             r.jenkins.getSecurityRealm().loadUserByUsername("fry");
-        } catch (DataAccessException _) {
+        } catch (DataAccessException e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
@@ -279,7 +279,7 @@ public class LdapMultiEmbeddedTest {
         try {
             r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
             fail("Expected a DataAccessException");
-        } catch (DataAccessException _) {
+        } catch (DataAccessException e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
@@ -295,7 +295,7 @@ public class LdapMultiEmbeddedTest {
         try {
             r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
             fail("Expected a DataAccessException");
-        } catch (DataAccessException _) {
+        } catch (DataAccessException e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
@@ -310,7 +310,7 @@ public class LdapMultiEmbeddedTest {
         setBadPwd(sevenSeas);
         try {
             r.jenkins.getSecurityRealm().loadUserByUsername("fry");
-        } catch (DataAccessException _) {
+        } catch (DataAccessException e) {
             fail("No exception should be thrown when first is working");
         }
         assertThat(log, not(recorded(Level.WARNING,

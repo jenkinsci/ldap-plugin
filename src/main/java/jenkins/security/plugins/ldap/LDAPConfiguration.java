@@ -435,7 +435,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 // trouble-shoot
                 Matcher m = Pattern.compile("(ldaps?://)?([^:]+)(?:\\:(\\d+))?(\\s+(ldaps?://)?([^:]+)(?:\\:(\\d+))?)*").matcher(server.trim());
                 if(!m.matches())
-                    return FormValidation.error(hudson.security.Messages.LDAPSecurityRealm_SyntaxOfServerField());
+                    return FormValidation.error(Messages.LDAPSecurityRealm_SyntaxOfServerField());
 
                 try {
                     InetAddress adrs = InetAddress.getByName(m.group(2));
@@ -445,17 +445,17 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                     Socket s = new Socket(adrs,port);
                     s.close();
                 } catch (UnknownHostException x) {
-                    return FormValidation.error(hudson.security.Messages.LDAPSecurityRealm_UnknownHost(x.getMessage()));
+                    return FormValidation.error(Messages.LDAPSecurityRealm_UnknownHost(x.getMessage()));
                 } catch (IOException x) {
-                    return FormValidation.error(x, hudson.security.Messages.LDAPSecurityRealm_UnableToConnect(server, x.getMessage()));
+                    return FormValidation.error(x, Messages.LDAPSecurityRealm_UnableToConnect(server, x.getMessage()));
                 }
 
                 // otherwise we don't know what caused it, so fall back to the general error report
                 // getMessage() alone doesn't offer enough
-                return FormValidation.error(e, hudson.security.Messages.LDAPSecurityRealm_UnableToConnect(server, e));
+                return FormValidation.error(e, Messages.LDAPSecurityRealm_UnableToConnect(server, e));
             } catch (NumberFormatException x) {
                 // The getLdapCtxInstance method throws this if it fails to parse the port number
-                return FormValidation.error(hudson.security.Messages.LDAPSecurityRealm_InvalidPortNumber());
+                return FormValidation.error(Messages.LDAPSecurityRealm_InvalidPortNumber());
             }
         }
 
