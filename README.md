@@ -6,7 +6,7 @@ that, it was split out into a separately-updateable plugin. However, for
 backwards compatibility purposes, subsequent core releases still bundle
 it. If you do not use this plugin at all, you can simply disable it.
 
-# Description
+## Description
 
 This plugin provides yet another way of authenticating users using LDAP.
 It can be used with LDAP servers like Active Directory or OpenLDAP among
@@ -29,7 +29,7 @@ membership outside of a user's web session)
 
  
 
-# Configuration
+## Configuration
 
 Select LDAP for the Security Realm. You will most likely need to
 configure some of the Advanced options. There is on-line help available
@@ -129,12 +129,12 @@ given the user name.
 
  This field determines the query to be run to identify the user record.
 
-The query is almost always `uid={0`} as per defined in RFC 2798, so in
+The query is almost always `uid={0}` as per defined in RFC 2798, so in
 most cases you should leave this field empty and let this default kick
 in.
 
 If your LDAP server doesn't have `uid` or doesn't use a meaningful `uid`
-value, try `mail={0`}, which lets people login by their e-mail address.
+value, try `mail={0}`, which lets people login by their e-mail address.
 
 If you do specify a different query, specify an LDAP query string with
 marker token {`0`}, which is to be replaced by the user name string
@@ -224,8 +224,6 @@ For example:
     subtree, adding the subtree information to the filter should improve
     performance.
 
-&nbsp;
-
 -   Active Directory's query optimizer can make significant
     optimizations if it knows that the object category is
     group: `(&(objectCategory=group)(member={0}))` this may be relevant
@@ -244,7 +242,7 @@ record:
 
 -   Active Directory
 -   OpenLDAP with the [memberof
-    overlay](http://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance){.external-link}
+    overlay](http://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance)
     active (untested, and as memberof is an operational attribute in
     OpenLDAP it must be explicitly requested, so likely some hacking of
     LDAPSecurityRealm.groovy required)
@@ -293,8 +291,8 @@ Note: The default configuration is to leave the cache turned off.
 ### Environment Properties
 
 As of 1.7 of the LDAP plugin, you can now specify additional Environment
-Properties to provide the backing Java LDAP client API. See [Oracle's
-documentation](http://docs.oracle.com/javase/7/docs/technotes/guides/jndi/jndi-ldap.html){.external-link} for
+properties to provide the backing Java LDAP client API. See [Oracle's
+documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/jndi/jndi-ldap.html) for
 details of what properties are available and what functionality they
 provide. As a minimum you should strongly consider providing the
 following
@@ -302,12 +300,12 @@ following
 | Property Name                       | Description                                                                                                                                                                                                                                                                                                 |
 |-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `com.sun.jndi.ldap.connect.timeout` | This is the socket connection timeout in milliseconds. If your LDAP servers are all close to your Jenkins server you can probably set a small value, e.g. 5000 milliseconds. Setting a value smaller that this may result in excessive timeouts due to the TCP/IP connection establishment retry mechanism. |
-| `com.sun.jndi.ldap.read.timeout`    | This is the socket read timeout in milliseconds. If your LDAP queries are all fast you can probably set a low value. The value is ignored if the Jenkins Master is running on Java 1.5. A reasonable default is 60000 milliseconds.                                                                         |
+| `com.sun.jndi.ldap.read.timeout`    | This is the socket read timeout in milliseconds. If your LDAP queries are all fast you can probably set a low value. A reasonable default is 60000 milliseconds.                                                                         |
 
 ## Troubleshooting
 
 The following [Groovy
-script](https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console){.external-link}
+script](https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console)
 can be useful when trying to determine whether you have group search
 configured correctly:
 
@@ -402,7 +400,7 @@ max anticipated concurrent users... but a longer TTL is better)
     of them then your LDAP server is most likely Active Directory and
     Kohsuke makes me ask why you are using the LDAP plugin and not the
     Active Directory plugin in that case! Note that
-    [JENKINS-16429](https://issues.jenkins-ci.org/browse/JENKINS-16429){.external-link}
+    [JENKINS-16429](https://issues.jenkins-ci.org/browse/JENKINS-16429)
     might be a good reason to favour the LDAP plugin over the Active
     Directory plugin, but if that issue is resolved by the time you are
     reading this then there should be no reason to pick the LDAP plugin
@@ -412,7 +410,7 @@ max anticipated concurrent users... but a longer TTL is better)
 
 If you are using the LDAP plugin to connect to Active Directory you
 should probably read this page of [AD syntax
-notes](http://social.technet.microsoft.com/wiki/contents/articles/5392.active-directory-ldap-syntax-filters.aspx){.external-link}.
+notes](http://social.technet.microsoft.com/wiki/contents/articles/5392.active-directory-ldap-syntax-filters.aspx).
 Pay special attention to Notes 10 and 19. The following settings are
 reported to work with Active Directory and nested groups, though they
 should carry a warning that they may impact login performance and they
