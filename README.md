@@ -34,7 +34,7 @@ membership outside of a user's web session)
 Select LDAP for the Security Realm. You will most likely need to
 configure some of the Advanced options. There is on-line help available
 for each option. 
-![](docs/images/Screen_Shot_2017-05-02_at_09.52.20.png){.confluence-embedded-image}
+![](/docs/images/Screen_Shot_2017-05-02_at_09.52.20.png)
 
 ### Server
 
@@ -62,7 +62,7 @@ verifies a subset of the configuration)
 Clicking this button will display a modal dialog to prompt you to
 provide a username and password:
 
-![](docs/images/test-ldap-dialog.png){.confluence-embedded-image}
+![](/docs/images/test-ldap-dialog.png)
 
 There are a number of tests that you should perform before saving a new
 / modified security configuration:
@@ -82,8 +82,8 @@ There are a number of tests that you should perform before saving a new
     instance, try using at least one user for each important group =\>
     You want to ensure that group lookup functions correctly.
 
-![(warning)](docs/images/warning.svg){.emoticon
-.emoticon-warning} **NOTE** it is quite likely that existing
+:warning:
+**NOTE** it is quite likely that existing
 installations may have subtle issues with group resolution, it is
 recommended that you validate your group resolution with the new button
 functionality after upgrading the LDAP plugin to 1.15 as there is a good
@@ -199,7 +199,7 @@ in the LDAP plugin:
 
 #### Search for groups containing user
 
-![](docs/images/Screen_Shot_2014-07-15_at_10.19.23.png){.confluence-embedded-image}
+![](/docs/images/Screen_Shot_2014-07-15_at_10.19.23.png)
 
 The group membership filter field controls the search filter that is
 used to determine group membership.
@@ -236,7 +236,7 @@ Note: in this field there are two available substitutions:
 
 #### Parse user attribute for list of groups
 
-![](docs/images/Screen_Shot_2014-07-15_at_10.19.14.png){.confluence-embedded-image}  
+![](/docs/images/Screen_Shot_2014-07-15_at_10.19.14.png)  
 Some LDAP servers can provide a `memberOf` attribute within the User's
 record:
 
@@ -309,7 +309,7 @@ script](https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console)
 can be useful when trying to determine whether you have group search
 configured correctly:
 
-``` syntaxhighlighter-pre
+``` java
     String[] names = ["a group name","a user name","a name that does not exist"];
     for (name in names) {
       println("Checking the name '" + name + "'...")
