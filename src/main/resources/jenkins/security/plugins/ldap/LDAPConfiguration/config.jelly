@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" >
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:c="/lib/credentials"> >
     <f:entry field="server" title="${%Server}">
         <f:textbox/>
     </f:entry>
@@ -25,11 +25,8 @@
         <f:entry field="groupMembershipStrategy" title="${%Group membership}">
             <f:hetero-radio field="groupMembershipStrategy" descriptors="${descriptor.groupMembershipStrategies}"/>
         </f:entry>
-        <f:entry field="managerDN" title="${%Manager DN}">
-            <f:textbox autocomplete="off"/>
-        </f:entry>
-        <f:entry field="managerPasswordSecret" title="${%Manager Password}">
-            <f:password autocomplete="off"/>
+        <f:entry field="credentialsId" title="${%Manager Credentials}">
+            <c:select name="ldap.credentialsId" value="${instance.getCredentialsId()}"/>
         </f:entry>
         <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
             <f:textbox default="${descriptor.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME}"/>

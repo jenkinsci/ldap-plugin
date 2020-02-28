@@ -1,3 +1,5 @@
+configuration-as-code:
+  deprecated: warn
 jenkins:
   securityRealm:
     ldap:

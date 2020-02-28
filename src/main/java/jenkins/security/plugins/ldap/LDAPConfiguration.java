@@ -25,6 +25,14 @@
  */
 package jenkins.security.plugins.ldap;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.IdCredentials;
+import com.cloudbees.plugins.credentials.common.PasswordCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.common.UsernameCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
@@ -32,14 +40,15 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.security.ACL;
 import hudson.security.LDAPSecurityRealm;
 import hudson.security.SecurityRealm;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import hudson.util.spring.BeanBuilder;
 import jenkins.model.Jenkins;
 import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.apache.commons.codec.Charsets;
@@ -54,14 +63,15 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.springframework.web.context.WebApplicationContext;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -78,12 +88,12 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
 import static org.apache.commons.lang.StringUtils.isBlank;
@@ -118,17 +128,27 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private String groupSearchBase;
     private String groupSearchFilter;
     private LDAPGroupMembershipStrategy groupMembershipStrategy;
+
     /**
-     * If non-null, we use this and {@link #getManagerPassword()}
-     * when binding to LDAP.
+     * @deprecated replaced by ${@link #credentialsId}
+     */
+    @Deprecated
+    private transient String managerDN;
+
+    /**
+     * @deprecated replaced by ${@link #credentialsId}
+     */
+    @Deprecated
+    private transient Secret managerPasswordSecret;
+
+    /**
+     * If non-null, we use this when binding to LDAP.
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
-    private final String managerDN;
-    /**
-     * Password used to first bind to LDAP.
-     */
-    private final Secret managerPasswordSecret;
+    @Nullable
+    private String credentialsId;
+
     private String displayNameAttributeName;
     private String mailAddressAttributeName;
     /**
@@ -144,11 +164,20 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPConfiguration(@Nonnull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
+        this(server, rootDN, inhibitInferRootDN, CredentialsMigrator.migrate(managerDN, managerPasswordSecret)
+                .map(IdCredentials::getId).orElse(null));
+    }
+
+    @DataBoundConstructor
+    public LDAPConfiguration(@Nonnull String server, String rootDN, boolean inhibitInferRootDN, String credentialsId) {
         this.server = server.trim();
-        this.managerDN = fixEmpty(managerDN);
-        this.managerPasswordSecret = managerPasswordSecret;
+        this.credentialsId = fixEmptyAndTrim(credentialsId);
+
         this.inhibitInferRootDN = inhibitInferRootDN;
         if (!inhibitInferRootDN && fixEmptyAndTrim(rootDN) == null) {
             rootDN = fixNull(inferRootDN(server));
@@ -234,6 +263,24 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     /**
+     * @deprecated replaced by ${@link #credentialsId}
+     */
+    @DataBoundSetter
+    @Deprecated
+    public void setManagerDN(String managerDN) {
+        this.managerDN = fixEmptyAndTrim(managerDN);
+    }
+
+    /**
+     * @deprecated replaced by ${@link #credentialsId}
+     */
+    @DataBoundSetter
+    @Deprecated
+    public void setManagerPasswordSecret(Secret managerPasswordSecret) {
+        this.managerPasswordSecret = managerPasswordSecret;
+    }
+
+    /**
      * Query to locate an entry that identifies the user, given the user name string.
      *
      * Normally "uid={0}"
@@ -299,25 +346,40 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         this.groupMembershipStrategy = groupMembershipStrategy == null ? new FromGroupSearchLDAPGroupMembershipStrategy("") : groupMembershipStrategy;
     }
 
+    @SuppressWarnings("unused")
+    public String getCredentialsId() {
+        if (isCredentialsNotMigrated()) {
+            migrateManagerCredentials();
+        }
+        return credentialsId;
+    }
+
+    @SuppressWarnings("unused")
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = fixEmptyAndTrim(credentialsId);
+    }
+
     /**
      * If non-null, we use this and {@link #getManagerPassword()}
      * when binding to LDAP.
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
+    @CheckForNull
     public String getManagerDN() {
-        return managerDN;
+        return getCredentials().map(UsernameCredentials::getUsername).orElse(null);
     }
 
     /**
      * Password used to first bind to LDAP.
      */
+    @CheckForNull
     public String getManagerPassword() {
-        return Secret.toString(managerPasswordSecret);
+        return getCredentials().map(PasswordCredentials::getPassword).map(Secret::getPlainText).orElse(null);
     }
 
     public Secret getManagerPasswordSecret() {
-        return managerPasswordSecret;
+        return getCredentials().map(PasswordCredentials::getPassword).orElse(null);
     }
 
     public String getDisplayNameAttributeName() {
@@ -406,9 +468,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
         // note that this works better in 1.528+ (JENKINS-19124)
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
-        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
+        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String credentialsId) {
             String server = value;
-            String managerPassword = Secret.toString(managerPasswordSecret);
 
             final Jenkins jenkins = Jenkins.getInstance();
             if (jenkins == null) {
@@ -418,13 +479,14 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 return FormValidation.ok();
 
             try {
-                Hashtable<String,String> props = new Hashtable<String,String>();
-                if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
-                    props.put(Context.SECURITY_PRINCIPAL,managerDN);
-                }
-                if(managerPassword!=null && managerPassword.trim().length() > 0 && !"undefined".equals(managerPassword)) {
-                    props.put(Context.SECURITY_CREDENTIALS,managerPassword);
-                }
+                Optional<StandardUsernamePasswordCredentials> credentials = findCredentialsById(credentialsId);
+
+                Hashtable<String, String> props = new Hashtable<String, String>();
+                credentials.ifPresent(c -> {
+                    props.put(Context.SECURITY_PRINCIPAL, c.getUsername());
+                    props.put(Context.SECURITY_CREDENTIALS, c.getPassword().getPlainText());
+
+                });
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server, ""));
 
@@ -468,6 +530,33 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 return DescriptorExtensionList.createDescriptorList((Jenkins)null, LDAPGroupMembershipStrategy.class);
             }
         }
+
+        @SuppressWarnings("unused")
+        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String credentialsId) {
+            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
+
+            return new StandardListBoxModel()
+                    .includeEmptyValue()
+                    .includeMatchingAs(
+                            ACL.SYSTEM,
+                            Jenkins.getInstance(),
+                            StandardUsernamePasswordCredentials.class,
+                            Collections.emptyList(),
+                            CredentialsMatchers.always()
+                    );
+        }
+    }
+
+    private Optional<StandardUsernamePasswordCredentials> getCredentials() {
+        if (isCredentialsNotMigrated()) {
+            migrateManagerCredentials();
+        }
+        if (credentialsId == null) {
+            return Optional.empty();
+        }
+        return findCredentialsById(credentialsId);
     }
 
     /**
@@ -478,9 +567,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private String inferRootDN(String server) {
         try {
             Hashtable<String, String> props = new Hashtable<String, String>();
-            if (managerDN != null) {
-                props.put(Context.SECURITY_PRINCIPAL, managerDN);
-                props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
+            if (credentialsId != null) {
+                props.computeIfAbsent(Context.SECURITY_PRINCIPAL, key -> getManagerDN());
+                props.computeIfAbsent(Context.SECURITY_CREDENTIALS, key -> getManagerPassword());
+
             }
             props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
             props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(getServerUrl(), ""));
@@ -617,5 +707,38 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     @Restricted(NoExternalUse.class)
     public static File getLdapBindOverrideFile(Jenkins jenkins) {
         return new File(jenkins.getRootDir(), SECURITY_REALM_LDAPBIND_GROOVY);
+    }
+
+    @SuppressWarnings("unused")
+    private Object readResolve() {
+        migrateManagerCredentials();
+        return this;
+    }
+
+    private void migrateManagerCredentials() {
+        if (isCredentialsNotMigrated()) {
+            credentialsId = CredentialsMigrator.migrate(managerDN, managerPasswordSecret)
+                    .map(IdCredentials::getId)
+                    .orElse(null);
+
+            managerDN = null;
+            managerPasswordSecret = null;
+        }
+    }
+
+    private boolean isCredentialsNotMigrated() {
+        return managerDN != null && credentialsId == null;
+    }
+
+    private static Optional<StandardUsernamePasswordCredentials> findCredentialsById(String credentialsId) {
+        return CredentialsMatchers.filter(
+                CredentialsProvider.lookupCredentials(
+                        StandardUsernamePasswordCredentials.class,
+                        Jenkins.getInstanceOrNull(),
+                        ACL.SYSTEM,
+                        (DomainRequirement) null),
+                CredentialsMatchers.withId(credentialsId))
+                .stream()
+                .findAny();
     }
 }
