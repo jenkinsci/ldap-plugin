@@ -28,6 +28,31 @@ To install:
 2. or use the plugin management console (http://example.com:8080/pluginManager/advanced) to upload the hpi file. You have to restart Jenkins in order to find the pluing in the installed plugins list.
 
 
+Configuration with JCasC
+---------------
+```yaml
+jenkins:
+  securityRealm:
+    ldap:
+      configurations:
+        - server: ldap.acme.com
+          rootDN: dc=acme,dc=fr
+          managerDN: "manager"
+          managerPasswordSecret: ${LDAP_PASSWORD}
+          userSearch: "(&(objectCategory=User)(sAMAccountName={0}))"
+          groupSearchFilter: "(&(cn={0})(objectclass=group))"
+          groupMembershipStrategy:
+            fromGroupSearch:
+              filter: "(&(objectClass=group)(|(cn=GROUP_1)(cn=GROUP_2)))"
+      cache:
+        size: 100
+        ttl: 10
+      userIdStrategy: CaseInsensitive
+      groupIdStrategy: CaseSensitive
+```
+To get more examples, see [yaml files used in tests](src/test/resources/jenkins/security/plugins/ldap)
+
+
 Plugin releases
 ---------------
 
