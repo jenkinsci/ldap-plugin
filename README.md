@@ -30,6 +30,7 @@ To install:
 
 Configuration with JCasC
 ---------------
+
 ```yaml
 jenkins:
   securityRealm:
