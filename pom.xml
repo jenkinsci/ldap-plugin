@@ -14,7 +14,7 @@
 
   <name>LDAP Plugin</name>
   <description>Adds LDAP authentication to Jenkins</description>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/LDAP+Plugin</url>
+  <url>https://github.com/jenkinsci/ldap-plugin</url>
   <licenses>
     <license>
       <name>The MIT license</name>
