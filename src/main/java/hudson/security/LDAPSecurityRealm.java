@@ -245,7 +245,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Boolean.getBoolean(LDAPSecurityRealm.class.getName() + ".forceGroupnameLowercase");
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
@@ -346,7 +346,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         group search filter (uniquemember={1} seems like a reasonable default)
         group target (CN is a reasonable default)
 
-        manager dn/password if anonyomus search is not allowed.
+        manager dn/password if anonymous search is not allowed.
 
         See GF configuration at http://weblogs.java.net/blog/tchangu/archive/2007/01/ldap_security_r.html
         Geronimo configuration at http://cwiki.apache.org/GMOxDOC11/ldap-realm.html
@@ -1218,7 +1218,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * @param username the username to search
          * @return the user details or {@code null} if the server configuration could not be found
          * @throws UsernameNotFoundException if the user could not be found on the given server
-         * @throws DataAccessException if some communication error occured
+         * @throws DataAccessException if some communication error occurred
          * @see #loadUserByUsername(String)
          */
         public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException, DataAccessException {
@@ -1660,9 +1660,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             // we can only do deep validation if the connection is correct
             LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.getActiveInstance().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
-                FormValidation connnectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret());
-                if (connnectionCheck.kind != FormValidation.Kind.OK) {
-                    return connnectionCheck;
+                FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret());
+                if (connectionCheck.kind != FormValidation.Kind.OK) {
+                    return connectionCheck;
                 }
             }
 

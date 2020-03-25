@@ -100,7 +100,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     private final String server;
 
@@ -164,7 +164,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
-     * or "ldap.acme.org:389" and/or with protcol, like "ldap://ldap.acme.org".
+     * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
     public String getServer() {
         return server;
@@ -438,11 +438,11 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                     return FormValidation.error(Messages.LDAPSecurityRealm_SyntaxOfServerField());
 
                 try {
-                    InetAddress adrs = InetAddress.getByName(m.group(2));
+                    InetAddress address = InetAddress.getByName(m.group(2));
                     int port = m.group(1)!=null ? 636 : 389;
                     if(m.group(3)!=null)
                         port = Integer.parseInt(m.group(3));
-                    Socket s = new Socket(adrs,port);
+                    Socket s = new Socket(address,port);
                     s.close();
                 } catch (UnknownHostException x) {
                     return FormValidation.error(Messages.LDAPSecurityRealm_UnknownHost(x.getMessage()));
