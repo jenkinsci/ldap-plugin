@@ -19,7 +19,7 @@ import static org.junit.Assert.assertThat;
  * Tests the plugin when logging in to rroemhild/test-openldap
  */
 public class PlanetExpressTest {
-
+    //Stupid change to see if docker works on CI
     @Rule
     public DockerRule<PlanetExpress> docker = new DockerRule<>(PlanetExpress.class);
     @Rule
