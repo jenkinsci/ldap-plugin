@@ -1608,6 +1608,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * validate element
          * @return true if this Jenkins has Enable Security checkbox
          */
+        @Restricted(NoExternalUse.class)
         public boolean hasEnableSecurityForm() {
             // make spotbugs happy and if the version is not computed, we assume we are on a modern version, without
             // the enable security form
