@@ -44,7 +44,16 @@ THE SOFTWARE.
             </table>
         </f:repeatable>
     </f:entry>
-    <v:validate name="validateLdapSettings" method="validate" filter="useSecurity.realm"
+    <j:choose>
+        <j:when test="${descriptor.hasEnableSecurityForm()}">
+            <j:set var="validateFilter" value="useSecurity.realm" />
+        </j:when>
+        <j:otherwise>
+            <j:set var="validateFilter" value="realm" />
+        </j:otherwise>
+    </j:choose>
+    
+    <v:validate name="validateLdapSettings" method="validate" filter="${validateFilter}"
                 title="${%Test LDAP settings}"
                 dialog="${%Test LDAP settings}"
                 submit="${%Test}">
