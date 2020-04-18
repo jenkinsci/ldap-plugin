@@ -363,6 +363,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     @CheckForNull
     @Deprecated
+    @Deprecated
     public String getManagerDN() {
         return getCredentials().map(UsernameCredentials::getUsername).orElse(null);
     }
@@ -371,6 +372,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * Password used to first bind to LDAP.
      */
     @CheckForNull
+    @Deprecated
     public String getManagerPassword() {
         return getCredentials().map(PasswordCredentials::getPassword).map(Secret::getPlainText).orElse(null);
     }
@@ -378,6 +380,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * @deprecated replaced by ${@link #credentialsId}
      */
+    @CheckForNull
+    @Deprecated
     @CheckForNull
     @Deprecated
     public Secret getManagerPasswordSecret() {
