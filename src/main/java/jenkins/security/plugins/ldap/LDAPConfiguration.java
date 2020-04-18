@@ -265,7 +265,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * @deprecated replaced by ${@link #credentialsId}
      */
-    @DataBoundSetter
     @Deprecated
     public void setManagerDN(String managerDN) {
         this.managerDN = fixEmptyAndTrim(managerDN);
@@ -274,7 +273,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * @deprecated replaced by ${@link #credentialsId}
      */
-    @DataBoundSetter
     @Deprecated
     public void setManagerPasswordSecret(Secret managerPasswordSecret) {
         this.managerPasswordSecret = managerPasswordSecret;
@@ -348,9 +346,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @SuppressWarnings("unused")
     public String getCredentialsId() {
-        if (isCredentialsNotMigrated()) {
-            migrateManagerCredentials();
-        }
         return credentialsId;
     }
 
@@ -364,8 +359,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * when binding to LDAP.
      *
      * This is necessary when LDAP doesn't support anonymous access.
+     * @deprecated replaced by ${@link #credentialsId}
      */
     @CheckForNull
+    @Deprecated
     public String getManagerDN() {
         return getCredentials().map(UsernameCredentials::getUsername).orElse(null);
     }
@@ -378,6 +375,11 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return getCredentials().map(PasswordCredentials::getPassword).map(Secret::getPlainText).orElse(null);
     }
 
+    /**
+     * @deprecated replaced by ${@link #credentialsId}
+     */
+    @CheckForNull
+    @Deprecated
     public Secret getManagerPasswordSecret() {
         return getCredentials().map(PasswordCredentials::getPassword).orElse(null);
     }
@@ -550,9 +552,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     private Optional<StandardUsernamePasswordCredentials> getCredentials() {
-        if (isCredentialsNotMigrated()) {
-            migrateManagerCredentials();
-        }
         if (credentialsId == null) {
             return Optional.empty();
         }
@@ -716,7 +715,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     private void migrateManagerCredentials() {
-        if (isCredentialsNotMigrated()) {
+        if (managerDN != null && credentialsId == null) {
             credentialsId = CredentialsMigrator.migrate(managerDN, managerPasswordSecret)
                     .map(IdCredentials::getId)
                     .orElse(null);
@@ -724,10 +723,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             managerDN = null;
             managerPasswordSecret = null;
         }
-    }
-
-    private boolean isCredentialsNotMigrated() {
-        return managerDN != null && credentialsId == null;
     }
 
     private static Optional<StandardUsernamePasswordCredentials> findCredentialsById(String credentialsId) {

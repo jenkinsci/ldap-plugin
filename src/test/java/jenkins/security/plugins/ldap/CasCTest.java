@@ -16,10 +16,8 @@ import static org.junit.Assert.assertTrue;
 // Based on https://github.com/jenkinsci/configuration-as-code-plugin/blob/7766b7ef6153e3e210f257d323244c1f1470a10f/integrations/src/test/java/io/jenkins/plugins/casc/LDAPTest.java
 public class CasCTest {
     @Rule
-    public RuleChain chain = RuleChain.outerRule(new EnvironmentVariables()
-            .set("LDAP_PASSWORD", "SECRET"))
-            .around(new JenkinsConfiguredWithCodeRule());
-    
+    public JenkinsConfiguredWithCodeRule chain = new JenkinsConfiguredWithCodeRule();
+
     @Test
     @ConfiguredWithCode("casc.yml")
     public void configure_ldap() {
@@ -30,8 +28,7 @@ public class CasCTest {
         assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);
         final LDAPConfiguration configuration = securityRealm.getConfigurations().get(0);
         assertEquals("ldap.acme.com", configuration.getServer());
-        assertEquals("SECRET", configuration.getManagerPassword());
-        assertEquals("manager", configuration.getManagerDN());
+        assertEquals("bindCredentials", configuration.getCredentialsId());
         assertEquals("(&(objectCategory=User)(sAMAccountName={0}))", configuration.getUserSearch());
         assertEquals("(&(cn={0})(objectclass=group))", configuration.getGroupSearchFilter());
         final FromGroupSearchLDAPGroupMembershipStrategy strategy = ((FromGroupSearchLDAPGroupMembershipStrategy) configuration.getGroupMembershipStrategy());

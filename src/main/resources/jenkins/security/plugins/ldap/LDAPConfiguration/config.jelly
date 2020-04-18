@@ -26,7 +26,7 @@
             <f:hetero-radio field="groupMembershipStrategy" descriptors="${descriptor.groupMembershipStrategies}"/>
         </f:entry>
         <f:entry field="credentialsId" title="${%Manager Credentials}">
-            <c:select name="ldap.credentialsId" value="${instance.getCredentialsId()}"/>
+            <c:select name="ldap.credentialsId"/>
         </f:entry>
         <f:entry field="displayNameAttributeName" title="${%Display Name LDAP attribute}">
             <f:textbox default="${descriptor.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME}"/>

@@ -30,7 +30,7 @@ final class CredentialsMigrator {
         if(StringUtils.isBlank(managerDN)) {
             return Optional.empty();
         }
-        LOGGER.info("Migrating ldap credentials: Moving manager DN and password into the credentials store");
+        LOGGER.info("Migrating LDAP credentials: Moving manager DN and password into the credentials store");
         List<StandardUsernamePasswordCredentials> allUsernamePasswordCredentials = CredentialsMatchers.filter(
                 CredentialsProvider.lookupCredentials(
                         StandardUsernamePasswordCredentials.class,
@@ -51,7 +51,7 @@ final class CredentialsMigrator {
         StandardUsernamePasswordCredentials credentials = new UsernamePasswordCredentialsImpl(
                 CredentialsScope.SYSTEM,
                 UUID.randomUUID().toString(),
-                "Migrated ldap manager credentials",
+                "Migrated LDAP manager credentials",
                 managerDN,
                 managerPassword.getPlainText());
 
