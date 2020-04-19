@@ -1626,7 +1626,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream()));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
-            JSONObject realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
+            JSONObject realmCfg;
+            if (hasEnableSecurityForm()) {
+                realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");    
+            } else {
+                realmCfg = json.getJSONObject("realm");
+            }
+            
             // instantiate the realm
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
             return validate(realm, user, password);
