@@ -1628,7 +1628,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String password = json.getString("testPassword");
             JSONObject realmCfg;
             if (hasEnableSecurityForm()) {
-                realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");    
+                realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
             } else {
                 realmCfg = json.getJSONObject("realm");
             }
