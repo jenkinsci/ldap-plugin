@@ -29,6 +29,7 @@ import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.springframework.dao.DataAccessException;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -78,7 +79,7 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
      * @throws DataAccessException if there is an error performing the search.
      * @since 1.18
      */
-    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
-        return null;
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
+        return Collections.emptySet();
     }
 }

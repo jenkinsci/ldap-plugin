@@ -39,7 +39,6 @@ import hudson.util.Secret;
 import hudson.util.spring.BeanBuilder;
 import jenkins.model.Jenkins;
 import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapTemplate;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.apache.commons.codec.Charsets;
@@ -72,12 +71,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -401,7 +395,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
 
         public boolean noCustomBindScript() {
-            return !getLdapBindOverrideFile(Jenkins.getActiveInstance()).exists();
+            return !getLdapBindOverrideFile(Jenkins.getInstance()).exists();
         }
 
         // note that this works better in 1.528+ (JENKINS-19124)
@@ -418,7 +412,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 return FormValidation.ok();
 
             try {
-                Hashtable<String,String> props = new Hashtable<String,String>();
+                HashMap<String,String> props = new HashMap<>();
                 if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
                 }
@@ -461,7 +455,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public DescriptorExtensionList<LDAPGroupMembershipStrategy, Descriptor<LDAPGroupMembershipStrategy>> getGroupMembershipStrategies() {
-            final Jenkins jenkins = Jenkins.getInstance();
+            final Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins != null) {
                 return jenkins.getDescriptorList(LDAPGroupMembershipStrategy.class);
             } else {
@@ -477,7 +471,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     private String inferRootDN(String server) {
         try {
-            Hashtable<String, String> props = new Hashtable<String, String>();
+            HashMap<String, String> props = new HashMap<>();
             if (managerDN != null) {
                 props.put(Context.SECURITY_PRINCIPAL, managerDN);
                 props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
@@ -578,7 +572,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         binding.setVariable("instance", this);
         binding.setVariable("realmInstance", realm);
 
-        final Jenkins jenkins = Jenkins.getInstance();
+        final Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins == null) {
             throw new IllegalStateException("Jenkins has not been started, or was already shut down");
         }
