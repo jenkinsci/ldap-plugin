@@ -404,7 +404,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
 
-            final Jenkins jenkins = Jenkins.getInstance();
+            final Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
                 return FormValidation.error("Jenkins is not ready. Cannot validate the field");
             }
