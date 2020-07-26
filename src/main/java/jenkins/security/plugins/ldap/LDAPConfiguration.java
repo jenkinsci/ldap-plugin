@@ -412,7 +412,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 return FormValidation.ok();
 
             try {
-                HashMap<String,String> props = new HashMap<>();
+                Hashtable<String,String> props = new Hashtable<>();
                 if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
                 }
@@ -471,7 +471,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     private String inferRootDN(String server) {
         try {
-            HashMap<String, String> props = new HashMap<>();
+            Hashtable<String, String> props = new Hashtable<>();
             if (managerDN != null) {
                 props.put(Context.SECURITY_PRINCIPAL, managerDN);
                 props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
