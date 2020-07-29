@@ -24,7 +24,7 @@ import org.junit.BeforeClass;
 public class PlanetExpressTest {
 
     @BeforeClass public static void linuxOnly() {
-        assumeFalse("Windows CI builders now have Docker installed…but it does not support Linux images", Functions.isWindows());
+        assumeFalse("Windows CI builders now have Docker installed…but it does not support Linux images", Functions.isWindows() && System.getenv("JENKINS_URL") != null);
     }
 
     @Rule

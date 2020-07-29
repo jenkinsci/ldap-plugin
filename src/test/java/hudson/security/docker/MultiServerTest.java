@@ -1,6 +1,5 @@
 package hudson.security.docker;
 
-import hudson.Functions;
 import hudson.model.User;
 import hudson.security.LDAPEmbeddedTest;
 import hudson.security.LDAPSecurityRealm;
@@ -24,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeFalse;
 import org.junit.BeforeClass;
 
 /**
@@ -34,7 +32,7 @@ import org.junit.BeforeClass;
 public class MultiServerTest {
 
     @BeforeClass public static void linuxOnly() {
-        assumeFalse("Windows CI builders now have Docker installed…but it does not support Linux images", Functions.isWindows());
+        PlanetExpressTest.linuxOnly();
     }
 
     @Rule
