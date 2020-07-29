@@ -24,7 +24,6 @@
 
 package hudson.security;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,8 +33,6 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.html.DomNode;
-import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
@@ -44,7 +41,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import javax.naming.directory.BasicAttributes;
 
-import com.gargoylesoftware.htmlunit.html.HtmlSpan;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
@@ -54,30 +50,17 @@ import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.xml.sax.SAXException;
 
 public class LDAPSecurityRealmTest {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
-
-    /**
-     * This minimal test still causes the 'LDAPBindSecurityRealm.groovy' to be parsed, allowing us to catch
-     * basic syntax errors and such.
-     */
-    @Test
-    public void groovyBeanDef() {
-        r.jenkins.setSecurityRealm(new LDAPSecurityRealm("ldap.itd.umich.edu", null, null, null, null, null, null, false));
-        System.out.println(r.jenkins.getSecurityRealm().getSecurityComponents());// force the component creation
-    }
 
     @Test
     public void sessionStressTest() {
@@ -396,46 +379,6 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void customBeanBindingHindersMultiServerConfig() throws IOException, SAXException, InterruptedException {
-        LDAPSecurityRealm realm = new LDAPSecurityRealm("ldap.example.com",
-                "",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                true,
-                true,
-                null,
-                null,
-                null,
-                null,
-                IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE);
-        r.jenkins.setSecurityRealm(realm);
-        HtmlForm form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
-        //Smoke test
-        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
-        DomNodeList<HtmlElement> buttons = form.getElementsByTagName("button");
-        //assertThat(buttons, hasItem(new RepeatableDeleteButtonMatcher()));
-        assertThat(buttons, hasItem(new AddServerButtonMatcher()));
-
-        //Verify with custom
-        r.jenkins.getRootPath().child(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY).copyFrom(LDAPSecurityRealm.class.getResourceAsStream(LDAPConfiguration.SECURITY_REALM_LDAPBIND_GROOVY));
-
-        form = r.createWebClient().goTo("configureSecurity").getFormByName("config");
-
-        assertThat(form.getCheckedRadioButton("realm"), new LDAPSelectionMatcher());
-        buttons = form.getElementsByTagName("button");
-        //assertThat(buttons, not(hasItem(new RepeatableDeleteButtonMatcher())));
-        assertThat(buttons, not(hasItem(new AddServerButtonMatcher())));
-        assertThat(form.getTextContent(), containsString("Ability to make multiple server configurations turned off due to the presence of custom LDAPBindSecurityRealm.groovy"));
-
-    }
-
-    @Test
     public void configRoundTripEnvironmentProperties() throws Exception {
         final String server = "ldap.itd.umich.edu";
         final String rootDN = "ou=umich,ou.edu";
@@ -481,90 +424,4 @@ public class LDAPSecurityRealmTest {
         assertEquals(newConfig.getEnvironmentProperties()[0].getValue(), c.getEnvironmentProperties()[0].getValue());
     }
 
-
-    private static class AddServerButtonMatcher extends BaseButtonMatcher {
-        protected AddServerButtonMatcher() {
-            super("Add Server");
-        }
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("Add LDAP Server button");
-        }
-
-        @Override
-        protected boolean matchesButton(HtmlButton button) {
-            final DomNode node = button.getParentNode().getParentNode();
-            if (node instanceof HtmlSpan) {
-                HtmlSpan span = (HtmlSpan) node;
-                return span.getAttribute("class").contains("repeatable-add");
-            }
-            return false;
-        }
-    }
-
-    private static class RepeatableDeleteButtonMatcher extends BaseButtonMatcher {
-        RepeatableDeleteButtonMatcher() {
-            super("Delete");
-        }
-
-        @Override
-        protected boolean matchesButton(HtmlButton button) {
-            final DomNode node = button.getParentNode().getParentNode();
-            if (node instanceof HtmlSpan) {
-                HtmlSpan span = (HtmlSpan) node;
-                return span.getAttribute("class").contains("repeatable-delete");
-            }
-
-            return false;
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("Repeatable delete button");
-        }
-    }
-
-    private abstract static class BaseButtonMatcher extends BaseMatcher<HtmlButton> {
-        private final String text;
-
-        protected BaseButtonMatcher(String text) {
-            this.text = text;
-        }
-
-        @Override
-        public boolean matches(Object item) {
-            if (item instanceof HtmlButton) {
-                HtmlButton button = (HtmlButton) item;
-                if (text.equals(button.getTextContent().trim())) {
-                    return matchesButton(button);
-                }
-            }
-            return false;
-        }
-
-        protected abstract boolean matchesButton(HtmlButton button);
-    }
-
-    private static class LDAPSelectionMatcher extends BaseMatcher<HtmlInput> {
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("LDAP selection");
-        }
-
-        @Override
-        public boolean matches(Object item) {
-            if (item instanceof HtmlInput) {
-                HtmlInput input = (HtmlInput) item;
-                if ("radio".equals(input.getAttribute("type"))) {
-                    if ("true".equals(input.getAttribute("checked"))) {
-                        final DomNode node = input.getParentNode();
-                        if ("label".equals(node.getLocalName())) {
-                            return "LDAP".equals(node.getTextContent().trim());
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-    }
 }

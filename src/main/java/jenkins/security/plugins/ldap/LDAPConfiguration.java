@@ -26,33 +26,34 @@
 package jenkins.security.plugins.ldap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import groovy.lang.Binding;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.security.LDAPSecurityRealm;
-import hudson.security.SecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
-import hudson.util.spring.BeanBuilder;
 import jenkins.model.Jenkins;
-import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapTemplate;
+import org.acegisecurity.AuthenticationManager;
+import org.acegisecurity.ldap.DefaultInitialDirContextFactory;
+import org.acegisecurity.ldap.LdapUserSearch;
 import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
+import org.acegisecurity.providers.AuthenticationProvider;
+import org.acegisecurity.providers.ProviderManager;
+import org.acegisecurity.providers.anonymous.AnonymousAuthenticationProvider;
 import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
+import org.acegisecurity.providers.ldap.authenticator.BindAuthenticator2;
+import org.acegisecurity.providers.rememberme.RememberMeAuthenticationProvider;
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.input.AutoCloseInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.Nonnull;
 import javax.naming.Context;
@@ -62,9 +63,6 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -76,6 +74,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -95,8 +94,6 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration> {
 
     private static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
-    @Restricted(NoExternalUse.class)
-    public static final String SECURITY_REALM_LDAPBIND_GROOVY = "LDAPBindSecurityRealm.groovy";
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
@@ -400,10 +397,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             return "ldap";
         }
 
-        public boolean noCustomBindScript() {
-            return !getLdapBindOverrideFile(Jenkins.getActiveInstance()).exists();
-        }
-
         // note that this works better in 1.528+ (JENKINS-19124)
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
@@ -572,41 +565,75 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return StringUtils.join(normalised, ' ');
     }
 
+    public static final class ApplicationContext {
+        public final AuthenticationManager authenticationManager;
+        public final LdapUserSearch ldapUserSearch;
+        public final LdapAuthoritiesPopulator ldapAuthoritiesPopulator;
+        ApplicationContext(AuthenticationManager authenticationManager, LdapUserSearch ldapUserSearch, LdapAuthoritiesPopulator ldapAuthoritiesPopulator) {
+            this.authenticationManager = authenticationManager;
+            this.ldapUserSearch = ldapUserSearch;
+            this.ldapAuthoritiesPopulator = ldapAuthoritiesPopulator;
+        }
+    }
+
     @Restricted(NoExternalUse.class)
-    public WebApplicationContext createApplicationContext(LDAPSecurityRealm realm, boolean usePotentialUserProvidedBinding) {
-        Binding binding = new Binding();
-        binding.setVariable("instance", this);
-        binding.setVariable("realmInstance", realm);
+    public ApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
+        DefaultInitialDirContextFactory initialDirContextFactory = new DefaultInitialDirContextFactory(getLDAPURL());
+        if (getManagerDN() != null) {
+            initialDirContextFactory.setManagerDn(getManagerDN());
+            initialDirContextFactory.setManagerPassword(getManagerPassword());
+        }
+        Map<String, String> vars = new HashMap<>();
+        vars.put(Context.REFERRAL, "follow");
+        vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
+        vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
+        vars.putAll(getExtraEnvVars());
+        initialDirContextFactory.setExtraEnvVars(vars);
 
-        final Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins has not been started, or was already shut down");
+        FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), initialDirContextFactory);
+        ldapUserSearch.setSearchSubtree(true);
+
+        BindAuthenticator2 bindAuthenticator = new BindAuthenticator2(initialDirContextFactory);
+        // this is when you the user name can be translated into DN.
+        // bindAuthenticator.setUserDnPatterns(new String[] {"uid={0},ou=people"});
+        // this is when we need to find it.
+        bindAuthenticator.setUserSearch(ldapUserSearch);
+
+        LDAPSecurityRealm.AuthoritiesPopulatorImpl ldapAuthoritiesPopulator = new LDAPSecurityRealm.AuthoritiesPopulatorImpl(initialDirContextFactory, getGroupSearchBase());
+        ldapAuthoritiesPopulator.setSearchSubtree(true);
+        ldapAuthoritiesPopulator.setGroupSearchFilter("(| (member={0}) (uniqueMember={0}) (memberUid={1}))");
+        if (realm.isDisableRolePrefixing()) {
+            ldapAuthoritiesPopulator.setRolePrefix("");
+            ldapAuthoritiesPopulator.setConvertToUpperCase(false);
         }
 
-        BeanBuilder builder = new BeanBuilder(jenkins.pluginManager.uberClassLoader);
-        try {
-            File override = getLdapBindOverrideFile(jenkins);
-            if (usePotentialUserProvidedBinding && override.exists()) {
-                builder.parse(new AutoCloseInputStream(new FileInputStream(override)), binding);
-            } else {
-                if (override.exists()) {
-                    LOGGER.warning("Not loading custom " + SECURITY_REALM_LDAPBIND_GROOVY);
-                }
-                builder.parse(new AutoCloseInputStream(LDAPSecurityRealm.class.getResourceAsStream(SECURITY_REALM_LDAPBIND_GROOVY)), binding);
-            }
-
-        } catch (FileNotFoundException e) {
-            throw new IllegalStateException("Failed to load "+ SECURITY_REALM_LDAPBIND_GROOVY, e);
+        ProviderManager authenticationManager = new ProviderManager();
+        List<AuthenticationProvider> providers = new ArrayList<>();
+        // talk to LDAP
+        providers.add(new LDAPSecurityRealm.LdapAuthenticationProviderImpl(bindAuthenticator, ldapAuthoritiesPopulator, getGroupMembershipStrategy()));
+        // these providers apply everywhere
+        {
+            RememberMeAuthenticationProvider rememberMeAuthenticationProvider = new RememberMeAuthenticationProvider();
+            rememberMeAuthenticationProvider.setKey(Jenkins.getInstance().getSecretKey());
+            providers.add(rememberMeAuthenticationProvider);
         }
-        WebApplicationContext appContext = builder.createApplicationContext();
+        {
+            // this doesn't mean we allow anonymous access.
+            // we just authenticate anonymous users as such,
+            // so that later authorization can reject them if so configured
+            AnonymousAuthenticationProvider anonymousAuthenticationProvider = new AnonymousAuthenticationProvider();
+            anonymousAuthenticationProvider.setKey("anonymous");
+            providers.add(anonymousAuthenticationProvider);
+        }
+        authenticationManager.setProviders(providers);
 
-        ldapTemplate = new LDAPExtendedTemplate(SecurityRealm.findBean(InitialDirContextFactory.class, appContext));
+        ldapTemplate = new LDAPExtendedTemplate(initialDirContextFactory);
 
         if (groupMembershipStrategy != null) {
-            groupMembershipStrategy.setAuthoritiesPopulator(SecurityRealm.findBean(LdapAuthoritiesPopulator.class, appContext));
+            groupMembershipStrategy.setAuthoritiesPopulator(ldapAuthoritiesPopulator);
         }
 
-        return appContext;
+        return new ApplicationContext(authenticationManager, ldapUserSearch, ldapAuthoritiesPopulator);
     }
 
     @Restricted(NoExternalUse.class)
@@ -614,8 +641,4 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return ldapTemplate;
     }
 
-    @Restricted(NoExternalUse.class)
-    public static File getLdapBindOverrideFile(Jenkins jenkins) {
-        return new File(jenkins.getRootDir(), SECURITY_REALM_LDAPBIND_GROOVY);
-    }
 }
