@@ -23,12 +23,18 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import org.junit.BeforeClass;
 
 /**
  * Tests connecting to two different servers
  */
 @LDAPTestConfiguration
 public class MultiServerTest {
+
+    @BeforeClass public static void linuxOnly() {
+        PlanetExpressTest.linuxOnly();
+    }
+
     @Rule
     public DockerRule<PlanetExpressTest.PlanetExpress> docker = new DockerRule<>(PlanetExpressTest.PlanetExpress.class);
     public JenkinsRule j = new JenkinsRule();
