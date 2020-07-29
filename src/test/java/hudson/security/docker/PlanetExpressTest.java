@@ -1,5 +1,6 @@
 package hudson.security.docker;
 
+import hudson.Functions;
 import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.Secret;
@@ -14,11 +15,17 @@ import org.jvnet.hudson.test.JenkinsRule;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeFalse;
+import org.junit.BeforeClass;
 
 /**
  * Tests the plugin when logging in to rroemhild/test-openldap
  */
 public class PlanetExpressTest {
+
+    @BeforeClass public static void linuxOnly() {
+        assumeFalse("Windows CI builders now have Docker installed…but it does not support Linux images", Functions.isWindows());
+    }
 
     @Rule
     public DockerRule<PlanetExpress> docker = new DockerRule<>(PlanetExpress.class);
