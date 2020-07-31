@@ -42,9 +42,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * This strategy is rumoured to work for Active Directory!
@@ -66,9 +66,9 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser) {
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
-        Attributes attributes = ldapUser.getAttributes();
+        Attributes attributes = userData.getAttributes();
         final String attributeName = getAttributeName();
         Attribute attribute = attributes == null ? null : attributes.get(attributeName);
         if (attribute != null) {
@@ -101,15 +101,15 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     String role = ga.getAuthority();
 
                     // backward compatible name mangling
-                    if (authoritiesPopulatorImpl.isConvertToUpperCase()) {
+                    if (authoritiesPopulatorImpl._isConvertToUpperCase()) {
                         role = role.toUpperCase();
                     }
                     GrantedAuthority extraAuthority = new SimpleGrantedAuthority(
-                            authoritiesPopulatorImpl.getRolePrefix() + role);
+                            authoritiesPopulatorImpl._getRolePrefix() + role);
                     result.add(extraAuthority);
                 }
             }
-            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(ldapUser));
+            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(userData, /* TODO currently ignored anyway, but where does username come from? */null));
             GrantedAuthority defaultRole = authoritiesPopulatorImpl.getDefaultRole();
             if (defaultRole != null) {
                 result.add(defaultRole);

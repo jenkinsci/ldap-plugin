@@ -38,9 +38,10 @@ import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.ldap.LdapUtils;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * Traditional strategy.
@@ -76,15 +77,15 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser) {
-        return getAuthoritiesPopulator().getGrantedAuthorities(ldapUser);
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
+        return getAuthoritiesPopulator().getGrantedAuthorities(userData, username);
     }
 
     @Override
     public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
         String[] memberAttributes = { "member", "uniqueMember", "memberUid" };
-        return (Set<String>) template.retrieveEntry(groupDn, new GroupMembersMapper(), memberAttributes);
+        return template.executeReadOnly(ctx -> new GroupMembersMapper().mapAttributes(groupDn, ctx.getAttributes(LdapUtils.getRelativeName(groupDn, ctx), memberAttributes)));
     }
 
     @Extension

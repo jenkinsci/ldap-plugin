@@ -88,8 +88,10 @@ import java.util.logging.Logger;
 import static hudson.Util.fixNull;
 import jenkins.security.plugins.ldap.LdapEntryMapper;
 import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -840,12 +842,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     @Override
-    public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
-        return loadGroupByGroupname(groupname, false);
-    }
-
-    @Override
-    public GroupDetails loadGroupByGroupname(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
+    public GroupDetails loadGroupByGroupname2(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
         groupname = fixGroupname(groupname);
         GroupDetailsImpl cachedGroup;
         if (cache != null) {
@@ -882,13 +879,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return group;
     }
 
-    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
+    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
         for (LDAPConfiguration conf : configurations) {
             try {
                 String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
                 String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
                 LDAPExtendedTemplate template = conf.getLdapTemplate();
-                GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
+                GroupDetailsImpl groupDetails = template.searchForFirstEntry(searchBase, searchFilter,
                         new Object[]{groupname}, null, new GroupDetailsMapper());
                 if (groupDetails != null) {
                     if (fetchMembers) {
@@ -898,10 +895,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     return groupDetails;
                 }
             // Make sure we don't throw BadCredentialsException. Catch logic matches LDAPUserDetailsService#loadUserByUsername.
-            } catch (DataAccessException e) {
+            } catch (AuthenticationException e) {
                 throwUnlessConfigIsIgnorable(e, conf);
             } catch (RuntimeException e) {
-                throwUnlessConfigIsIgnorable(new LdapDataAccessException("Failed to search LDAP for group: " + groupname, e), conf);
+                throwUnlessConfigIsIgnorable(new AuthenticationServiceException("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
         throw new UsernameNotFoundException(groupname);
@@ -1008,6 +1005,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this.delegates.add(new ManagerEntry(delegate, configurationId));
         }
 
+        @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
             if (delegates.size() == 1) {
                 try {
@@ -1031,7 +1029,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             }
                         } catch (UsernameNotFoundException e1) {
                             lastException = e; //all is as intended, let's move along
-                        } catch (DataAccessException e1) {
+                        } catch (AuthenticationException e1) {
                             final LDAPConfiguration configuration = getConfigurationFor(delegate.configurationId);
                             throwUnlessConfigIsIgnorable(e1, configuration);
                             lastException = e;
@@ -1048,7 +1046,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (lastException != null) {
                 throw lastException;
             } else {
-                throw new UserMayOrMayNotExistException2("No ldap server configuration", authentication);
+                throw new UserMayOrMayNotExistException2("No ldap server configuration");
             }
         }
 
@@ -1134,16 +1132,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public Attributes getAttributes() {
-            return userDetails.getAttributes();
-        }
-
-        @Override
-        public Control[] getControls() {
-            return userDetails.getControls();
-        }
-
-        @Override
         public String getDn() {
             return userDetails.getDn();
         }
@@ -1190,6 +1178,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public String getConfigurationId() {
             return configurationId;
         }
+
+        @Override
+        public void eraseCredentials() {
+            userDetails.eraseCredentials();
+        }
+
     }
 
     private static class DelegateLDAPUserDetailsService implements UserDetailsService {
@@ -1297,9 +1291,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 final Jenkins jenkins = Jenkins.getInstance();
                 final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
-                        && (securityRealm.getSecurityComponents().userDetails == this
-                        || (securityRealm.getSecurityComponents().userDetails instanceof DelegateLDAPUserDetailsService
-                        && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails).contains(this))
+                        && (securityRealm.getSecurityComponents().userDetails2 == this
+                        || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
+                        && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails2).contains(this))
                         )) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
                     if (ldapSecurityRealm.cache != null) {
@@ -1313,7 +1307,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         }
                     }
                 }
-                LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
+                LdapUserDetails ldapUser = ldapSearch.searchForUser(username); // TODO mismatch between DirContextOperations+String vs. LdapUserDetails
                 // LdapUserSearch does not populate granted authorities (group search).
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
                 if (ldapUser != null) {
@@ -1330,8 +1324,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
 
                     Collection<? extends GrantedAuthority> extraAuthorities = groupMembershipStrategy == null
-                            ? authoritiesPopulator.getGrantedAuthorities(ldapUser)
-                            : groupMembershipStrategy.getGrantedAuthorities(ldapUser);
+                            ? authoritiesPopulator.getGrantedAuthorities(ldapUser, username)
+                            : groupMembershipStrategy.getGrantedAuthorities(ldapUser, username);
                     for (GrantedAuthority extraAuthority : extraAuthorities) {
                         if (FORCE_GROUPNAME_LOWERCASE) {
                             user.addAuthority(new SimpleGrantedAuthority(extraAuthority.getAuthority().toLowerCase()));
@@ -1346,9 +1340,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 }
                 if (securityRealm instanceof LDAPSecurityRealm
-                        && (securityRealm.getSecurityComponents().userDetails == this
-                            || (securityRealm.getSecurityComponents().userDetails instanceof DelegateLDAPUserDetailsService
-                                && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails).contains(this))
+                        && (securityRealm.getSecurityComponents().userDetails2 == this
+                            || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
+                                && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails2).contains(this))
                                )
                         ) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
@@ -1394,7 +1388,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return null;
             }
             try {
-                LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails.loadUserByUsername(u.getId());
+                LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails2.loadUserByUsername(u.getId());
                 final LDAPConfiguration configuration = ((LDAPSecurityRealm) realm).getConfigurationFor(details);
                 String attr;
                 if (configuration != null) {
@@ -1438,11 +1432,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails userDetails) {
+        public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
             if (strategy.getAuthoritiesPopulator() != populator) {
                 strategy.setAuthoritiesPopulator(populator);
             }
-            return strategy.getGrantedAuthorities(userDetails);
+            return strategy.getGrantedAuthorities(userData, username);
         }
 
     }
@@ -1451,10 +1445,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * {@link LdapAuthoritiesPopulator} that adds the automatic 'authenticated' role.
      */
     public static final class AuthoritiesPopulatorImpl extends DefaultLdapAuthoritiesPopulator {
-        // Make these available (private in parent class and no get methods!)
-        String rolePrefix = "ROLE_";
-        boolean convertToUpperCase = true;
-        private GrantedAuthority defaultRole = null;
 
         public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase) {
             super(contextSource, fixNull(groupSearchBase));
@@ -1464,20 +1454,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        protected Set<GrantedAuthority> getAdditionalRoles(LdapUserDetails ldapUser) {
+        public Set<GrantedAuthority> getAdditionalRoles(DirContextOperations user, String username) {
             return Collections.singleton(AUTHENTICATED_AUTHORITY2);
-        }
-
-        @Override
-        public void setRolePrefix(String rolePrefix) {
-//            super.setRolePrefix(rolePrefix);
-            this.rolePrefix = rolePrefix;
-        }
-
-        @Override
-        public void setConvertToUpperCase(boolean convertToUpperCase) {
-//            super.setConvertToUpperCase(convertToUpperCase);
-            this.convertToUpperCase = convertToUpperCase;
         }
 
         /**
@@ -1488,7 +1466,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * then do the backward compatible translation here, so that the user gets both "ROLE_GROUPNAME" and "groupName".
          */
         @Override
-        public Set getGroupMembershipRoles(String userDn, String username) {
+        public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
             Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
@@ -1499,9 +1477,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     String role = ga.getAuthority();
 
                     // backward compatible name mangling
-                    if (convertToUpperCase)
+                    if (isConvertToUpperCase())
                         role = role.toUpperCase();
-                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    r.add(new SimpleGrantedAuthority(getRolePrefix() + role));
                 }
             }
 
@@ -1509,26 +1487,31 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public boolean isGeneratingPrefixRoles() {
-            return StringUtils.isNotBlank(rolePrefix) || convertToUpperCase;
+            return StringUtils.isNotBlank(getRolePrefix()) || isConvertToUpperCase();
         }
 
-        public boolean isConvertToUpperCase() {
-            return convertToUpperCase;
-        }
+        // Needed by FromGroupSearchLDAPGroupMembershipStrategy:
 
-        public String getRolePrefix() {
-            return rolePrefix;
+        private GrantedAuthority defaultRole;
+
+        @Override
+        public void setDefaultRole(String defaultRole) {
+            super.setDefaultRole(defaultRole);
+            this.defaultRole = new SimpleGrantedAuthority(defaultRole);
         }
 
         public GrantedAuthority getDefaultRole() {
             return defaultRole;
         }
 
-        public void setDefaultRole(String defaultRole) {
-            // capture the default role in the event that legacy bean binding scripts are configuring it
-            super.setDefaultRole(defaultRole);
-            this.defaultRole = new GrantedAuthorityImpl(defaultRole);
+        public String _getRolePrefix() {
+            return getRolePrefix();
         }
+
+        public  boolean _isConvertToUpperCase() {
+            return isConvertToUpperCase();
+        }
+
     }
 
     @Extension
@@ -1674,7 +1657,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             LdapUserDetails loginDetails = null;
             try {
                 // need to access direct so as not to update the user details
-                loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager.authenticate(
+                loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager2.authenticate(
                         new UsernamePasswordAuthenticationToken(fixUsername(user), password)).getPrincipal();
                 ok(response, "authentication",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationSuccessful());
@@ -1709,18 +1692,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 for (GrantedAuthority a : loginDetails.getAuthorities()) {
                     loginAuthorities.add(a.getAuthority());
                 }
-                if (loginDetails.getAuthorities().length < 1) {
+                if (loginDetails.getAuthorities().size() < 1) {
                     error(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
                     // we do not flag this error as may be legitimate config
-                } else if (loginDetails.getAuthorities().length == 1) {
+                } else if (loginDetails.getAuthorities().size() == 1) {
                     warning(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembershipDetail());
                 } else {
                     List<String> authorities = new ArrayList<>();
                     for (GrantedAuthority a : loginDetails.getAuthorities()) {
-                        if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                        if (AUTHENTICATED_AUTHORITY2.equals(a)) {
                             continue;
                         }
                         authorities.add("<code>"+ Util.escape(a.getAuthority()) + "</code>");
@@ -1739,11 +1722,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             try {
                 // need to access direct so as not to update the user details
                 lookUpDetails =
-                        (LdapUserDetails) realm.getSecurityComponents().userDetails
+                        (LdapUserDetails) realm.getSecurityComponents().userDetails2
                                 .loadUserByUsername(fixUsername(user));
                 ok(response, "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSuccessful());
-            } catch (UserMayOrMayNotExistException e1) {
+            } catch (UserMayOrMayNotExistException2 e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive(user),
                         isAnyManagerBlank(realm)
@@ -1761,7 +1744,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 .LDAPSecurityRealm_UserLookupManagerDnPermissions(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSettingsCorrect());
                 // we do not flag these errors as could be probing user accounts
-            } catch (LdapDataAccessException e) {
+            } catch (AuthenticationException e) {
                 Throwable cause = e.getCause();
                 while (cause != null && !(cause instanceof BadCredentialsException)) {
                     cause = cause.getCause();
@@ -1813,18 +1796,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
                 if (loginDetails == null || !loginAuthorities.equals(lookupAuthorities)) {
                     // report the group details if different or if we did not login
-                    if (lookUpDetails.getAuthorities().length < 1) {
+                    if (lookUpDetails.getAuthorities().size() < 1) {
                         error(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
                         // we do not flag this error as may be legitimate
-                    } else if (lookUpDetails.getAuthorities().length == 1) {
+                    } else if (lookUpDetails.getAuthorities().size() == 1) {
                         warning(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembershipDetail());
                     } else {
                         List<String> authorities = new ArrayList<>();
                         for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
-                            if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                            if (AUTHENTICATED_AUTHORITY2.equals(a)) {
                                 continue;
                             }
                             authorities.add("<code>" + Util.escape(a.getAuthority()) + "</code>");
@@ -1915,10 +1898,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Set<String> groups = new HashSet<>(loginAuthorities);
             Set<String> badGroups = new TreeSet<>();
             groups.addAll(lookupAuthorities);
-            groups.remove(AUTHENTICATED_AUTHORITY.getAuthority());
+            groups.remove(AUTHENTICATED_AUTHORITY2.getAuthority());
             for (String group : groups) {
                 try {
-                    realm.loadGroupByGroupname(group);
+                    realm.loadGroupByGroupname2(group, false);
                 } catch (UsernameNotFoundException e) {
                     badGroups.add(group);
                 }

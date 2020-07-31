@@ -27,9 +27,9 @@ import hudson.model.AbstractDescribableImpl;
 import java.util.Collection;
 
 import java.util.Set;
+import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * A strategy for determining the groups that a user belongs to.
@@ -63,10 +63,10 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
     /**
      * Returns the {@link GrantedAuthority}s that the specified user belongs to.
      *
-     * @param ldapUser the specified user.
+     * @param userData as in 
      * @return the {@link GrantedAuthority}s that the specified user belongs to.
      */
-    public abstract Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser);
+    public abstract Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username);
 
     /**
      * Returns a {@link Set} of all members in the specified group.
