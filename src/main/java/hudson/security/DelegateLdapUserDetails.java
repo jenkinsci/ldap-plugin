@@ -10,7 +10,8 @@ import javax.naming.ldap.Control;
 import java.io.Serializable;
 
 /*package access for testability*/
-static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
+class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
+
     private static final long serialVersionUID = 1L;
     private final LdapUserDetails userDetails;
     private final String configurationId;

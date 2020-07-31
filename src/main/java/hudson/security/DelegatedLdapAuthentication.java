@@ -5,7 +5,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 
 /*package access for testability*/
-static class DelegatedLdapAuthentication implements Authentication {
+class DelegatedLdapAuthentication implements Authentication {
     private final Authentication delegate;
     private final String configurationId;
 
@@ -32,8 +32,8 @@ static class DelegatedLdapAuthentication implements Authentication {
     @Override
     public Object getPrincipal() {
         Object principal = delegate.getPrincipal();
-        if (principal instanceof LdapUserDetails && !(principal instanceof LDAPSecurityRealm.DelegatedLdapUserDetails)) {
-            return new LDAPSecurityRealm.DelegatedLdapUserDetails((LdapUserDetails) principal, this.configurationId);
+        if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
+            return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.configurationId);
         } else {
             return principal;
         }
