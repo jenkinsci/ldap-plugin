@@ -26,13 +26,8 @@ package jenkins.security.plugins.ldap;
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
 import java.util.Set;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
 
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
@@ -40,12 +35,16 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * This strategy is rumoured to work for Active Directory!
@@ -67,7 +66,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     }
 
     @Override
-    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser) {
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
         Attributes attributes = ldapUser.getAttributes();
         final String attributeName = getAttributeName();
@@ -82,7 +81,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     } catch (InvalidNameException e) {
                         LOGGER.log(Level.FINEST, "Expected a Group DN but found: {0}", groupName);
                     }
-                    result.add(new GrantedAuthorityImpl(groupName));
+                    result.add(new SimpleGrantedAuthority(groupName));
                 }
             } catch (NamingException e) {
                 LogRecord lr = new LogRecord(Level.FINE,
@@ -105,7 +104,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     if (authoritiesPopulatorImpl.isConvertToUpperCase()) {
                         role = role.toUpperCase();
                     }
-                    GrantedAuthorityImpl extraAuthority = new GrantedAuthorityImpl(
+                    GrantedAuthority extraAuthority = new SimpleGrantedAuthority(
                             authoritiesPopulatorImpl.getRolePrefix() + role);
                     result.add(extraAuthority);
                 }
@@ -117,22 +116,22 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
             }
         }
 
-        return result.toArray(new GrantedAuthority[result.size()]);
+        return result;
     }
 
     @Override
-    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
         String searchBase = conf.getUserSearchBase() != null ? conf.getUserSearchBase() : "";
         String[] filterArgs = { getAttributeName(), groupDn };
-        return new HashSet<>((List<String>)template.searchForAllEntries(searchBase, USER_SEARCH_FILTER,
+        return new HashSet<>(template.searchForAllEntries(searchBase, USER_SEARCH_FILTER,
                 filterArgs, new String[]{}, new UserRecordMapper()));
     }
 
     /**
      * Maps users records to names.
      */
-    private static class UserRecordMapper implements LdapEntryMapper {
+    private static class UserRecordMapper implements LdapEntryMapper<String> {
         @Override
         public String mapAttributes(String dn, Attributes attributes) throws NamingException {
             LdapName name = new LdapName(dn);

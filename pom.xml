@@ -25,7 +25,7 @@
 
   <properties>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.235.3</jenkins.version>
+    <jenkins.version>2.251-SNAPSHOT</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/4848 -->
     <java.level>8</java.level>
     <configuration-as-code.version>1.36</configuration-as-code.version>
   </properties>
@@ -50,59 +50,10 @@
   </pluginRepositories>
 
   <dependencies>
-    <dependency> <!-- for compatibility with https://github.com/jenkinsci/jenkins/pull/4848 -->
-      <groupId>org.acegisecurity</groupId>
-      <artifactId>acegi-security</artifactId>
-      <version>1.0.7</version>
-      <exclusions>
-        <exclusion>
-          <groupId>commons-codec</groupId>
-          <artifactId>commons-codec</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-collections</groupId>
-          <artifactId>commons-collections</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-lang</groupId>
-          <artifactId>commons-lang</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-jdbc</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-remoting</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-support</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-dao</artifactId>
-      <version>1.2.9</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-beans</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-context</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-core</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-ldap</artifactId>
+      <version>5.3.3.RELEASE</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

@@ -25,6 +25,7 @@ package jenkins.security.plugins.ldap;
 
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,13 +36,11 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * Traditional strategy.
@@ -77,12 +76,12 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     }
 
     @Override
-    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser) {
         return getAuthoritiesPopulator().getGrantedAuthorities(ldapUser);
     }
 
     @Override
-    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
         String[] memberAttributes = { "member", "uniqueMember", "memberUid" };
         return (Set<String>) template.retrieveEntry(groupDn, new GroupMembersMapper(), memberAttributes);
@@ -100,7 +99,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     /**
      * Maps member attributes in groups to a set of member names.
      */
-    private static class GroupMembersMapper implements LdapEntryMapper {
+    private static class GroupMembersMapper implements LdapEntryMapper<Set<String>> {
         @Override
         public Set<String> mapAttributes(String dn, Attributes attributes) throws NamingException {
             NamingEnumeration<?> enumeration;

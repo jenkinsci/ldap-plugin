@@ -24,12 +24,12 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.model.AbstractDescribableImpl;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
-import org.springframework.dao.DataAccessException;
+import java.util.Collection;
 
 import java.util.Set;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 /**
  * A strategy for determining the groups that a user belongs to.
@@ -66,7 +66,7 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
      * @param ldapUser the specified user.
      * @return the {@link GrantedAuthority}s that the specified user belongs to.
      */
-    public abstract GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser);
+    public abstract Collection<? extends GrantedAuthority> getGrantedAuthorities(LdapUserDetails ldapUser);
 
     /**
      * Returns a {@link Set} of all members in the specified group.
@@ -75,10 +75,9 @@ public abstract class LDAPGroupMembershipStrategy extends AbstractDescribableImp
      * @param conf the {@link LDAPConfiguration} that controls some search variables.
      *
      * @return a set of all members in the specified group, or null if the members could not be found.
-     * @throws DataAccessException if there is an error performing the search.
      * @since 1.18
      */
-    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         return null;
     }
 }

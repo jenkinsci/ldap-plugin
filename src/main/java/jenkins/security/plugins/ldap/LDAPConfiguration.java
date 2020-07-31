@@ -25,6 +25,7 @@
  */
 package jenkins.security.plugins.ldap;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
@@ -35,16 +36,6 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.ldap.DefaultInitialDirContextFactory;
-import org.acegisecurity.ldap.LdapUserSearch;
-import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
-import org.acegisecurity.providers.AuthenticationProvider;
-import org.acegisecurity.providers.ProviderManager;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationProvider;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.providers.ldap.authenticator.BindAuthenticator2;
-import org.acegisecurity.providers.rememberme.RememberMeAuthenticationProvider;
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -55,7 +46,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.annotation.Nonnull;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -87,6 +77,16 @@ import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
+import org.springframework.ldap.core.support.BaseLdapPathContextSource;
+import org.springframework.security.authentication.AnonymousAuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.RememberMeAuthenticationProvider;
+import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
+import org.springframework.security.ldap.search.LdapUserSearch;
+import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 
 /**
  * A configuration for one ldap connection
@@ -142,7 +142,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private transient String id;
 
     @DataBoundConstructor
-    public LDAPConfiguration(@Nonnull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
+    public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
@@ -578,28 +578,28 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @Restricted(NoExternalUse.class)
     public ApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
-        DefaultInitialDirContextFactory initialDirContextFactory = new DefaultInitialDirContextFactory(getLDAPURL());
+        DefaultSpringSecurityContextSource contextSource = new DefaultSpringSecurityContextSource(getLDAPURL());
         if (getManagerDN() != null) {
-            initialDirContextFactory.setManagerDn(getManagerDN());
-            initialDirContextFactory.setManagerPassword(getManagerPassword());
+            contextSource.setManagerDn(getManagerDN());
+            contextSource.setManagerPassword(getManagerPassword());
         }
         Map<String, String> vars = new HashMap<>();
         vars.put(Context.REFERRAL, "follow");
         vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
         vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
         vars.putAll(getExtraEnvVars());
-        initialDirContextFactory.setExtraEnvVars(vars);
+        contextSource.setExtraEnvVars(vars);
 
-        FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), initialDirContextFactory);
+        FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
         ldapUserSearch.setSearchSubtree(true);
 
-        BindAuthenticator2 bindAuthenticator = new BindAuthenticator2(initialDirContextFactory);
+        BindAuthenticator2 bindAuthenticator = new BindAuthenticator2(contextSource);
         // this is when you the user name can be translated into DN.
         // bindAuthenticator.setUserDnPatterns(new String[] {"uid={0},ou=people"});
         // this is when we need to find it.
         bindAuthenticator.setUserSearch(ldapUserSearch);
 
-        LDAPSecurityRealm.AuthoritiesPopulatorImpl ldapAuthoritiesPopulator = new LDAPSecurityRealm.AuthoritiesPopulatorImpl(initialDirContextFactory, getGroupSearchBase());
+        LDAPSecurityRealm.AuthoritiesPopulatorImpl ldapAuthoritiesPopulator = new LDAPSecurityRealm.AuthoritiesPopulatorImpl(contextSource, getGroupSearchBase());
         ldapAuthoritiesPopulator.setSearchSubtree(true);
         ldapAuthoritiesPopulator.setGroupSearchFilter("(| (member={0}) (uniqueMember={0}) (memberUid={1}))");
         if (realm.isDisableRolePrefixing()) {
@@ -607,27 +607,18 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             ldapAuthoritiesPopulator.setConvertToUpperCase(false);
         }
 
-        ProviderManager authenticationManager = new ProviderManager();
         List<AuthenticationProvider> providers = new ArrayList<>();
         // talk to LDAP
         providers.add(new LDAPSecurityRealm.LdapAuthenticationProviderImpl(bindAuthenticator, ldapAuthoritiesPopulator, getGroupMembershipStrategy()));
         // these providers apply everywhere
-        {
-            RememberMeAuthenticationProvider rememberMeAuthenticationProvider = new RememberMeAuthenticationProvider();
-            rememberMeAuthenticationProvider.setKey(Jenkins.getInstance().getSecretKey());
-            providers.add(rememberMeAuthenticationProvider);
-        }
-        {
-            // this doesn't mean we allow anonymous access.
-            // we just authenticate anonymous users as such,
-            // so that later authorization can reject them if so configured
-            AnonymousAuthenticationProvider anonymousAuthenticationProvider = new AnonymousAuthenticationProvider();
-            anonymousAuthenticationProvider.setKey("anonymous");
-            providers.add(anonymousAuthenticationProvider);
-        }
-        authenticationManager.setProviders(providers);
+        providers.add(new RememberMeAuthenticationProvider(Jenkins.get().getSecretKey()));
+        // this doesn't mean we allow anonymous access.
+        // we just authenticate anonymous users as such,
+        // so that later authorization can reject them if so configured
+        providers.add(new AnonymousAuthenticationProvider("anonymous"));
+        ProviderManager authenticationManager = new ProviderManager(providers);
 
-        ldapTemplate = new LDAPExtendedTemplate(initialDirContextFactory);
+        ldapTemplate = new LDAPExtendedTemplate(contextSource);
 
         if (groupMembershipStrategy != null) {
             groupMembershipStrategy.setAuthoritiesPopulator(ldapAuthoritiesPopulator);
