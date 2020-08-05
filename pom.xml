@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>1.25-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
@@ -24,6 +24,8 @@
   </licenses>
 
   <properties>
+    <revision>1.25</revision>
+    <changelist>-SNAPSHOT</changelist>
     <apacheds.version>2.0.0.AM25</apacheds.version>
     <jenkins.version>2.235.3</jenkins.version>
     <java.level>8</java.level>
@@ -33,7 +35,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>
