@@ -66,7 +66,6 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
-import javax.naming.ldap.Control;
 import javax.naming.ldap.LdapName;
 import java.io.IOException;
 import java.io.Serializable;
@@ -87,6 +86,7 @@ import java.util.logging.Logger;
 
 import static hudson.Util.fixNull;
 import jenkins.security.plugins.ldap.LdapEntryMapper;
+import org.springframework.dao.DataAccessException;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -102,6 +102,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.LdapAuthenticator;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
@@ -661,7 +662,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull @Restricted(NoExternalUse.class)
     public LDAPConfiguration getConfigurationFor(LdapUserDetails d) {
-        if (d instanceof DelegatedLdapUserDetails) {
+        if (d instanceof DelegatedLdapUserDetails && ((DelegatedLdapUserDetails) d).getConfigurationId() != null) {
             return getConfigurationFor(((DelegatedLdapUserDetails) d).getConfigurationId());
         } else if (hasConfiguration() && configurations.size() == 1) {
             return configurations.get(0);
@@ -814,8 +815,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             displayNameAttributeName = DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
             mailAddressAttributeName = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
         }
+        Attributes attributes = DelegatedLdapUserDetails.getAttributes(d);
         try {
-            Attribute attribute = d.getAttributes().get(displayNameAttributeName);
+            Attribute attribute = attributes.get(displayNameAttributeName);
             String displayName = attribute == null ? null : (String) attribute.get();
             if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName()) && !u.getFullName().equals(displayName)) {
                 u.setFullName(displayName);
@@ -825,7 +827,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
         if (!disableMailAddressResolver) {
             try {
-                Attribute attribute = d.getAttributes().get(mailAddressAttributeName);
+                Attribute attribute = attributes.get(mailAddressAttributeName);
                 String mailAddress = attribute == null ? null : (String) attribute.get();
                 if (StringUtils.isNotBlank(mailAddress)) {
                     UserProperty existing = u.getProperty(UserProperty.class);
@@ -1124,11 +1126,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
+        @CheckForNull
         private final String configurationId;
+        @CheckForNull
+        private final Attributes attributes;
 
-        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @Nonnull String configurationId) {
+        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @CheckForNull String configurationId) {
+            this(userDetails, configurationId, null);
+        }
+
+        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @CheckForNull String configurationId, @CheckForNull Attributes attributes) {
             this.userDetails = userDetails;
             this.configurationId = configurationId;
+            this.attributes = attributes;
         }
 
         @Override
@@ -1175,8 +1185,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return userDetails;
         }
 
+        @CheckForNull
         public String getConfigurationId() {
             return configurationId;
+        }
+
+        @Nonnull
+        public Attributes getAttributes() {
+            return attributes != null ? attributes : new BasicAttributes();
+        }
+
+        public static Attributes getAttributes(LdapUserDetails details) {
+            if (details instanceof DelegatedLdapUserDetails) {
+                return ((DelegatedLdapUserDetails) details).getAttributes();
+            } else {
+                return new BasicAttributes();
+            }
         }
 
         @Override
@@ -1334,12 +1358,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                LdapUserDetails ldapUserDetails;
-                    if (StringUtils.isNotEmpty(configurationId)) {
-                        ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
-                    } else {
-                        ldapUserDetails = user.createUserDetails();
-                    }
+                LdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, ldapUser.getAttributes());
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
                             || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
@@ -1400,7 +1419,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } else {
                     attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
                 }
-                Attribute mail = details.getAttributes().get(attr);
+                Attribute mail = DelegatedLdapUserDetails.getAttributes(details).get(attr);
                 if(mail==null)  return null;    // not found
                 return (String)mail.get();
             } catch (NamingException | AuthenticationException e) {
@@ -1838,16 +1857,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                     loginDetails.getDn(), lookUpDetails.getDn()));
                     potentialLockout = true; // consistency is important
                 }
+                Attributes loginAttributes = DelegatedLdapUserDetails.getAttributes(loginDetails);
+                Attributes lookupAttributes = DelegatedLdapUserDetails.getAttributes(lookUpDetails);
                 // display name
                 if (StringUtils.isNotBlank(loginConfiguration.getDisplayNameAttributeName())) {
-                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getDisplayNameAttributeName());
+                    Attribute loginAttr = loginAttributes.get(loginConfiguration.getDisplayNameAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getDisplayNameAttributeName());
+                    Attribute lookUpAttr = lookupAttributes.get(lookupConfiguration.getDisplayNameAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1864,14 +1885,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // email address
                 if (!realm.disableMailAddressResolver && StringUtils.isNotBlank(loginConfiguration.getMailAddressAttributeName()))
                 {
-                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getMailAddressAttributeName());
+                    Attribute loginAttr = loginAttributes.get(loginConfiguration.getMailAddressAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getMailAddressAttributeName());
+                    Attribute lookUpAttr = lookupAttributes.get(lookupConfiguration.getMailAddressAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1953,10 +1974,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private void validateEmailAddress(LDAPConfiguration configuration, StringBuilder response,
                                           LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(configuration.getMailAddressAttributeName());
+            Attributes attributes = DelegatedLdapUserDetails.getAttributes(details);
+            Attribute attribute = attributes.get(configuration.getMailAddressAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
-                for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                for (Attribute attr : Collections.list(attributes.getAll())) {
                     alternatives.add("<code>"+Util.escape(attr.getID())+"</code>");
                 }
                 warning(response, testId,
@@ -1976,7 +1998,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 ));
                     } else {
                         List<String> alternatives = new ArrayList<>();
-                        for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                        for (Attribute attr : Collections.list(attributes.getAll())) {
                             alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
@@ -1989,7 +2011,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
-                    for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                    for (Attribute attr : Collections.list(attributes.getAll())) {
                         alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,
@@ -2005,10 +2027,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private void validateDisplayName(LDAPConfiguration configuration, StringBuilder response,
                                          LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(configuration.getDisplayNameAttributeName());
+            Attributes attributes = DelegatedLdapUserDetails.getAttributes(details);
+            Attribute attribute = attributes.get(configuration.getDisplayNameAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
-                for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                for (Attribute attr : Collections.list(attributes.getAll())) {
                     alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                 }
                 warning(response, testId,
@@ -2028,7 +2051,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 ));
                     } else {
                         List<String> alternatives = new ArrayList<>();
-                        for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                        for (Attribute attr : Collections.list(attributes.getAll())) {
                             alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
@@ -2041,7 +2064,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
-                    for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                    for (Attribute attr : Collections.list(attributes.getAll())) {
                         alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,
