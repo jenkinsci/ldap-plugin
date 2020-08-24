@@ -27,7 +27,7 @@
     <revision>1.25</revision>
     <changelist>-SNAPSHOT</changelist>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.251-SNAPSHOT</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/4848 -->
+    <jenkins.version>2.254-rc30488.e2b6ff930d70</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/4848 -->
     <java.level>8</java.level>
     <configuration-as-code.version>1.36</configuration-as-code.version>
   </properties>
