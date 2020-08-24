@@ -390,7 +390,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * The {@link UserDetails} cache.
      */
-    private transient Map<String,CacheEntry<LdapUserDetails>> userDetailsCache = null;
+    private transient Map<String, CacheEntry<DelegatedLdapUserDetails>> userDetailsCache = null;
 
     /**
      * The group details cache.
@@ -797,7 +797,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return userDetails;
     }
 
-    public LdapUserDetails updateUserDetails(LdapUserDetails d) {
+    public <D extends LdapUserDetails> D updateUserDetails(D d) {
         hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
         LDAPConfiguration configuration = getConfigurationFor(d);
         String displayNameAttributeName;
@@ -1309,7 +1309,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         @Override
-        public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        public DelegatedLdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             username = fixUsername(username);
             try {
                 final Jenkins jenkins = Jenkins.getInstance();
@@ -1321,7 +1321,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         )) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
                     if (ldapSecurityRealm.cache != null) {
-                        final CacheEntry<LdapUserDetails> cached;
+                        final CacheEntry<DelegatedLdapUserDetails> cached;
                         synchronized (ldapSecurityRealm) {
                             cached = (ldapSecurityRealm.userDetailsCache != null) ? ldapSecurityRealm.userDetailsCache
                                     .get(username) : null;
@@ -1358,7 +1358,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                LdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, ldapUser.getAttributes());
+                DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, ldapUser.getAttributes());
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
                             || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
@@ -1370,10 +1370,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         synchronized (ldapSecurityRealm) {
                             if (ldapSecurityRealm.userDetailsCache == null) {
                                 ldapSecurityRealm.userDetailsCache =
-                                        new CacheMap<String, LdapUserDetails>(ldapSecurityRealm.cache.getSize());
+                                        new CacheMap<String, DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getSize());
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
-                                    new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
+                                    new CacheEntry<DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
                                             ldapSecurityRealm.updateUserDetails(ldapUserDetails)));
                         }
                     }
