@@ -36,15 +36,14 @@ import java.util.logging.Level;
 
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 
@@ -94,13 +93,13 @@ public class LDAPEmbeddedTest {
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        UserDetails details = realm.authenticate("hhornblo", "pass");
+        UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
-        details = realm.authenticate("hnelson", "pass");
+        details = realm.authenticate2("hnelson", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
     }
 
@@ -130,13 +129,13 @@ public class LDAPEmbeddedTest {
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        UserDetails details = realm.authenticate("hhornblo", "pass");
+        UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
-        details = realm.authenticate("hnelson", "pass");
+        details = realm.authenticate2("hnelson", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
     }
 
@@ -167,13 +166,13 @@ public class LDAPEmbeddedTest {
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        UserDetails details = realm.authenticate("hhornblo", "pass");
+        UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
-        details = realm.authenticate("hnelson", "pass");
+        details = realm.authenticate2("hnelson", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Victory"));
     }
 
@@ -204,13 +203,13 @@ public class LDAPEmbeddedTest {
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        UserDetails details = realm.authenticate("hhornblo", "pass");
+        UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia"));
         user = User.get("hnelson");
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
-        details = realm.authenticate("hnelson", "pass");
+        details = realm.authenticate2("hnelson", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory"));
     }
 

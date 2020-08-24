@@ -8,7 +8,7 @@ import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jenkinsci.test.acceptance.docker.DockerRule;
 import org.junit.Rule;
 import org.junit.Test;

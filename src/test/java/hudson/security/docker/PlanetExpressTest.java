@@ -4,7 +4,7 @@ import hudson.Functions;
 import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.Secret;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jenkinsci.test.acceptance.docker.DockerContainer;
 import org.jenkinsci.test.acceptance.docker.DockerFixture;
 import org.jenkinsci.test.acceptance.docker.DockerRule;
