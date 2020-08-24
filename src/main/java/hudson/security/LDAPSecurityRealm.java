@@ -1307,21 +1307,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         }
                     }
                 }
-                LdapUserDetails ldapUser = ldapSearch.searchForUser(username); // TODO mismatch between DirContextOperations+String vs. LdapUserDetails
+                DirContextOperations ldapUser = ldapSearch.searchForUser(username); // TODO mismatch between DirContextOperations+String vs. LdapUserDetails
                 // LdapUserSearch does not populate granted authorities (group search).
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
-                if (ldapUser != null) {
                     LdapUserDetailsImpl.Essence user = new LdapUserDetailsImpl.Essence(ldapUser);
 
+                    /* TODO DirContextAdapter has no setAttributes method, and anyway it looks to be of type NameAwareAttributes not BasicAttributes, so attributesCache may need to be reworked:
                     // intern attributes
                     Attributes v = ldapUser.getAttributes();
                     if (v instanceof BasicAttributes) {// BasicAttributes.equals is what makes the interning possible
                         synchronized (attributesCache) {
                             Attributes vv = (Attributes)attributesCache.get(v);
                             if (vv==null)   attributesCache.put(v,vv=v);
-                            user.setAttributes(vv);
+                            ldapUser.setAttributes(vv);
                         }
                     }
+                    */
 
                     Collection<? extends GrantedAuthority> extraAuthorities = groupMembershipStrategy == null
                             ? authoritiesPopulator.getGrantedAuthorities(ldapUser, username)
@@ -1333,12 +1334,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
+                LdapUserDetails ldapUserDetails;
                     if (StringUtils.isNotEmpty(configurationId)) {
-                        ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
+                        ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
                     } else {
-                        ldapUser = user.createUserDetails();
+                        ldapUserDetails = user.createUserDetails();
                     }
-                }
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
                             || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
@@ -1354,12 +1355,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
                                     new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
-                                            ldapSecurityRealm.updateUserDetails(ldapUser)));
+                                            ldapSecurityRealm.updateUserDetails(ldapUserDetails)));
                         }
                     }
                 }
 
-                return ldapUser;
+                return ldapUserDetails;
             } catch (UsernameNotFoundException x) {
                 throw x;
             } catch (RuntimeException x) {
