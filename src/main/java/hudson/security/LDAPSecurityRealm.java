@@ -1470,9 +1470,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase) {
             super(contextSource, fixNull(groupSearchBase));
-
-            super.setRolePrefix("");
-            super.setConvertToUpperCase(false);
         }
 
         @Override
