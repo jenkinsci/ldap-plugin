@@ -588,6 +588,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
         vars.putAll(getExtraEnvVars());
         */
+        contextSource.afterPropertiesSet();
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
         ldapUserSearch.setSearchSubtree(true);
