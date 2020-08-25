@@ -1335,6 +1335,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // LdapUserSearch does not populate granted authorities (group search).
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
                     LdapUserDetailsImpl.Essence user = new LdapUserDetailsImpl.Essence(ldapUser);
+                    user.setUsername(username);
 
                     /* TODO DirContextAdapter has no setAttributes method, and anyway it looks to be of type NameAwareAttributes not BasicAttributes, so attributesCache may need to be reworked:
                     // intern attributes
