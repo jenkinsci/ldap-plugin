@@ -106,7 +106,7 @@ public class MultiServerTest {
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertEquals("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com", zoidberg.getDn());
 
         user = j.jenkins.getUser("leela");

@@ -47,7 +47,6 @@ import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 
-import static hudson.security.SecurityRealm.AUTHENTICATED_AUTHORITY;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -216,7 +215,7 @@ public class LDAPEmbeddedTest {
     private Set<String> userGetAuthorities(UserDetails details) {
         Set<String> authorities = new LinkedHashSet<>();
         for (GrantedAuthority a : details.getAuthorities()) {
-            if (!a.equals(AUTHENTICATED_AUTHORITY)) { // see User.getAuthorities()
+            if (!a.equals(SecurityRealm.AUTHENTICATED_AUTHORITY2)) { // see User.getAuthorities()
                 authorities.add(a.getAuthority());
             }
         }
@@ -245,7 +244,7 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE)
         );
-        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty");
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS Bounty", false);
         assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
         assertThat(groupDetails.getName(), is("HMS Bounty"));
         assertThat("LDAP security realm does not fetch group members by default", groupDetails.getMembers(), nullValue());
@@ -273,7 +272,7 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE)
         );
-        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Bounty", true);
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS Bounty", true);
         assertThat(groupDetails.getDisplayName(), is("HMS Bounty"));
         assertThat(groupDetails.getName(), is("HMS Bounty"));
         assertThat(groupDetails.getMembers(), containsInAnyOrder("William Bligh", "Fletcher Christian", "John Fryer", "John Hallett"));
@@ -301,7 +300,7 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE)
         );
-        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS_Bounty", true);
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS_Bounty", true);
         assertThat(groupDetails.getDisplayName(), is("HMS_Bounty"));
         assertThat(groupDetails.getName(), is("HMS_Bounty"));
         assertThat(groupDetails.getMembers(), containsInAnyOrder("William Bligh", "Fletcher Christian", "John Fryer", "John Hallett"));
@@ -320,7 +319,7 @@ public class LDAPEmbeddedTest {
         assertThat(content, containsString("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
 
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
@@ -340,7 +339,7 @@ public class LDAPEmbeddedTest {
         assertThat(content, containsString("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
 
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
@@ -360,7 +359,7 @@ public class LDAPEmbeddedTest {
         assertThat(content, containsString("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertThat(zoidberg.getDn(), is("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com"));
 
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
@@ -585,7 +584,7 @@ public class LDAPEmbeddedTest {
               new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example3").getDisplayName(), is("cn_example3"));
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname2("cn_example3", false).getDisplayName(), is("cn_example3"));
     }
 
     @Test
@@ -597,7 +596,7 @@ public class LDAPEmbeddedTest {
               new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("cn_example1").getDisplayName(), is("cn_example1"));
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname2("cn_example1", false).getDisplayName(), is("cn_example1"));
         assertThat(log.getMessages(), hasItem(endsWith("The first one  (cn_example1) has been assigned as external group name")));
     }
 }

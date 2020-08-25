@@ -9,11 +9,11 @@ import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPRule;
 import jenkins.security.plugins.ldap.LDAPTestConfiguration;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.userdetails.UserDetails;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -90,7 +90,7 @@ public class LdapMultiEmbedded2Test {
         assertThat(user.getDisplayName(), is("Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
 
-        UserDetails details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails.loadUserByUsername("hnelson");
+        UserDetails details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails2.loadUserByUsername("hnelson");
         assertThat(details, instanceOf(LDAPSecurityRealm.DelegatedLdapUserDetails.class));
         assertEquals(sevenSeasConf.getId(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getConfigurationId());
 
@@ -99,14 +99,14 @@ public class LdapMultiEmbedded2Test {
         assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("fry@planetexpress.com"));
-        details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails.loadUserByUsername("fry");
+        details = r.jenkins.getSecurityRealm().getSecurityComponents().userDetails2.loadUserByUsername("fry");
         assertThat(details, instanceOf(LDAPSecurityRealm.DelegatedLdapUserDetails.class));
         assertEquals(planetExpressConf.getId(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getConfigurationId());
     }
 
     @Test
     public void login() throws Exception {
-        final AuthenticationManager manager = r.jenkins.getSecurityRealm().getSecurityComponents().manager;
+        final AuthenticationManager manager = r.jenkins.getSecurityRealm().getSecurityComponents().manager2;
         //First Server
         Authentication auth = manager.authenticate(new UsernamePasswordAuthenticationToken("hnelson", "pass"));
         assertNotNull(auth);
