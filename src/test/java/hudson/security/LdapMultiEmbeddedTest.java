@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.springframework.dao.DataAccessException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -213,7 +212,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -228,7 +227,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -243,7 +242,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -269,7 +268,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -285,7 +284,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -301,7 +300,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -340,7 +339,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -384,7 +383,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -401,12 +400,12 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
@@ -420,7 +419,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -436,7 +435,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -447,7 +446,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_first_then_no_log() throws Exception {
