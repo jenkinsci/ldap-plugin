@@ -26,6 +26,7 @@
   <properties>
     <revision>1.25</revision>
     <changelist>-SNAPSHOT</changelist>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
     <jenkins.version>2.235.3</jenkins.version>
     <java.level>8</java.level>
@@ -33,9 +34,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
+    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
 
@@ -53,6 +54,11 @@
   </pluginRepositories>
 
   <dependencies>
+    <dependency> <!-- to appear earlier in the test CP for purposes of PCT -->
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>jenkins-core</artifactId>
+      <version>${jenkins.version}</version>
+    </dependency>
     <dependency> <!-- for compatibility with https://github.com/jenkinsci/jenkins/pull/4848 -->
       <groupId>org.acegisecurity</groupId>
       <artifactId>acegi-security</artifactId>
