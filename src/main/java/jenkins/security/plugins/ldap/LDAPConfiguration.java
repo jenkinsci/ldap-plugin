@@ -76,6 +76,7 @@ import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
+import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 import org.springframework.security.authentication.AnonymousAuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -581,13 +582,16 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             contextSource.setUserDn(getManagerDN());
             contextSource.setPassword(getManagerPassword());
         }
-        /* TODO no idea what to do with these
-        Map<String, String> vars = new HashMap<>();
-        vars.put(Context.REFERRAL, "follow");
-        vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
-        vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
-        vars.putAll(getExtraEnvVars());
-        */
+        contextSource.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy() {
+            @Override
+            public void setupEnvironment(Hashtable<String, Object> env, String userDn, String password) {
+                super.setupEnvironment(env, userDn, password);
+                env.put(Context.REFERRAL, "follow");
+                env.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
+                env.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
+                env.putAll(getExtraEnvVars());
+            }
+        });
         contextSource.afterPropertiesSet();
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
