@@ -923,7 +923,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } catch (AuthenticationException e) {
                 throwUnlessConfigIsIgnorable(e, conf);
             } catch (RuntimeException e) {
-                throwUnlessConfigIsIgnorable(new AuthenticationServiceException("Failed to search LDAP for group: " + groupname, e), conf);
+                throwUnlessConfigIsIgnorable(new UserMayOrMayNotExistException2("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
         throw new UsernameNotFoundException(groupname);
@@ -1298,7 +1298,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     lastUNFE = e;
                 } catch (AuthenticationException e) {
                     LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
-                    throwUnlessConfigIsIgnorable(e, configuration);
+                    throwUnlessConfigIsIgnorable(new UserMayOrMayNotExistException2(e.toString(), e), configuration);
                 }
             }
             if (lastUNFE != null) {
