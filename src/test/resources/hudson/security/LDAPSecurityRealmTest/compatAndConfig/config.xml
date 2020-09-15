@@ -8,7 +8,7 @@
   <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
   <securityRealm class="hudson.security.LDAPSecurityRealm">
     <server>s</server>
-    <rootDN>rDN</rootDN>
+    <rootDN>rDN=x</rootDN>
     <inhibitInferRootDN>true</inhibitInferRootDN>
     <userSearchBase>uSB</userSearchBase>
     <userSearch>uS</userSearch>

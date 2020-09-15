@@ -99,7 +99,7 @@ public class LDAPSecurityRealmTest {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
         LDAPConfiguration cnf = sr.getConfigurationFor("s");
         assertEquals("s", cnf.getServer());
-        assertEquals("rDN", cnf.getRootDN());
+        assertEquals("rDN=x", cnf.getRootDN());
         assertEquals("uSB", cnf.getUserSearchBase());
         assertEquals("uS", cnf.getUserSearch());
         assertEquals("gSB", cnf.getGroupSearchBase());
@@ -186,7 +186,7 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTrip() throws Exception {
         final String server = "ldap.itd.umich.edu";
-        final String rootDN = "ou=umich,ou.edu";
+        final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
         final String managerSecret = "secret";
@@ -245,8 +245,8 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripTwo() throws Exception {
         TestConf[] confs = new TestConf[2];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -287,8 +287,8 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTwoThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[2];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -330,9 +330,9 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[3];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
-        confs[2] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[2] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -375,7 +375,7 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripEnvironmentProperties() throws Exception {
         final String server = "ldap.itd.umich.edu";
-        final String rootDN = "ou=umich,ou.edu";
+        final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
         final String managerSecret = "secret";
