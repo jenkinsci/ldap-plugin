@@ -1236,12 +1236,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (LDAPUserDetailsService delegate : delegates) {
                 if (delegate.configurationId.equals(configurationId)) {
                     try {
-                        LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                        if (userDetails instanceof DelegatedLdapUserDetails) {
-                            return (DelegatedLdapUserDetails)userDetails;
-                        } else {
-                            return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
-                        }
+                        return delegate.loadUserByUsername(username);
                     } catch (AuthenticationException e) {
                         final LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
                         LOGGER.log(Level.WARNING,
@@ -1260,12 +1255,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             UsernameNotFoundException lastUNFE = null;
             for (LDAPUserDetailsService delegate : delegates) {
                 try {
-                    LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                    if (userDetails instanceof DelegatedLdapUserDetails) {
-                        return userDetails;
-                    } else {
-                        return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
-                    }
+                    return delegate.loadUserByUsername(username);
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (AuthenticationException e) {
