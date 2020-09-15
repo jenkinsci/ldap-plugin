@@ -207,12 +207,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("fry", "fry");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -222,12 +222,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("hnelson", "pass");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -237,12 +237,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("hnelson", "pass");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
