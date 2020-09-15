@@ -781,36 +781,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     public Authentication updateUserDetails(Authentication authentication, @CheckForNull LdapUserSearch ldapUserSearch) {
         UserDetails userDetails = updateUserDetails((UserDetails) authentication.getPrincipal(), ldapUserSearch);
-        return new Authentication() {
-            @Override
-            public Collection<? extends GrantedAuthority> getAuthorities() {
-                return authentication.getAuthorities();
-            }
-            @Override
-            public Object getCredentials() {
-                return authentication.getCredentials();
-            }
-            @Override
-            public Object getDetails() {
-                return authentication.getDetails();
-            }
-            @Override
-            public Object getPrincipal() {
-                return userDetails;
-            }
-            @Override
-            public boolean isAuthenticated() {
-                return authentication.isAuthenticated();
-            }
-            @Override
-            public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-                authentication.setAuthenticated(isAuthenticated);
-            }
-            @Override
-            public String getName() {
-                return authentication.getName();
-            }
-        };
+        return new DelegatedLdapAuthentication(authentication, userDetails, authentication instanceof DelegatedLdapAuthentication ? ((DelegatedLdapAuthentication) authentication).getConfigurationId() : null);
     }
 
     public UserDetails updateUserDetails(UserDetails userDetails, @CheckForNull LdapUserSearch ldapUserSearch) {
@@ -1044,7 +1015,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (ManagerEntry delegate : delegates) {
                 try {
                     Authentication a = delegate.delegate.authenticate(authentication);
-                    return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.configurationId), delegate.ldapUserSearch);
+                    Object principal = a.getPrincipal();
+                    if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
+                        principal = new DelegatedLdapUserDetails((LdapUserDetails) principal, delegate.configurationId);
+                    }
+                    return updateUserDetails(new DelegatedLdapAuthentication(a, principal, delegate.configurationId), delegate.ldapUserSearch);
                 } catch (BadCredentialsException e) {
                     if (detailsService != null && delegates.size() > 1) {
                         try {
@@ -1091,10 +1066,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /*package access for testability*/
     static class DelegatedLdapAuthentication implements Authentication {
         private final Authentication delegate;
+        private final Object principal;
         private final String configurationId;
 
-        public DelegatedLdapAuthentication(Authentication delegate, String configurationId) {
+        DelegatedLdapAuthentication(Authentication delegate, Object principal, String configurationId) {
             this.delegate = delegate;
+            this.principal = principal;
             this.configurationId = configurationId;
         }
 
@@ -1115,12 +1092,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Override
         public Object getPrincipal() {
-            Object principal = delegate.getPrincipal();
-            if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
-                return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.configurationId);
-            } else {
-                return principal;
-            }
+            return principal;
         }
 
         @Override
