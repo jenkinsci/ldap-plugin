@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>1.26</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
@@ -37,7 +37,7 @@
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
-    <tag>${scmTag}</tag>
+    <tag>ldap-1.26</tag>
   </scm>
 
   <repositories>
