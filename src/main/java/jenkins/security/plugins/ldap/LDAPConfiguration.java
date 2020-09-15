@@ -74,9 +74,9 @@ import java.util.regex.Pattern;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
+import java.util.HashMap;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 import org.springframework.security.authentication.AnonymousAuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -582,16 +582,12 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             contextSource.setUserDn(getManagerDN());
             contextSource.setPassword(getManagerPassword());
         }
-        contextSource.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy() {
-            @Override
-            public void setupEnvironment(Hashtable<String, Object> env, String userDn, String password) {
-                super.setupEnvironment(env, userDn, password);
-                env.put(Context.REFERRAL, "follow");
-                env.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
-                env.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
-                env.putAll(getExtraEnvVars());
-            }
-        });
+        contextSource.setReferral("follow");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
+        vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
+        vars.putAll(getExtraEnvVars());
+        contextSource.setBaseEnvironmentProperties(vars);
         contextSource.afterPropertiesSet();
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
