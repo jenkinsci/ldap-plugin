@@ -1498,14 +1498,33 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * {@link LdapAuthoritiesPopulator} that adds the automatic 'authenticated' role.
      */
     public static final class AuthoritiesPopulatorImpl extends DefaultLdapAuthoritiesPopulator {
+        // None of this makes a whole lot of sense (setting super to disable but then reimplementing), but tests expect it so…
+        String rolePrefix = "ROLE_";
+        boolean convertToUpperCase = true;
+        private GrantedAuthority defaultRole = null;
 
         public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase) {
             super(contextSource, fixNull(groupSearchBase));
+
+            super.setRolePrefix("");
+            super.setConvertToUpperCase(false);
         }
 
         @Override
         public Set<GrantedAuthority> getAdditionalRoles(DirContextOperations user, String username) {
             return Collections.singleton(AUTHENTICATED_AUTHORITY2);
+        }
+
+        @Override
+        public void setRolePrefix(String rolePrefix) {
+//            super.setRolePrefix(rolePrefix);
+            this.rolePrefix = rolePrefix;
+        }
+
+        @Override
+        public void setConvertToUpperCase(boolean convertToUpperCase) {
+//            super.setConvertToUpperCase(convertToUpperCase);
+            this.convertToUpperCase = convertToUpperCase;
         }
 
         /**
@@ -1527,9 +1546,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     String role = ga.getAuthority();
 
                     // backward compatible name mangling
-                    if (isConvertToUpperCase())
+                    if (convertToUpperCase)
                         role = role.toUpperCase();
-                    r.add(new SimpleGrantedAuthority(getRolePrefix() + role));
+                    r.add(new SimpleGrantedAuthority(rolePrefix + role));
                 }
             }
 
@@ -1537,31 +1556,26 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public boolean isGeneratingPrefixRoles() {
-            return StringUtils.isNotBlank(getRolePrefix()) || isConvertToUpperCase();
+            return StringUtils.isNotBlank(rolePrefix) || convertToUpperCase;
         }
 
-        // Needed by FromGroupSearchLDAPGroupMembershipStrategy:
+        public boolean _isConvertToUpperCase() {
+            return convertToUpperCase;
+        }
 
-        private GrantedAuthority defaultRole;
-
-        @Override
-        public void setDefaultRole(String defaultRole) {
-            super.setDefaultRole(defaultRole);
-            this.defaultRole = new SimpleGrantedAuthority(defaultRole);
+        public String _getRolePrefix() {
+            return rolePrefix;
         }
 
         public GrantedAuthority getDefaultRole() {
             return defaultRole;
         }
 
-        public String _getRolePrefix() {
-            return getRolePrefix();
+        @Override
+        public void setDefaultRole(String defaultRole) {
+            super.setDefaultRole(defaultRole);
+            this.defaultRole = new SimpleGrantedAuthority(defaultRole);
         }
-
-        public  boolean _isConvertToUpperCase() {
-            return isConvertToUpperCase();
-        }
-
     }
 
     @Extension
