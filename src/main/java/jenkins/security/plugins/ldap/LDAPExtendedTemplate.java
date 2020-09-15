@@ -59,8 +59,6 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      *
      * @return the first matching entry converted using the specified {@link LdapEntryMapper}, or null if no matching
      * entry was found.
-     *
-     * @see LdapTemplate#searchForSingleEntry
      */
     public <T> @CheckForNull T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
@@ -82,8 +80,6 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      * @param mapper the {@link LdapEntryMapper} that will convert the search results into returned values. Must not be null.
      *
      * @return a List of matching entries converted using the specified {@link LdapEntryMapper}.
-     *
-     * @see LdapTemplate#searchForSingleEntry
      */
     public @NonNull <T> List<? extends T> searchForAllEntries(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {

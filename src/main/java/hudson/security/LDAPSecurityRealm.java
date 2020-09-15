@@ -739,11 +739,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return server;
     }
 
-    /**
-     * Creates security components.
-     * @return Created {@link SecurityComponents}
-     * @throws IllegalStateException Execution error
-     */
     @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
         if (configurations.size() > 1) {
