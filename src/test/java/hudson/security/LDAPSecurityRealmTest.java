@@ -45,7 +45,6 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.ldap.LdapName;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -60,7 +59,6 @@ public class LDAPSecurityRealmTest {
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
-    @Ignore("TODO not implemented")
     @Test
     public void attributesCache() {
         LDAPSecurityRealm.LDAPUserDetailsService s = new LDAPSecurityRealm.LDAPUserDetailsService(

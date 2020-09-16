@@ -50,7 +50,9 @@ import jenkins.security.plugins.ldap.LdapEntryMapper;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.ldap.core.NameAwareAttributes;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -83,6 +85,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.naming.InvalidNameException;
+import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -1324,19 +1328,29 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
                     LdapUserDetailsImpl.Essence user = new LdapUserDetailsImpl.Essence(ldapUser);
                     user.setUsername(username);
-                    user.setDn(ldapUser.getNameInNamespace()); // otherwise the DN is missing the DC
+                    Name dn = ldapUser.getDn();
+                    user.setDn(dn); // otherwise the DN is missing the DC
 
-                    /* TODO DirContextAdapter has no setAttributes method, and anyway it looks to be of type NameAwareAttributes not BasicAttributes, so attributesCache may need to be reworked:
                     // intern attributes
                     Attributes v = ldapUser.getAttributes();
-                    if (v instanceof BasicAttributes) {// BasicAttributes.equals is what makes the interning possible
+                    if (v instanceof NameAwareAttributes) { // NameAwareAttributes.equals is what makes the interning possible
                         synchronized (attributesCache) {
                             Attributes vv = (Attributes)attributesCache.get(v);
                             if (vv==null)   attributesCache.put(v,vv=v);
-                            ldapUser.setAttributes(vv);
+                            if (ldapUser.getClass() == DirContextAdapter.class) { // so we can almost-clone it
+                                boolean updateMode = ldapUser.isUpdateMode();
+                                Name base; // unfortunately DirContextAdapter has no getBase method, so must reconstruct it
+                                try {
+                                    LdapName nn = new LdapName(ldapUser.getNameInNamespace());
+                                    base = nn.getPrefix(nn.size() - dn.size());
+                                } catch (InvalidNameException | IndexOutOfBoundsException x) { // should not happen
+                                    throw new AuthenticationServiceException(x.toString(), x);
+                                }
+                                ldapUser = new DirContextAdapter(vv, dn, base, ldapUser.getReferralUrl());
+                                ((DirContextAdapter) ldapUser).setUpdateMode(updateMode);
+                            }
                         }
                     }
-                    */
 
                     Collection<? extends GrantedAuthority> extraAuthorities = groupMembershipStrategy == null
                             ? authoritiesPopulator.getGrantedAuthorities(ldapUser, username)
