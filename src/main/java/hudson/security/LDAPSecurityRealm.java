@@ -50,7 +50,6 @@ import jenkins.security.plugins.ldap.LdapEntryMapper;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
-import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.core.NameAwareAttributes;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -85,8 +84,6 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.naming.InvalidNameException;
-import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -1338,19 +1335,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             if (vv == null) {
                                 attributesCache.put(v, v);
                             } else {
-                                if (ldapUser.getClass() == DirContextAdapter.class) { // so we can almost-clone it
-                                    boolean updateMode = ldapUser.isUpdateMode();
-                                    Name dn = ldapUser.getDn();
-                                    Name base; // unfortunately DirContextAdapter has no getBase method, so must reconstruct it
-                                    try {
-                                        LdapName nn = new LdapName(ldapUser.getNameInNamespace());
-                                        base = nn.getPrefix(nn.size() - dn.size());
-                                    } catch (InvalidNameException | IndexOutOfBoundsException x) { // should not happen
-                                        throw new AuthenticationServiceException(x.toString(), x);
-                                    }
-                                    ldapUser = new DirContextAdapter(vv, dn, base, ldapUser.getReferralUrl());
-                                    ((DirContextAdapter) ldapUser).setUpdateMode(updateMode);
-                                }
+                                v = vv;
                             }
                         }
                     }
@@ -1365,7 +1350,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, ldapUser.getAttributes());
+                DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, v);
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
                             || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
