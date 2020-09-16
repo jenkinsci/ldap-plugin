@@ -2,16 +2,9 @@
     <p>
         When Jenkins resolves a user, the next step in the resolution process is to determine the LDAP groups that
         the user belongs to. This field controls the search filter that is used to determine group membership.
-        If left blank, the default filter will be used.
+        If left blank, the default filter will be used:
         </p>
-    <p>
-        The default default filter is:
-    </p>
     <pre>(| (member={0}) (uniqueMember={0}) (memberUid={1}))</pre>
-    <p>
-        This can be overridden by creating a file <code>$JENKINS_HOME/LDAPBindSecurityRealm.groovy</code>. Irrespective
-        of what the default is, setting this filter to a non-blank value will determine the filter used.
-    </p>
     <p>
         You are normally safe leaving this field unchanged, however for large LDAP servers where you are seeing messages
         such as <code>OperationNotSupportedException - Function Not Implemented</code>,

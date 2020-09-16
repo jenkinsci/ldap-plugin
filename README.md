@@ -23,7 +23,7 @@ have subtle issues (most common subtle issues revolve around group
 resolution and user lookup and typically surface for users as issues
 with API token or Jenkins CLI access but can also appear with features
 such as the [Authorize Project
-plugin](https://wiki.jenkins.io/display/JENKINS/Authorize+Project+plugin)
+plugin](http://plugins.jenkins.io/authorize-project/)
 or other plugins that require details of user permissions or group
 membership outside of a user's web session)
 
@@ -244,8 +244,7 @@ record:
 -   OpenLDAP with the [memberof
     overlay](http://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance)
     active (untested, and as memberof is an operational attribute in
-    OpenLDAP it must be explicitly requested, so likely some hacking of
-    LDAPSecurityRealm.groovy required)
+    OpenLDAP it must be explicitly requested, so may or may not work)
 -   (If you know of others please provide details here)
 
 This attribute can be used to simplify the group search and return the
@@ -336,9 +335,7 @@ configured correctly:
     the user may be triggering this. First try setting the "Group search
     base" setting as specific as possible for your LDAP structure, to
     reduce the scope of the query. If the error persists, you may need
-    to edit the `WEB-INF/security/LDAPBindSecurityRealm.groovy` file
-    that is included in `jenkins.war`. Change the line with
-    `groupSearchFilter = "(| (member={0}) (uniqueMember={0}) (memberUid={1}))";`
+    to customize the **Group search filter**. Change the filter
     to query only of the field used in your LDAP for group membership,
     such as `groupSearchFilter = "(member={0})";` (then restart
     Jenkins).
@@ -346,18 +343,7 @@ configured correctly:
     ROLE\_Uppercasedgroupname, so the developers ldap group would be
     ROLE\_Developers in Jenkins, but since 1.404 they are available as
     is: no prefix or upper casing,
--   Since Jenkins 1.468, this has been moved to a plugin. The
-    `LDAPBindSecurityRealm.groovy` file is therefore part of the
-    `ldap.jpi` file. You can find the default template at
-    `$JENKINS_HOME/plugins/ldap/WEB-INF/classes/hudson/security/LDAPBindSecurityRealm.groovy`.
-    That file will be recreated from the `ldap.jpi` file every time
-    Jenkins starts, so if you need to override the defaults, the correct
-    way is to just copy the template file to
-    `$JENKINS_HOME/LDAPBindSecurityRealm.groovy`. The
-    `$JENKINS_HOME/LDAPBindSecurityRealm.groovy` file is re-read every
-    time the security components are reconfigured, so it should just be
-    a case of re-saving the security configuration to force the file to
-    be re-read.
+    by checking **Disable Backward Compatibility for Roles**.
 -   If you are using this plugin and not the [Active Directory
     plugin](https://wiki.jenkins.io/display/JENKINS/Active+Directory+plugin) to
     connect to Active Directory, you will need to change the Group

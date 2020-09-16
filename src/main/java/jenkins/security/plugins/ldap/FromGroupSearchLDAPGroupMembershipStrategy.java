@@ -54,8 +54,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
      * The search filter to apply to groups. Only those groups matching this criteria will be considered as groups
      * that the user belongs to.
      *
-     * Note: we leave the default blank in case legacy users have customized their {@code LDAPBindSecurityRealm.groovy}
-     * as prior to 1.5 that was the only way to change the group membership filter.
+     * Note: we leave the default blank for historical reasons.
      */
     private final String filter;
 
