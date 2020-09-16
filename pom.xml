@@ -54,6 +54,17 @@
   </pluginRepositories>
 
   <dependencies>
+    <dependency> <!-- Repeat this from jenkins/core/pom.xml to avoid bundling Spring libraries already in core -->
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-jcl</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-ldap</artifactId>
