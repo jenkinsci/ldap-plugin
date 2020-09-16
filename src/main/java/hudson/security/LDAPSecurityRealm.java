@@ -51,7 +51,6 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
-import org.springframework.ldap.core.NameAwareAttributes;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -1329,14 +1328,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
                     // intern attributes
                     Attributes v = ldapUser.getAttributes();
-                    if (v instanceof NameAwareAttributes) { // NameAwareAttributes.equals is what makes the interning possible
-                        synchronized (attributesCache) {
-                            Attributes vv = (Attributes)attributesCache.get(v);
-                            if (vv == null) {
-                                attributesCache.put(v, v);
-                            } else {
-                                v = vv;
-                            }
+                    synchronized (attributesCache) {
+                        Attributes vv = (Attributes)attributesCache.get(v);
+                        if (vv == null) {
+                            attributesCache.put(v, v);
+                        } else {
+                            v = vv;
                         }
                     }
 
