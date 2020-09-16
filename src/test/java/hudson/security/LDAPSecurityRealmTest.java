@@ -40,52 +40,47 @@ import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import hudson.util.Secret;
+import javax.naming.InvalidNameException;
+import javax.naming.directory.BasicAttributes;
+import javax.naming.ldap.LdapName;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.springframework.ldap.core.DirContextAdapter;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public class LDAPSecurityRealmTest {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
-    /* TODO rewrite or delete whatever this is
+    @Ignore("TODO not implemented")
     @Test
-    public void sessionStressTest() {
+    public void attributesCache() {
         LDAPSecurityRealm.LDAPUserDetailsService s = new LDAPSecurityRealm.LDAPUserDetailsService(
-                new LdapUserSearch() {
-                    @Override
-                    public LdapUserDetails searchForUser(String username) {
-                        LdapUserDetailsImpl.Essence e = new LdapUserDetailsImpl.Essence();
-                        e.setUsername((String) username);
-                        BasicAttributes ba = new BasicAttributes();
-                        ba.put("test", username);
-                        ba.put("xyz", "def");
-                        e.setAttributes(ba);
-                        return e.createUserDetails();
-                    }
-                },
-                new LdapAuthoritiesPopulator() {
-                    @Override
-                    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails userDetails)
-                            throws LdapDataAccessException {
-                        return new GrantedAuthority[0];
-                    }
+            username -> {
+                BasicAttributes ba = new BasicAttributes();
+                ba.put("test", username);
+                ba.put("xyz", "def");
+                try {
+                    return new DirContextAdapter(ba, new LdapName("dn=" + username));
+                } catch (InvalidNameException x) {
+                    throw new UsernameNotFoundException(x.toString(), x);
                 }
-        );
+            }, (userData, username) -> Collections.emptySet());
         LDAPSecurityRealm.DelegatedLdapUserDetails d1 = s.loadUserByUsername("me");
         LDAPSecurityRealm.DelegatedLdapUserDetails d2 = s.loadUserByUsername("you");
         LDAPSecurityRealm.DelegatedLdapUserDetails d3 = s.loadUserByUsername("me");
         // caching should reuse the same attributes
-        assertSame(d1.getAttributes(), d3.getAttributes());
-        assertNotSame(d1.getAttributes(), d2.getAttributes());
+        assertSame(LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d1, null), LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d3, null));
+        assertNotSame(LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d1, null), LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d2, null));
     }
-    */
 
     @LocalData
     @Test
