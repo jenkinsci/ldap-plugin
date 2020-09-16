@@ -1335,19 +1335,22 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     if (v instanceof NameAwareAttributes) { // NameAwareAttributes.equals is what makes the interning possible
                         synchronized (attributesCache) {
                             Attributes vv = (Attributes)attributesCache.get(v);
-                            if (vv==null)   attributesCache.put(v,vv=v);
-                            if (ldapUser.getClass() == DirContextAdapter.class) { // so we can almost-clone it
-                                boolean updateMode = ldapUser.isUpdateMode();
-                                Name dn = ldapUser.getDn();
-                                Name base; // unfortunately DirContextAdapter has no getBase method, so must reconstruct it
-                                try {
-                                    LdapName nn = new LdapName(ldapUser.getNameInNamespace());
-                                    base = nn.getPrefix(nn.size() - dn.size());
-                                } catch (InvalidNameException | IndexOutOfBoundsException x) { // should not happen
-                                    throw new AuthenticationServiceException(x.toString(), x);
+                            if (vv == null) {
+                                attributesCache.put(v, v);
+                            } else {
+                                if (ldapUser.getClass() == DirContextAdapter.class) { // so we can almost-clone it
+                                    boolean updateMode = ldapUser.isUpdateMode();
+                                    Name dn = ldapUser.getDn();
+                                    Name base; // unfortunately DirContextAdapter has no getBase method, so must reconstruct it
+                                    try {
+                                        LdapName nn = new LdapName(ldapUser.getNameInNamespace());
+                                        base = nn.getPrefix(nn.size() - dn.size());
+                                    } catch (InvalidNameException | IndexOutOfBoundsException x) { // should not happen
+                                        throw new AuthenticationServiceException(x.toString(), x);
+                                    }
+                                    ldapUser = new DirContextAdapter(vv, dn, base, ldapUser.getReferralUrl());
+                                    ((DirContextAdapter) ldapUser).setUpdateMode(updateMode);
                                 }
-                                ldapUser = new DirContextAdapter(vv, dn, base, ldapUser.getReferralUrl());
-                                ((DirContextAdapter) ldapUser).setUpdateMode(updateMode);
                             }
                         }
                     }
