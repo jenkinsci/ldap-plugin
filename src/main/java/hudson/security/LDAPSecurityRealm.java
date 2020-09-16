@@ -1328,8 +1328,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
                     LdapUserDetailsImpl.Essence user = new LdapUserDetailsImpl.Essence(ldapUser);
                     user.setUsername(username);
-                    Name dn = ldapUser.getDn();
-                    user.setDn(dn); // otherwise the DN is missing the DC
+                    user.setDn(ldapUser.getNameInNamespace()); // otherwise the DN is missing the DC
 
                     // intern attributes
                     Attributes v = ldapUser.getAttributes();
@@ -1339,6 +1338,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             if (vv==null)   attributesCache.put(v,vv=v);
                             if (ldapUser.getClass() == DirContextAdapter.class) { // so we can almost-clone it
                                 boolean updateMode = ldapUser.isUpdateMode();
+                                Name dn = ldapUser.getDn();
                                 Name base; // unfortunately DirContextAdapter has no getBase method, so must reconstruct it
                                 try {
                                     LdapName nn = new LdapName(ldapUser.getNameInNamespace());
