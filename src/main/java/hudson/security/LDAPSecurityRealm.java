@@ -1380,6 +1380,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * If the security realm is LDAP, try to pick up e-mail address from LDAP.
+     * <p>TODO tests of {@link MailAddressResolver} pass even if this is deleted,
+     * since {@link #updateUserDetails(LdapUserDetails, LdapUserSearch)} adds a {@link Mailer.UserProperty}
+     * which takes precedence over resolver extensions!
      */
     @Extension
     public static final class MailAdressResolverImpl extends MailAddressResolver {
@@ -1409,7 +1412,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } else {
                     attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
                 }
-                Attribute mail = DelegatedLdapUserDetails.getAttributes(details, /* TODO maybe look it up using configuration & realm */null).get(attr);
+                Attribute mail = DelegatedLdapUserDetails.getAttributes(details, /* probably already a DelegatedLdapUserDetails instance */null).get(attr);
                 if(mail==null)  return null;    // not found
                 return (String)mail.get();
             } catch (NamingException | AuthenticationException e) {
