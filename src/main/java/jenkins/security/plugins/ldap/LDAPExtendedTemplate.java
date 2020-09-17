@@ -62,7 +62,8 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      */
     public <T> @CheckForNull T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
-        try (SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
+        try (SetContextClassLoader sccl = new SetContextClassLoader();
+                SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             return searchEnum.hasMore() ? searchEnum.next() : null;
         } catch (NamingException e) {
             throw new AuthenticationServiceException("Unable to get first element", e);
@@ -84,7 +85,8 @@ public class LDAPExtendedTemplate extends LdapTemplate {
     public @NonNull <T> List<? extends T> searchForAllEntries(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
         List<T> results = new ArrayList<>();
-        try (SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
+        try (SetContextClassLoader sccl = new SetContextClassLoader();
+                SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             while (searchEnum.hasMore()) {
                 results.add(searchEnum.next());
             }

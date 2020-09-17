@@ -47,6 +47,7 @@ import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPExtendedTemplate;
 import jenkins.security.plugins.ldap.LdapEntryMapper;
+import jenkins.security.plugins.ldap.SetContextClassLoader;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
@@ -1003,6 +1004,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        try (SetContextClassLoader sccl = new SetContextClassLoader()) {
             if (delegates.size() == 1) {
                 try {
                     return updateUserDetails(delegates.get(0).delegate.authenticate(authentication), delegates.get(0).ldapUserSearch);
@@ -1048,6 +1050,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } else {
                 throw new UserMayOrMayNotExistException2("No ldap server configuration");
             }
+        }
         }
 
         private class ManagerEntry {
@@ -1192,7 +1195,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return ((DelegatedLdapUserDetails) details).attributes;
             } else {
                 if (ldapUserSearch != null) {
-                    try {
+                    try (SetContextClassLoader sccl = new SetContextClassLoader()) {
                         return ldapUserSearch.searchForUser(details.getUsername()).getAttributes();
                     } catch (UsernameNotFoundException x) {
                         // ignore
@@ -1299,7 +1302,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public DelegatedLdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             username = fixUsername(username);
-            try {
+            try (SetContextClassLoader sccl = new SetContextClassLoader()) {
                 final Jenkins jenkins = Jenkins.getInstance();
                 final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
