@@ -1,1 +1,1 @@
-buildPlugin(useAci: true)
+buildPlugin(platforms: ['docker', 'maven-windows'])
