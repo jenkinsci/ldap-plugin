@@ -29,6 +29,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.security.authentication.AuthenticationServiceException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,9 +39,6 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
-import org.springframework.ldap.core.ContextSource;
-import org.springframework.ldap.core.LdapTemplate;
-import org.springframework.security.authentication.AuthenticationServiceException;
 
 @Restricted(NoExternalUse.class)
 public class LDAPExtendedTemplate extends LdapTemplate {

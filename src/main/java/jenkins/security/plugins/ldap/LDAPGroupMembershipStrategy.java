@@ -24,12 +24,13 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.model.AbstractDescribableImpl;
-import java.util.Collection;
 
-import java.util.Set;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * A strategy for determining the groups that a user belongs to.
