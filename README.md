@@ -413,6 +413,20 @@ have not been tested for completeness:
         membership not required this will be faster)
         -    Group membership attribute: `memberOf`
 
+Additionally, If you are using the `/` character in the name of some `Organization Unit` 
+and some of your users or groups are located inside this `Organization Unit`
+you can face some authentication trouble due to how Java8 treat the `principalDN`.
+You will know you will face this issue because you can see the following exception 
+in the Jenkins logs:
+
+```
+Caused by: org.acegisecurity.ldap.LdapDataAccessException: 
+Unable to get first element; nested exception is javax.naming.InvalidNameException: Invalid name: "XXXXXXX / XXXXXXX",dc=example,dc=org
+```  
+
+For avoid this kind of authentication error you shouldn't use `/` character in the
+name of any `Organization Unit` that is used for containing users or groups. 
+
 
 Development
 ===========
