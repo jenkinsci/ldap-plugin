@@ -109,7 +109,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     result.add(extraAuthority);
                 }
             }
-            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(userData, /* TODO currently ignored anyway, but where does username come from? */null));
+            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(userData, username));
             GrantedAuthority defaultRole = authoritiesPopulatorImpl.getDefaultRole();
             if (defaultRole != null) {
                 result.add(defaultRole);
