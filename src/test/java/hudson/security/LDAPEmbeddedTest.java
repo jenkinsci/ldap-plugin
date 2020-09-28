@@ -56,7 +56,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.*;
-import org.junit.Ignore;
 
 @LDAPTestConfiguration
 public class LDAPEmbeddedTest {
@@ -548,13 +547,13 @@ public class LDAPEmbeddedTest {
         assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
     }
 
-    @Ignore("TODO InitialLdapContext in fact receives typesOnly, yet everything seems to work anyway in Spring (attributes are defined)")
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
     public void usingEnvironmentProperties() throws Exception {
+        log.record(LDAPSecurityRealm.class, Level.WARNING).capture(10);
         LDAPConfiguration c = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
 
-        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.ldap.typesOnly", "true")};
+        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("com.sun.jndi.ldap.connect.timeout", "1"), new LDAPSecurityRealm.EnvironmentProperty("com.sun.jndi.ldap.read.timeout", "1")};
         c.setEnvironmentProperties(environmentProperties);
 
         List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
@@ -576,6 +575,7 @@ public class LDAPEmbeddedTest {
         } catch (FailingHttpStatusCodeException e) {
             System.out.println("Got a bad login==good");
         }
+        assertThat(log, LoggerRule.recorded(Level.WARNING, containsString("Failed communication with ldap server")));
     }
 
     @Test
