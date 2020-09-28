@@ -71,7 +71,7 @@ public class LDAPSecurityRealmTest {
                 } catch (InvalidNameException x) {
                     throw new UsernameNotFoundException(x.toString(), x);
                 }
-            }, (userData, username) -> Collections.emptySet());
+            }, (userData, username) -> Collections.emptySet(), null, "irrelevant");
         LDAPSecurityRealm.DelegatedLdapUserDetails d1 = s.loadUserByUsername("me");
         LDAPSecurityRealm.DelegatedLdapUserDetails d2 = s.loadUserByUsername("you");
         LDAPSecurityRealm.DelegatedLdapUserDetails d3 = s.loadUserByUsername("me");
