@@ -318,8 +318,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * Query to locate the group entries that a user belongs to, given the user object. <code>{0}</code>
-     * is the user's full DN while {1} is the username. If non-null it will override the default specified in
-     * {@code LDAPBindSecurityRealm.groovy}
+     * is the user's full DN while {1} is the username. If non-null it will override the default
      *
      * @since 1.5
      * @deprecated use {@link #groupMembershipStrategy}
