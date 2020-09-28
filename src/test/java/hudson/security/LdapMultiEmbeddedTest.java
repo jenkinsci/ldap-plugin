@@ -401,6 +401,11 @@ public class LdapMultiEmbeddedTest {
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
                 CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+        assertThat(log, recorded(Level.WARNING,
+                allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
+                        containsString(WILL_TRY_NEXT_CONFIGURATION),
+                        containsString(INVALID_URL_PREFIX + sevenSeas.getPort())),
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
