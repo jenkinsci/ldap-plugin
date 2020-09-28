@@ -1361,19 +1361,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         }
                     }
 
-                    if (!UserAttributesHelper.checkIfAccountNonExpired(v)) {
-                        user.setAccountNonExpired(false);
-                    }
-                    if (!UserAttributesHelper.checkIfAccountNonLocked(v)) {
-                        user.setAccountNonLocked(false);
-                    }
-                    if (!UserAttributesHelper.checkIfCredentialsAreNonExpired(v)) {
-                        user.setCredentialsNonExpired(false);
-                    }
-                    if (!UserAttributesHelper.checkIfUserIsEnabled(v)) {
-                        user.setEnabled(false);
-                    }
-                    
+                    user.setAccountNonExpired(UserAttributesHelper.checkIfAccountNonExpired(v));
+                    user.setAccountNonLocked(UserAttributesHelper.checkIfAccountNonLocked(v));
+                    user.setCredentialsNonExpired(UserAttributesHelper.checkIfCredentialsAreNonExpired(v));
+                    user.setEnabled(UserAttributesHelper.checkIfUserIsEnabled(v));
+
                     if (StringUtils.isNotEmpty(configurationId)) {
                         ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
                     } else {
