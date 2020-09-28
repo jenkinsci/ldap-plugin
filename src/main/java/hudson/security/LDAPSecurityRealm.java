@@ -31,8 +31,6 @@ import hudson.Main;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.tasks.Mailer.UserProperty;
 import hudson.util.FormValidation;
@@ -1375,50 +1373,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 throw x;
             } catch (RuntimeException x) {
                 throw new AuthenticationServiceException("Failed to search LDAP for " + username, x);
-            }
-        }
-    }
-
-    /**
-     * If the security realm is LDAP, try to pick up e-mail address from LDAP.
-     * <p>TODO tests of {@link MailAddressResolver} pass even if this is deleted,
-     * since {@link #updateUserDetails(LdapUserDetails, LdapUserSearch)} adds a {@link Mailer.UserProperty}
-     * which takes precedence over resolver extensions!
-     */
-    @Extension
-    public static final class MailAdressResolverImpl extends MailAddressResolver {
-        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
-        public String findMailAddressFor(User u) {
-            final Jenkins jenkins = Jenkins.getInstance();
-            if (jenkins == null) {
-                return null;
-            }
-            SecurityRealm realm = jenkins.getSecurityRealm();
-            if(!(realm instanceof LDAPSecurityRealm)) { // LDAP not active
-                return null;
-            }
-            if (((LDAPSecurityRealm)realm).disableMailAddressResolver) {
-                LOGGER.info( "LDAPSecurityRealm MailAddressResolver is disabled" );
-                return null;
-            }
-            try {
-                LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails2.loadUserByUsername(u.getId());
-                final LDAPConfiguration configuration = ((LDAPSecurityRealm) realm).getConfigurationFor(details);
-                String attr;
-                if (configuration != null) {
-                    attr = configuration.getMailAddressAttributeName();
-                    if (StringUtils.isEmpty(attr)) {
-                        attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
-                    }
-                } else {
-                    attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
-                }
-                Attribute mail = DelegatedLdapUserDetails.getAttributes(details, /* probably already a DelegatedLdapUserDetails instance */null).get(attr);
-                if(mail==null)  return null;    // not found
-                return (String)mail.get();
-            } catch (NamingException | AuthenticationException e) {
-                LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
-                return null;
             }
         }
     }
