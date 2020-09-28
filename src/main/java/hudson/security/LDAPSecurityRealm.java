@@ -1295,13 +1295,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this.configurationId = configurationId;
         }
 
-        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
         @Override
         public DelegatedLdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             username = fixUsername(username);
             try (SetContextClassLoader sccl = new SetContextClassLoader()) {
-                final Jenkins jenkins = Jenkins.getInstance();
-                final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
+                final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
                         || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
