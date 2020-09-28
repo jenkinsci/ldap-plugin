@@ -90,7 +90,7 @@ public class LDAPSecurityRealmTest {
 
     private void check() {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
-        LDAPConfiguration cnf = sr.getConfigurationFor("s");
+        LDAPConfiguration cnf = sr.getConfigurations().get(0);
         assertEquals("s", cnf.getServer());
         assertEquals("rDN=x", cnf.getRootDN());
         assertEquals("uSB", cnf.getUserSearchBase());
