@@ -816,7 +816,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 LOGGER.log(Level.WARNING, "Failed to associate the e-mail address", e);
             }
         }
-        return new DelegatedLdapUserDetails(d, d instanceof DelegatedLdapUserDetails ? ((DelegatedLdapUserDetails) d).configurationId : null, attributes);
+        return new DelegatedLdapUserDetails(d, d instanceof DelegatedLdapUserDetails ? ((DelegatedLdapUserDetails) d).configurationId : "???", attributes);
     }
 
     @Override
