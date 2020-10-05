@@ -50,7 +50,9 @@ import java.util.logging.Logger;
 public class UserAttributesHelper {
     private static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
     // https://support.microsoft.com/en-us/help/305144/how-to-use-the-useraccountcontrol-flags-to-manipulate-user-account-pro
+    // https://docs.microsoft.com/en-us/windows/win32/adschema/a-useraccountcontrol
     private static final String ATTR_USER_ACCOUNT_CONTROL = "userAccountControl";
+    // https://docs.microsoft.com/en-us/windows/win32/adschema/a-accountexpires
     private static final String ATTR_ACCOUNT_EXPIRES = "accountExpires";
     // https://ldapwiki.com/wiki/Draft-behera-ldap-password-policy
     private static final String ATTR_LOGIN_DISABLED = "loginDisabled";
@@ -60,12 +62,16 @@ public class UserAttributesHelper {
     private static final String ATTR_PWD_END_TIME = "pwdEndTime";
     private static final String ATTR_LOGIN_EXPIRATION_TIME = "loginExpirationTime";
     private static final String ATTR_PWD_LOCKOUT = "pwdLockout";
-    private static final String ATTR_LOGIN_INTRUDER_RESET_TIME = "loginIntruderResetTime";
+    // https://ldapwiki.com/wiki/Locked%20By%20Intruder
+    private static final String ATTR_LOCKED_BY_INTRUDER = "lockedByIntruder";
     // for Windows Server 2003-based domain
+    // https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-user-account-control-computed
     private static final String ATTR_USER_ACCOUNT_CONTROL_COMPUTED = "msDS-User-Account-Control-Computed";
     // for ADAM (Active Directory Application Mode), replace the ADS_UF_DISABLED
+    // https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-useraccountdisabled
     private static final String ATTR_USER_ACCOUNT_DISABLED = "msDS-UserAccountDisabled";
     // for ADAM, replace the ADS_UF_PASSWORD_EXPIRED
+    // https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-userpasswordexpired
     private static final String ATTR_USER_PASSWORD_EXPIRED = "msDS-UserPasswordExpired";
     private static final String ACCOUNT_DISABLED = "000001010000Z"; // other GeneralizedTime values indicate account is locked as of that time
 
@@ -164,7 +170,7 @@ public class UserAttributesHelper {
         Moment now = Moment.nowInSystemTime();
         // (Internet Draft) LDAP password policy attributes
         Moment startTime = getGeneralizedTimeAttribute(user, ATTR_PWD_START_TIME);
-        if (startTime != null && startTime.isBefore(now)) {
+        if (startTime != null && startTime.isAfter(now)) {
             return false;
         }
         Moment endTime = getGeneralizedTimeAttribute(user, ATTR_PWD_END_TIME);
@@ -229,9 +235,9 @@ public class UserAttributesHelper {
             return !lockout;
         }
         // EDirectory attributes
-        Moment resetTime = getGeneralizedTimeAttribute(user, ATTR_LOGIN_INTRUDER_RESET_TIME);
-        if (resetTime != null) {
-            return resetTime.isAfter(Moment.nowInSystemTime());
+        Boolean lockedByIntruder = getBooleanAttribute(user, ATTR_LOCKED_BY_INTRUDER);
+        if (lockedByIntruder != null) {
+            return !lockedByIntruder;
         }
         // no other indicators
         return true;
