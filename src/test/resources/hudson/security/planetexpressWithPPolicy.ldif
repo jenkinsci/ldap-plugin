@@ -1,0 +1,179 @@
+dn: ou=policies,dc=planetexpress,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: policies
+
+dn: cn=lockout,ou=policies,dc=planetexpress,dc=com
+cn: lockout
+sn: lockout
+objectClass: pwdPolicy
+objectClass: person
+objectClass: top
+pwdAttribute: userPassword
+pwdLockout: TRUE
+pwdMaxFailure: 1
+pwdFailureCountInterval: 0
+
+dn: ou=people,dc=planetexpress,dc=com
+objectClass: top
+objectClass: organizationalUnit
+description: Planet Express crew
+ou: people
+
+dn: ou=groups,dc=planetexpress,dc=com
+objectclass: organizationalUnit
+objectclass: top
+description: Contains entries which describe groups
+ou: groups
+
+dn: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Amy Wong
+sn: Kroker
+description: Human
+givenName: Amy
+mail: amy@planetexpress.com
+ou: Intern
+uid: amy
+userPassword:: e3NzaGF9M3UzcUdCSmFMc2tiUEg0OVJrYlFtUk9HTktFb1lOUXZkU2lOZmc9P
+ Q==
+pwdPolicySubentry: cn=lockout,ou=policies,dc=planetexpress,dc=com
+pwdAccountLockedTime: 000001010000Z
+
+dn: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Bender Bending Rodríguez
+sn: Bending Rodríguez
+description: Robot
+displayName: Bender
+employeeType: Ship's Robot
+givenName: Bender
+mail: bender@planetexpress.com
+ou: Delivering Crew
+uid: bender
+userPassword:: e3NzaGF9amxCTnNmVVdKK0tIWHprRFVuYTJSSTBjK09PNmlGdzAxZHd3K3c9P
+ Q==
+pwdPolicySubentry: cn=lockout,ou=policies,dc=planetexpress,dc=com
+pwdEndTime: 199912311200Z
+
+dn: cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Philip J. Fry
+sn: Fry
+description: Human
+displayName: Fry
+employeeType: Delivery boy
+givenName: Philip
+mail: fry@planetexpress.com
+ou: Delivering Crew
+uid: fry
+userPassword:: e3NzaGF9d0wvVG0wSHNaeU90K29jbXlrU290UkpURnczd0ZKOWRlaEU4eFE9P
+ Q==
+
+dn: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Hermes Conrad
+sn: Conrad
+description: Human
+employeeType: Bureaucrat
+employeeType: Accountant
+givenName: Hermes
+mail: hermes@planetexpress.com
+ou: Office Management
+uid: hermes
+userPassword:: e3NzaGF9M3UzcUdCSmFMc2tiUEg0OVJrYlFtUk9HTktFb1lOUXZkU2lOZmc9P
+ Q==
+
+dn: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Turanga Leela
+sn: Turanga
+description: Mutant
+employeeType: Captain
+employeeType: Pilot
+givenName: Leela
+mail: leela@planetexpress.com
+ou: Delivering Crew
+uid: leela
+userPassword:: e3NzaGF9eCtEOFJJTDFQNUJ3OFo1N28ra2tFeDlLNm14d0JSY0tSNmo1R2c9P
+ Q==
+
+dn: cn=Hubert J. Farnsworth,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Hubert J. Farnsworth
+sn: Farnsworth
+description: Human
+displayName: Professor Farnsworth
+employeeType: Owner
+employeeType: Founder
+givenName: Hubert
+mail: professor@planetexpress.com
+mail: hubert@planetexpress.com
+ou: Office Management
+title: Professor
+uid: professor
+userPassword:: e3NzaGF9azRDRS9ta3Frb3NFampzVkhJWEhGMTFaU0h6ZVExUzdhdnQveWc9P
+ Q==
+
+dn: cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: John A. Zoidberg
+sn: Zoidberg
+description: Decapodian
+displayName: Zoidberg
+employeeType: Doctor
+givenName: John
+mail: zoidberg@planetexpress.com
+ou: Staff
+title: Ph.D.
+uid: zoidberg
+userPassword:: e3NzaGF9UEgvVjZ3S3Mxc3lRems0RGFCd0hXdlJQNmhlZ2xQWmtCR2hWdUE9P
+ Q==
+
+dn: cn=crew,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: crew
+uniquemember: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+
+dn: cn=management,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: management
+uniquemember: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Hubert J. Farnsworth,ou=people,dc=planetexpress,dc=com
+
+dn: cn=staff,ou=groups,dc=planetexpress,dc=com
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: staff
+uniquemember: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Hubert J. Farnsworth,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Bender Bending Rodríguez,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
+uniquemember: cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com

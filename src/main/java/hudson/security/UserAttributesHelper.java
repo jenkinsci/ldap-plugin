@@ -59,7 +59,6 @@ public class UserAttributesHelper {
     private static final String ATTR_PWD_START_TIME = "pwdStartTime";
     private static final String ATTR_PWD_END_TIME = "pwdEndTime";
     private static final String ATTR_LOGIN_EXPIRATION_TIME = "loginExpirationTime";
-    private static final String ATTR_PASSWORD_EXPIRATION_TIME = "passwordExpirationTime";
     private static final String ATTR_PWD_LOCKOUT = "pwdLockout";
     private static final String ATTR_LOGIN_INTRUDER_RESET_TIME = "loginIntruderResetTime";
     // for Windows Server 2003-based domain
@@ -212,12 +211,6 @@ public class UserAttributesHelper {
         if (passwordExpired != null) {
             return !passwordExpired;
         }
-        // standard attributes
-        Moment now = Moment.nowInSystemTime();
-        Moment passwordExpirationTime = getGeneralizedTimeAttribute(user, ATTR_PASSWORD_EXPIRATION_TIME);
-        if (passwordExpirationTime != null) {
-            return passwordExpirationTime.isAfter(now);
-        }
         // no other indicators
         return true;
     }
@@ -273,7 +266,7 @@ public class UserAttributesHelper {
 
     private static @CheckForNull String getStringAttribute(@Nonnull Attributes user, @Nonnull String name) {
         Attribute a = user.get(name);
-        if (a == null) {
+        if (a == null || a.size() == 0) {
             return null;
         }
         try {

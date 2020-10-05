@@ -25,9 +25,9 @@ import org.acegisecurity.providers.ProviderManager
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationProvider
 import org.acegisecurity.providers.ldap.authenticator.BindAuthenticator2
 import org.acegisecurity.ldap.DefaultInitialDirContextFactory
-import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch
 import org.acegisecurity.providers.rememberme.RememberMeAuthenticationProvider
 import jenkins.model.Jenkins
+import jenkins.security.plugins.ldap.OperationalAttributesLdapUserSearch
 import hudson.security.LDAPSecurityRealm.AuthoritiesPopulatorImpl
 import hudson.security.LDAPSecurityRealm.LdapAuthenticationProviderImpl
 import javax.naming.Context
@@ -51,8 +51,7 @@ initialDirContextFactory(DefaultInitialDirContextFactory, instance.getLDAPURL() 
   ] + instance.getExtraEnvVars();
 }
 
-ldapUserSearch(FilterBasedLdapUserSearch, instance.userSearchBase, instance.userSearch, initialDirContextFactory) {
-    searchSubtree=true
+ldapUserSearch(OperationalAttributesLdapUserSearch, instance.userSearchBase, instance.userSearch, initialDirContextFactory) {
 }
 
 bindAuthenticator(BindAuthenticator2,initialDirContextFactory) {
