@@ -82,7 +82,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.dao.DataAccessException;
-import org.springframework.web.context.WebApplicationContext;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -321,8 +320,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * Query to locate the group entries that a user belongs to, given the user object. <code>{0}</code>
-     * is the user's full DN while {1} is the username. If non-null it will override the default specified in
-     * {@code LDAPBindSecurityRealm.groovy}
+     * is the user's full DN while {1} is the username. If non-null it will override the default
      *
      * @since 1.5
      * @deprecated use {@link #groupMembershipStrategy}
@@ -754,19 +752,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
             LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
             for (LDAPConfiguration conf : configurations) {
-                WebApplicationContext appContext = conf.createApplicationContext(this, false);
-                manager.addDelegate(findBean(AuthenticationManager.class, appContext), conf.getId());
-                details.addDelegate(new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), conf.getId()));
+                LDAPConfiguration.ApplicationContext appContext = conf.createApplicationContext(this);
+                manager.addDelegate(appContext.authenticationManager, conf.getId());
+                details.addDelegate(new LDAPUserDetailsService(appContext.ldapUserSearch, appContext.ldapAuthoritiesPopulator, conf.getGroupMembershipStrategy(), conf.getId()));
             }
             return new SecurityComponents(manager, details);
         } else {
             final LDAPConfiguration conf = configurations.get(0);
-            WebApplicationContext appContext = conf.createApplicationContext(this, true);
+            LDAPConfiguration.ApplicationContext appContext = conf.createApplicationContext(this);
             final LDAPAuthenticationManager manager = new LDAPAuthenticationManager();
-            manager.addDelegate(findBean(AuthenticationManager.class, appContext), "");
+            manager.addDelegate(appContext.authenticationManager, "");
             return new SecurityComponents(
                     manager,
-                    new LDAPUserDetailsService(appContext, conf.getGroupMembershipStrategy(), null)
+                    new LDAPUserDetailsService(appContext.ldapUserSearch, appContext.ldapAuthoritiesPopulator, conf.getGroupMembershipStrategy(), null)
             );
         }
     }
@@ -1284,11 +1282,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         private final LRUMap attributesCache = new LRUMap(32);
 
         @Deprecated
-        LDAPUserDetailsService(WebApplicationContext appContext) {
-            this(appContext, null, null);
-        }
-
-        @Deprecated
         LDAPUserDetailsService(LdapUserSearch ldapSearch, LdapAuthoritiesPopulator authoritiesPopulator) {
             this(ldapSearch, authoritiesPopulator, null, null);
         }
@@ -1298,17 +1291,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this.authoritiesPopulator = authoritiesPopulator;
             this.groupMembershipStrategy = groupMembershipStrategy;
             this.configurationId = configurationId;
-        }
-
-        @Deprecated
-        public LDAPUserDetailsService(WebApplicationContext appContext,
-                                      LDAPGroupMembershipStrategy groupMembershipStrategy) {
-            this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy, null);
-        }
-
-        public LDAPUserDetailsService(WebApplicationContext appContext,
-                                      LDAPGroupMembershipStrategy groupMembershipStrategy, String configurationId) {
-            this(findBean(LdapUserSearch.class, appContext), findBean(LdapAuthoritiesPopulator.class, appContext), groupMembershipStrategy, configurationId);
         }
 
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
@@ -1602,10 +1584,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
             }
             return super.newInstance(req, formData);
-        }
-
-        public boolean hasCustomBindScript() {
-            return LDAPConfiguration.getLdapBindOverrideFile(Jenkins.getActiveInstance()).exists();
         }
 
         /**
