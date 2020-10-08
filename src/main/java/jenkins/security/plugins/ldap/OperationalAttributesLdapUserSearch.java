@@ -3,9 +3,11 @@ package jenkins.security.plugins.ldap;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.acegisecurity.ldap.InitialDirContextFactory;
 import org.acegisecurity.ldap.LdapUserSearch;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.acegisecurity.userdetails.ldap.LdapUserDetailsMapper;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 
 import javax.naming.directory.SearchControls;
 
@@ -29,8 +31,16 @@ public class OperationalAttributesLdapUserSearch implements LdapUserSearch {
     public LdapUserDetails searchForUser(String username) {
         LDAPExtendedTemplate template = new LDAPExtendedTemplate(factory);
         template.setSearchControls(searchControls);
-        LdapUserDetailsImpl.Essence builder = (LdapUserDetailsImpl.Essence) template.searchForSingleEntry(
-                searchBase, searchFilter, new Object[]{username}, new LdapUserDetailsMapper());
+        LdapUserDetailsImpl.Essence builder;
+        try {
+            builder = (LdapUserDetailsImpl.Essence) template.searchForSingleEntry(
+                    searchBase, searchFilter, new Object[]{username}, new LdapUserDetailsMapper());
+        } catch (IncorrectResultSizeDataAccessException e) {
+            if (e.getActualSize() == 0) {
+                throw new UsernameNotFoundException("User " + username + " not found in LDAP");
+            }
+            throw e;
+        }
         return builder.setUsername(username).createUserDetails();
     }
 }
