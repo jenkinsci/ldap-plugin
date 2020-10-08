@@ -4,7 +4,7 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
-import org.acegisecurity.AuthenticationServiceException;
+import org.acegisecurity.ldap.LdapDataAccessException;
 import org.acegisecurity.userdetails.UserDetails;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.test.acceptance.docker.DockerContainer;
@@ -47,7 +47,7 @@ public class TheFlintstonesTest {
         for (int i = 0; i < 30 && fred == null; i++) {
             try {
                 fred = realm.loadUserByUsername("fred");
-            } catch (AuthenticationServiceException ignored) {
+            } catch (LdapDataAccessException ignored) {
                 Thread.sleep(1000);
             }
         }
