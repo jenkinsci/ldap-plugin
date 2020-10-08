@@ -35,7 +35,7 @@ public class PlanetExpressTest {
     @Test
     public void login() throws Exception {
         PlanetExpress d = docker.get();
-        LDAPSecurityRealm realm = new LDAPSecurityRealm(d.getIpAddress(), PlanetExpress.DN, null, null, null, null, null, PlanetExpress.MANAGER_DN, Secret.fromString(PlanetExpress.MANAGER_SECRET), false, false, null, null, "cn", "mail", null,null);
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(d.ipBound(389) + ":" + d.port(389), PlanetExpress.DN, null, null, null, null, null, PlanetExpress.MANAGER_DN, Secret.fromString(PlanetExpress.MANAGER_SECRET), false, false, null, null, "cn", "mail", null,null);
         j.jenkins.setSecurityRealm(realm);
         j.configRoundtrip();
         String content = j.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
