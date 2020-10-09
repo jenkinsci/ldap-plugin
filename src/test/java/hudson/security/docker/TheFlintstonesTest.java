@@ -1,5 +1,6 @@
 package hudson.security.docker;
 
+import hudson.Functions;
 import hudson.security.LDAPSecurityRealm;
 import hudson.security.SecurityRealm;
 import hudson.util.Secret;
@@ -10,6 +11,7 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.test.acceptance.docker.DockerContainer;
 import org.jenkinsci.test.acceptance.docker.DockerFixture;
 import org.jenkinsci.test.acceptance.docker.DockerRule;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +34,7 @@ public class TheFlintstonesTest {
 
     @Before
     public void setUp() throws Exception {
+        Assume.assumeFalse(Functions.isWindows());
         TheFlintstones container = docker.get();
         while (!FileUtils.readFileToString(container.getLogfile(), StandardCharsets.UTF_8).contains("custom (exit status 0; expected)")) {
             Thread.sleep(1000);
