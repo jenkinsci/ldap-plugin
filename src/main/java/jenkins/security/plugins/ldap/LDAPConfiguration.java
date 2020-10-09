@@ -38,7 +38,6 @@ import jenkins.model.Jenkins;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.ldap.DefaultInitialDirContextFactory;
 import org.acegisecurity.ldap.LdapUserSearch;
-import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
 import org.acegisecurity.providers.AuthenticationProvider;
 import org.acegisecurity.providers.ProviderManager;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationProvider;
@@ -224,7 +223,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      *
      * Normally "uid={0}"
      *
-     * @see FilterBasedLdapUserSearch
+     * @see OperationalAttributesLdapUserSearch
      */
     public String getUserSearch() {
         return userSearch;
@@ -235,7 +234,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      *
      * Normally "uid={0}"
      *
-     * @see FilterBasedLdapUserSearch
+     * @see OperationalAttributesLdapUserSearch
      */
     @DataBoundSetter
     public void setUserSearch(String userSearch) {
@@ -249,7 +248,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * Normally "" to indicate the full LDAP search, but can be often narrowed down to
      * something like "ou=groups"
      *
-     * @see FilterBasedLdapUserSearch
+     * @see OperationalAttributesLdapUserSearch
      */
     public String getGroupSearchBase() {
         return groupSearchBase;
@@ -261,7 +260,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * Normally "" to indicate the full LDAP search, but can be often narrowed down to
      * something like "ou=groups"
      *
-     * @see FilterBasedLdapUserSearch
+     * @see OperationalAttributesLdapUserSearch
      */
     @DataBoundSetter
     public void setGroupSearchBase(String groupSearchBase) {
