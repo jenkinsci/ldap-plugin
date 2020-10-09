@@ -33,14 +33,17 @@ Various LDAP servers use different operational attributes to make decisions on
 and expose configurations of concepts such as disabling an account, locking an
 account, and specifying a time interval the account is valid for. These policies
 are normally enforced by the LDAP server itself when performing user authentication.
-Once a user has configured API tokens or SSH keys, these parallel authentication
-mechanisms can only make limited policy decisions based on checking for known user
-attributes without requiring the user to re-enter their password. These systems include
+Jenkins provides alternative authentication mechanisms (such as API tokens and SSH
+keys) that do not perform LDAP authentication directly; instead, Jenkins checks the
+user details attributes for whether the user is enabled, locked, or expired.
+These user attributes are specified by
 [**slapo-ppolicy**(5)](https://linux.die.net/man/5/slapo-ppolicy) from OpenLDAP,
 Active Directory Application Mode (ADAM), classic Active Directory, and eDirectory LDAP.
 The support of these features is entirely dependent upon the LDAP server implementation
 properly exposing these operational attributes which is dependent on the exact version
-and distribution of the LDAP server in use.
+and distribution of the LDAP server in use. Being operational attributes, these are not
+always exposed by LDAP server implementations to clients the same way as they may be
+used internally. 
 
 #### Administratively Disabled Accounts
 
@@ -61,6 +64,9 @@ dates without having to manually disable or delete accounts. The following attri
 * `pwdStartTime` timestamp in the future, or `pwdEndTime` timestamp in the past (LDAP password policy);
 * `accountExpires` timestamp in the past (Active Directory); and
 * `loginExpirationTime` timestamp in the past (eDirectory).
+
+Note that while these timestamps all include timezone information, they are compared against
+the Jenkins system clock.
 
 #### Password Expiration
 
