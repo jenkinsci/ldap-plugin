@@ -66,7 +66,7 @@ public class MultiServerTest {
 
         PlanetExpressTest.PlanetExpress d = docker.get();
         LDAPConfiguration plExprs = new LDAPConfiguration(
-                d.getIpAddress(),
+                d.ipBound(389) + ":" + d.port(389),
                 PlanetExpressTest.PlanetExpress.DN,
                 false,
                 PlanetExpressTest.PlanetExpress.MANAGER_DN,
