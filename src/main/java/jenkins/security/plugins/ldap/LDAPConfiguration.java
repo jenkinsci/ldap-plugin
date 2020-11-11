@@ -592,6 +592,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
         ldapUserSearch.setSearchSubtree(true);
+        // enable operational attributes (+) along with normal attributes (*)
+        ldapUserSearch.setReturningAttributes(new String[]{"*", "+"});
 
         BindAuthenticator2 bindAuthenticator = new BindAuthenticator2(contextSource);
         // this is when you the user name can be translated into DN.
