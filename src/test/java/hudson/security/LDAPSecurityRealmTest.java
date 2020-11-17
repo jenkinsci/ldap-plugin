@@ -71,7 +71,7 @@ public class LDAPSecurityRealmTest {
                 } catch (InvalidNameException x) {
                     throw new UsernameNotFoundException(x.toString(), x);
                 }
-            }, (userData, username) -> Collections.emptySet());
+            }, (userData, username) -> Collections.emptySet(), null, "irrelevant");
         LDAPSecurityRealm.DelegatedLdapUserDetails d1 = s.loadUserByUsername("me");
         LDAPSecurityRealm.DelegatedLdapUserDetails d2 = s.loadUserByUsername("you");
         LDAPSecurityRealm.DelegatedLdapUserDetails d3 = s.loadUserByUsername("me");
@@ -90,7 +90,7 @@ public class LDAPSecurityRealmTest {
 
     private void check() {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
-        LDAPConfiguration cnf = sr.getConfigurationFor("s");
+        LDAPConfiguration cnf = sr.getConfigurations().get(0);
         assertEquals("s", cnf.getServer());
         assertEquals("rDN=x", cnf.getRootDN());
         assertEquals("uSB", cnf.getUserSearchBase());
