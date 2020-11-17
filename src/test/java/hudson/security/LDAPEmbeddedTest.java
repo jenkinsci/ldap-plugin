@@ -553,7 +553,7 @@ public class LDAPEmbeddedTest {
         log.record(LDAPSecurityRealm.class, Level.WARNING).capture(10);
         LDAPConfiguration c = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
 
-        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("com.sun.jndi.ldap.connect.timeout", "1"), new LDAPSecurityRealm.EnvironmentProperty("com.sun.jndi.ldap.read.timeout", "1")};
+        LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.security.protocol", "ssl")};
         c.setEnvironmentProperties(environmentProperties);
 
         List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();

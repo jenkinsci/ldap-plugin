@@ -28,7 +28,7 @@
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.257-rc30526.4bb45a702b8d</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/4848 -->
+    <jenkins.version>2.266</jenkins.version>
     <java.level>8</java.level>
     <configuration-as-code.version>1.36</configuration-as-code.version>
   </properties>
