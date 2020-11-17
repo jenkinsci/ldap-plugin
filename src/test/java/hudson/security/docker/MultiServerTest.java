@@ -8,7 +8,7 @@ import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jenkinsci.test.acceptance.docker.DockerRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -106,7 +106,7 @@ public class MultiServerTest {
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertEquals("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com", zoidberg.getDn());
 
         user = j.jenkins.getUser("leela");

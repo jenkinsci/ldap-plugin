@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.springframework.dao.DataAccessException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,9 +20,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.AuthenticationServiceException;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.Matchers.*;
@@ -209,12 +207,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("fry", "fry");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -224,12 +222,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("hnelson", "pass");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -239,12 +237,12 @@ public class LdapMultiEmbeddedTest {
             r.createWebClient().login("hnelson", "pass");
             fail("Login should fail");
         } catch (FailingHttpStatusCodeException e) {
-            assertEquals(500, e.getStatusCode());
+            assertEquals(401, e.getStatusCode());
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -262,55 +260,55 @@ public class LdapMultiEmbeddedTest {
         setBadPwd(planetExpress);
 
         try {
-            r.jenkins.getSecurityRealm().loadUserByUsername("fry");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadUserByUsername2("fry");
+        } catch (UserMayOrMayNotExistException2 e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
     public void when_first_is_wrong_and_lookup_on_second_then_log() throws Exception {
         setBadPwd(planetExpress);
         try {
-            r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
-            fail("Expected a DataAccessException");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadUserByUsername2("hnelson");
+            fail("Expected a UserMayOrMayNotExistException2");
+        } catch (UserMayOrMayNotExistException2 e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
     public void when_second_is_wrong_and_lookup_on_second_then_log() throws Exception {
         setBadPwd(sevenSeas);
         try {
-            r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
-            fail("Expected a DataAccessException");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadUserByUsername2("hnelson");
+            fail("Expected a UserMayOrMayNotExistException2");
+        } catch (UserMayOrMayNotExistException2 e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
     public void when_second_is_wrong_and_lookup_on_first_no_log() throws Exception {
         setBadPwd(sevenSeas);
         try {
-            r.jenkins.getSecurityRealm().loadUserByUsername("fry");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadUserByUsername2("fry");
+        } catch (UsernameNotFoundException e) {
             fail("No exception should be thrown when first is working");
         }
         assertThat(log, not(recorded(Level.WARNING,
@@ -341,7 +339,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -352,7 +350,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -380,12 +378,12 @@ public class LdapMultiEmbeddedTest {
     @Test
     public void when_first_is_wrong_but_ignorable_and_lookup_on_second_then_success() throws Exception {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
-        assertThat(r.jenkins.getSecurityRealm().loadUserByUsername("hnelson"), notNullValue());
+        assertThat(r.jenkins.getSecurityRealm().loadUserByUsername2("hnelson"), notNullValue());
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -393,7 +391,7 @@ public class LdapMultiEmbeddedTest {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_SERVER_URL, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
         reconfigure(sevenSeas, EnumSet.of(LdapConfigOption.BAD_SERVER_URL, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
         try {
-            r.jenkins.getSecurityRealm().loadUserByUsername("hnelson");
+            r.jenkins.getSecurityRealm().loadUserByUsername2("hnelson");
             fail("Expected a UsernameNotFoundException");
         } catch (UsernameNotFoundException e) {
             //all is as expected
@@ -402,60 +400,60 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
-                        containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                        containsString(INVALID_URL_PREFIX + sevenSeas.getPort())),
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
         setBadPwd(sevenSeas);
         try {
-            r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Victory");
-            fail("Expected a DataAccessException");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS Victory", false);
+            fail("Expected a UserMayOrMayNotExistException2");
+        } catch (UserMayOrMayNotExistException2 e) {
             // Expected.
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
     public void when_first_is_wrong_and_lookup_group_on_second_then_failure() {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD));
         try {
-            r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Lydia");
-            fail("Expected a DataAccessException");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS Lydia", false);
+            fail("Expected a UserMayOrMayNotExistException2");
+        } catch (UserMayOrMayNotExistException2 e) {
             //all is as expected
         }
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
     public void when_first_is_wrong_but_ignorable_and_lookup_group_on_second_then_success() {
         reconfigure(planetExpress, EnumSet.of(LdapConfigOption.BAD_PASSWORD, LdapConfigOption.IGNORE_IF_UNAVAILABLE));
-        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname("HMS Lydia"), notNullValue());
+        assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname2("HMS Lydia", false), notNullValue());
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(DataAccessException.class)));
+                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_first_then_no_log() throws Exception {
         setBadPwd(sevenSeas);
         try {
-            r.jenkins.getSecurityRealm().loadGroupByGroupname("crew");
-        } catch (DataAccessException e) {
+            r.jenkins.getSecurityRealm().loadGroupByGroupname2("crew", false);
+        } catch (UserMayOrMayNotExistException2 e) {
             fail("No exception should be thrown when first is working");
         }
         assertThat(log, not(recorded(Level.WARNING,

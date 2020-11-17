@@ -46,31 +46,31 @@ import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPExtendedTemplate;
+import jenkins.security.plugins.ldap.LdapEntryMapper;
+import jenkins.security.plugins.ldap.SetContextClassLoader;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.acegisecurity.AcegiSecurityException;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.AuthenticationServiceException;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapDataAccessException;
-import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.ldap.LdapUserSearch;
-import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.ldap.LdapAuthenticationProvider;
-import org.acegisecurity.providers.ldap.LdapAuthenticator;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.providers.ldap.populator.DefaultLdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.UserDetailsService;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
-import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
+import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.authentication.LdapAuthenticator;
+import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
+import org.springframework.security.ldap.search.LdapUserSearch;
+import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
+import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -81,7 +81,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-import org.springframework.dao.DataAccessException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -90,7 +89,6 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttributes;
-import javax.naming.ldap.Control;
 import javax.naming.ldap.LdapName;
 import java.io.IOException;
 import java.io.Serializable;
@@ -391,7 +389,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * The {@link UserDetails} cache.
      */
-    private transient Map<String,CacheEntry<LdapUserDetails>> userDetailsCache = null;
+    private transient Map<String, CacheEntry<DelegatedLdapUserDetails>> userDetailsCache = null;
 
     /**
      * The group details cache.
@@ -663,7 +661,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull @Restricted(NoExternalUse.class)
     public LDAPConfiguration getConfigurationFor(LdapUserDetails d) {
-        if (d instanceof DelegatedLdapUserDetails) {
+        if (d instanceof DelegatedLdapUserDetails && ((DelegatedLdapUserDetails) d).getConfigurationId() != null) {
             return getConfigurationFor(((DelegatedLdapUserDetails) d).getConfigurationId());
         } else if (hasConfiguration() && configurations.size() == 1) {
             return configurations.get(0);
@@ -741,11 +739,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return server;
     }
 
-    /**
-     * Creates security components.
-     * @return Created {@link SecurityComponents}
-     * @throws IllegalStateException Execution error
-     */
     @Override @Nonnull
     public SecurityComponents createSecurityComponents() {
         if (configurations.size() > 1) {
@@ -753,7 +746,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
             for (LDAPConfiguration conf : configurations) {
                 LDAPConfiguration.ApplicationContext appContext = conf.createApplicationContext(this);
-                manager.addDelegate(appContext.authenticationManager, conf.getId());
+                manager.addDelegate(appContext.authenticationManager, conf.getId(), appContext.ldapUserSearch);
                 details.addDelegate(new LDAPUserDetailsService(appContext.ldapUserSearch, appContext.ldapAuthoritiesPopulator, conf.getGroupMembershipStrategy(), conf.getId()));
             }
             return new SecurityComponents(manager, details);
@@ -761,7 +754,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             final LDAPConfiguration conf = configurations.get(0);
             LDAPConfiguration.ApplicationContext appContext = conf.createApplicationContext(this);
             final LDAPAuthenticationManager manager = new LDAPAuthenticationManager();
-            manager.addDelegate(appContext.authenticationManager, "");
+            manager.addDelegate(appContext.authenticationManager, "", appContext.ldapUserSearch);
             return new SecurityComponents(
                     manager,
                     new LDAPUserDetailsService(appContext.ldapUserSearch, appContext.ldapAuthoritiesPopulator, conf.getGroupMembershipStrategy(), null)
@@ -773,32 +766,32 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * {@inheritDoc}
      */
     @Override
-    protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-        return updateUserDetails((UserDetails) getSecurityComponents().manager.authenticate(
-                new UsernamePasswordAuthenticationToken(fixUsername(username), password)).getPrincipal());
+    protected UserDetails authenticate2(String username, String password) throws AuthenticationException {
+        return updateUserDetails((UserDetails) getSecurityComponents().manager2.authenticate(
+                new UsernamePasswordAuthenticationToken(fixUsername(username), password)).getPrincipal(), null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return updateUserDetails(getSecurityComponents().userDetails.loadUserByUsername(fixUsername(username)));
+    public UserDetails loadUserByUsername2(String username) throws UsernameNotFoundException {
+        return updateUserDetails(getSecurityComponents().userDetails2.loadUserByUsername(fixUsername(username)), null);
     }
 
-    public Authentication updateUserDetails(Authentication authentication) {
-        updateUserDetails((UserDetails) authentication.getPrincipal());
-        return authentication;
+    public Authentication updateUserDetails(Authentication authentication, @CheckForNull LdapUserSearch ldapUserSearch) {
+        UserDetails userDetails = updateUserDetails((UserDetails) authentication.getPrincipal(), ldapUserSearch);
+        return new DelegatedLdapAuthentication(authentication, userDetails, authentication instanceof DelegatedLdapAuthentication ? ((DelegatedLdapAuthentication) authentication).getConfigurationId() : null);
     }
 
-    public UserDetails updateUserDetails(UserDetails userDetails) {
+    public UserDetails updateUserDetails(UserDetails userDetails, @CheckForNull LdapUserSearch ldapUserSearch) {
         if (userDetails instanceof LdapUserDetails) {
-            updateUserDetails((LdapUserDetails)userDetails);
+            return updateUserDetails((LdapUserDetails) userDetails, ldapUserSearch);
         }
         return userDetails;
     }
 
-    public LdapUserDetails updateUserDetails(LdapUserDetails d) {
+    public DelegatedLdapUserDetails updateUserDetails(LdapUserDetails d, @CheckForNull LdapUserSearch ldapUserSearch) {
         hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
         LDAPConfiguration configuration = getConfigurationFor(d);
         String displayNameAttributeName;
@@ -816,8 +809,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             displayNameAttributeName = DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
             mailAddressAttributeName = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
         }
+        Attributes attributes = DelegatedLdapUserDetails.getAttributes(d, ldapUserSearch);
         try {
-            Attribute attribute = d.getAttributes().get(displayNameAttributeName);
+            Attribute attribute = attributes.get(displayNameAttributeName);
             String displayName = attribute == null ? null : (String) attribute.get();
             if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName()) && !u.getFullName().equals(displayName)) {
                 u.setFullName(displayName);
@@ -827,7 +821,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
         if (!disableMailAddressResolver) {
             try {
-                Attribute attribute = d.getAttributes().get(mailAddressAttributeName);
+                Attribute attribute = attributes.get(mailAddressAttributeName);
                 String mailAddress = attribute == null ? null : (String) attribute.get();
                 if (StringUtils.isNotBlank(mailAddress)) {
                     UserProperty existing = u.getProperty(UserProperty.class);
@@ -840,16 +834,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 LOGGER.log(Level.WARNING, "Failed to associate the e-mail address", e);
             }
         }
-        return d;
+        return new DelegatedLdapUserDetails(d, d instanceof DelegatedLdapUserDetails ? ((DelegatedLdapUserDetails) d).configurationId : null, attributes);
     }
 
     @Override
-    public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
-        return loadGroupByGroupname(groupname, false);
-    }
-
-    @Override
-    public GroupDetails loadGroupByGroupname(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
+    public GroupDetails loadGroupByGroupname2(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
         groupname = fixGroupname(groupname);
         GroupDetailsImpl cachedGroup;
         if (cache != null) {
@@ -886,13 +875,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return group;
     }
 
-    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException, DataAccessException {
+    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
         for (LDAPConfiguration conf : configurations) {
             try {
                 String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
                 String searchFilter = conf.getGroupSearchFilter() != null ? conf.getGroupSearchFilter() : GROUP_SEARCH;
                 LDAPExtendedTemplate template = conf.getLdapTemplate();
-                GroupDetailsImpl groupDetails = (GroupDetailsImpl)template.searchForFirstEntry(searchBase, searchFilter,
+                GroupDetailsImpl groupDetails = template.searchForFirstEntry(searchBase, searchFilter,
                         new Object[]{groupname}, null, new GroupDetailsMapper());
                 if (groupDetails != null) {
                     if (fetchMembers) {
@@ -902,10 +891,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     return groupDetails;
                 }
             // Make sure we don't throw BadCredentialsException. Catch logic matches LDAPUserDetailsService#loadUserByUsername.
-            } catch (DataAccessException e) {
+            } catch (AuthenticationException e) {
                 throwUnlessConfigIsIgnorable(e, conf);
             } catch (RuntimeException e) {
-                throwUnlessConfigIsIgnorable(new LdapDataAccessException("Failed to search LDAP for group: " + groupname, e), conf);
+                throwUnlessConfigIsIgnorable(new UserMayOrMayNotExistException2("Failed to search LDAP for group: " + groupname, e), conf);
             }
         }
         throw new UsernameNotFoundException(groupname);
@@ -966,7 +955,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
     }
 
-    private static class GroupDetailsMapper implements LdapEntryMapper {
+    private static class GroupDetailsMapper implements LdapEntryMapper<GroupDetailsImpl> {
         @Override
         public GroupDetailsImpl mapAttributes(String dn, Attributes attributes) throws NamingException {
             LdapName name = new LdapName(dn);
@@ -1008,14 +997,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             this.detailsService = detailsService;
         }
 
-        private void addDelegate(final AuthenticationManager delegate, final String configurationId) {
-            this.delegates.add(new ManagerEntry(delegate, configurationId));
+        private void addDelegate(AuthenticationManager delegate, String configurationId, LdapUserSearch ldapUserSearch) {
+            this.delegates.add(new ManagerEntry(delegate, configurationId, ldapUserSearch));
         }
 
+        @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        try (SetContextClassLoader sccl = new SetContextClassLoader()) {
             if (delegates.size() == 1) {
                 try {
-                    return updateUserDetails(delegates.get(0).delegate.authenticate(authentication));
+                    return updateUserDetails(delegates.get(0).delegate.authenticate(authentication), delegates.get(0).ldapUserSearch);
                 } catch (AuthenticationServiceException e) {
                     LOGGER.log(Level.WARNING, "Failed communication with ldap server.", e);
                     throw e;
@@ -1025,7 +1016,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (ManagerEntry delegate : delegates) {
                 try {
                     Authentication a = delegate.delegate.authenticate(authentication);
-                    return updateUserDetails(new DelegatedLdapAuthentication(a, delegate.configurationId));
+                    Object principal = a.getPrincipal();
+                    if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
+                        principal = new DelegatedLdapUserDetails((LdapUserDetails) principal, delegate.configurationId);
+                    }
+                    return updateUserDetails(new DelegatedLdapAuthentication(a, principal, delegate.configurationId), delegate.ldapUserSearch);
                 } catch (BadCredentialsException e) {
                     if (detailsService != null && delegates.size() > 1) {
                         try {
@@ -1035,7 +1030,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             }
                         } catch (UsernameNotFoundException e1) {
                             lastException = e; //all is as intended, let's move along
-                        } catch (DataAccessException e1) {
+                        } catch (AuthenticationException e1) {
                             final LDAPConfiguration configuration = getConfigurationFor(delegate.configurationId);
                             throwUnlessConfigIsIgnorable(e1, configuration);
                             lastException = e;
@@ -1052,17 +1047,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             if (lastException != null) {
                 throw lastException;
             } else {
-                throw new UserMayOrMayNotExistException("No ldap server configuration", authentication);
+                throw new UserMayOrMayNotExistException2("No ldap server configuration");
             }
+        }
         }
 
         private class ManagerEntry {
             final AuthenticationManager delegate;
             final String configurationId;
+            final LdapUserSearch ldapUserSearch;
 
-            public ManagerEntry(AuthenticationManager delegate, String configurationId) {
+            ManagerEntry(AuthenticationManager delegate, String configurationId, LdapUserSearch ldapUserSearch) {
                 this.delegate = delegate;
                 this.configurationId = configurationId;
+                this.ldapUserSearch = ldapUserSearch;
             }
         }
     }
@@ -1070,15 +1068,17 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /*package access for testability*/
     static class DelegatedLdapAuthentication implements Authentication {
         private final Authentication delegate;
+        private final Object principal;
         private final String configurationId;
 
-        public DelegatedLdapAuthentication(Authentication delegate, String configurationId) {
+        DelegatedLdapAuthentication(Authentication delegate, Object principal, String configurationId) {
             this.delegate = delegate;
+            this.principal = principal;
             this.configurationId = configurationId;
         }
 
         @Override
-        public GrantedAuthority[] getAuthorities() {
+        public Collection<? extends GrantedAuthority> getAuthorities() {
             return delegate.getAuthorities();
         }
 
@@ -1094,12 +1094,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Override
         public Object getPrincipal() {
-            Object principal = delegate.getPrincipal();
-            if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
-                return new DelegatedLdapUserDetails((LdapUserDetails) principal, this.configurationId);
-            } else {
-                return principal;
-            }
+            return principal;
         }
 
         @Override
@@ -1130,21 +1125,19 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
+        @CheckForNull
         private final String configurationId;
+        @CheckForNull
+        private final Attributes attributes;
 
-        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @Nonnull String configurationId) {
+        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @CheckForNull String configurationId) {
+            this(userDetails, configurationId, null);
+        }
+
+        public DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @CheckForNull String configurationId, @CheckForNull Attributes attributes) {
             this.userDetails = userDetails;
             this.configurationId = configurationId;
-        }
-
-        @Override
-        public Attributes getAttributes() {
-            return userDetails.getAttributes();
-        }
-
-        @Override
-        public Control[] getControls() {
-            return userDetails.getControls();
+            this.attributes = attributes;
         }
 
         @Override
@@ -1153,7 +1146,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public GrantedAuthority[] getAuthorities() {
+        public Collection<? extends GrantedAuthority> getAuthorities() {
             return userDetails.getAuthorities();
         }
 
@@ -1191,9 +1184,31 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return userDetails;
         }
 
+        @CheckForNull
         public String getConfigurationId() {
             return configurationId;
         }
+
+        public static Attributes getAttributes(LdapUserDetails details, @CheckForNull LdapUserSearch ldapUserSearch) {
+            if (details instanceof DelegatedLdapUserDetails && ((DelegatedLdapUserDetails) details).attributes != null) {
+                return ((DelegatedLdapUserDetails) details).attributes;
+            } else {
+                if (ldapUserSearch != null) {
+                    try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+                        return ldapUserSearch.searchForUser(details.getUsername()).getAttributes();
+                    } catch (UsernameNotFoundException x) {
+                        // ignore
+                    }
+                }
+                return new BasicAttributes();
+            }
+        }
+
+        @Override
+        public void eraseCredentials() {
+            userDetails.eraseCredentials();
+        }
+
     }
 
     private static class DelegateLDAPUserDetailsService implements UserDetailsService {
@@ -1217,20 +1232,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * @param username the username to search
          * @return the user details or {@code null} if the server configuration could not be found
          * @throws UsernameNotFoundException if the user could not be found on the given server
-         * @throws DataAccessException if some communication error occurred
          * @see #loadUserByUsername(String)
          */
-        public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException, DataAccessException {
+        public DelegatedLdapUserDetails loadUserByUsername(String configurationId, String username) throws UsernameNotFoundException {
             for (LDAPUserDetailsService delegate : delegates) {
                 if (delegate.configurationId.equals(configurationId)) {
                     try {
-                        LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                        if (userDetails instanceof DelegatedLdapUserDetails) {
-                            return (DelegatedLdapUserDetails)userDetails;
-                        } else {
-                            return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
-                        }
-                    } catch (DataAccessException e) {
+                        return delegate.loadUserByUsername(username);
+                    } catch (AuthenticationException e) {
                         final LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
                         LOGGER.log(Level.WARNING,
                                 String.format("Failed communication with ldap server %s (%s)",
@@ -1244,21 +1253,16 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             UsernameNotFoundException lastUNFE = null;
             for (LDAPUserDetailsService delegate : delegates) {
                 try {
-                    LdapUserDetails userDetails = delegate.loadUserByUsername(username);
-                    if (userDetails instanceof DelegatedLdapUserDetails) {
-                        return userDetails;
-                    } else {
-                        return new DelegatedLdapUserDetails(userDetails, delegate.configurationId);
-                    }
+                    return delegate.loadUserByUsername(username);
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
-                } catch (DataAccessException e) {
+                } catch (AuthenticationException e) {
                     LDAPConfiguration configuration = _getConfigurationFor(delegate.configurationId);
-                    throwUnlessConfigIsIgnorable(e, configuration);
+                    throwUnlessConfigIsIgnorable(new UserMayOrMayNotExistException2(e.toString(), e), configuration);
                 }
             }
             if (lastUNFE != null) {
@@ -1294,19 +1298,20 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only on newer core versions") //TODO remove when core is bumped
-        public LdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+        @Override
+        public DelegatedLdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             username = fixUsername(username);
-            try {
+            try (SetContextClassLoader sccl = new SetContextClassLoader()) {
                 final Jenkins jenkins = Jenkins.getInstance();
                 final SecurityRealm securityRealm = jenkins == null ? null : jenkins.getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
-                        && (securityRealm.getSecurityComponents().userDetails == this
-                        || (securityRealm.getSecurityComponents().userDetails instanceof DelegateLDAPUserDetailsService
-                        && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails).contains(this))
+                        && (securityRealm.getSecurityComponents().userDetails2 == this
+                        || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
+                        && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails2).contains(this))
                         )) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
                     if (ldapSecurityRealm.cache != null) {
-                        final CacheEntry<LdapUserDetails> cached;
+                        final CacheEntry<DelegatedLdapUserDetails> cached;
                         synchronized (ldapSecurityRealm) {
                             cached = (ldapSecurityRealm.userDetailsCache != null) ? ldapSecurityRealm.userDetailsCache
                                     .get(username) : null;
@@ -1316,42 +1321,39 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         }
                     }
                 }
-                LdapUserDetails ldapUser = ldapSearch.searchForUser(username);
+                DirContextOperations ldapUser = ldapSearch.searchForUser(username);
                 // LdapUserSearch does not populate granted authorities (group search).
                 // Add those, as done in LdapAuthenticationProvider.createUserDetails().
-                if (ldapUser != null) {
                     LdapUserDetailsImpl.Essence user = new LdapUserDetailsImpl.Essence(ldapUser);
+                    user.setUsername(username);
+                    user.setDn(ldapUser.getNameInNamespace()); // otherwise the DN is missing the DC
 
                     // intern attributes
                     Attributes v = ldapUser.getAttributes();
-                    if (v instanceof BasicAttributes) {// BasicAttributes.equals is what makes the interning possible
-                        synchronized (attributesCache) {
-                            Attributes vv = (Attributes)attributesCache.get(v);
-                            if (vv==null)   attributesCache.put(v,vv=v);
-                            user.setAttributes(vv);
+                    synchronized (attributesCache) {
+                        Attributes vv = (Attributes)attributesCache.get(v);
+                        if (vv == null) {
+                            attributesCache.put(v, v);
+                        } else {
+                            v = vv;
                         }
                     }
 
-                    GrantedAuthority[] extraAuthorities = groupMembershipStrategy == null
-                            ? authoritiesPopulator.getGrantedAuthorities(ldapUser)
-                            : groupMembershipStrategy.getGrantedAuthorities(ldapUser);
+                    Collection<? extends GrantedAuthority> extraAuthorities = groupMembershipStrategy == null
+                            ? authoritiesPopulator.getGrantedAuthorities(ldapUser, username)
+                            : groupMembershipStrategy.getGrantedAuthorities(ldapUser, username);
                     for (GrantedAuthority extraAuthority : extraAuthorities) {
                         if (FORCE_GROUPNAME_LOWERCASE) {
-                            user.addAuthority(new GrantedAuthorityImpl(extraAuthority.getAuthority().toLowerCase()));
+                            user.addAuthority(new SimpleGrantedAuthority(extraAuthority.getAuthority().toLowerCase()));
                         } else {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                    if (StringUtils.isNotEmpty(configurationId)) {
-                        ldapUser = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId);
-                    } else {
-                        ldapUser = user.createUserDetails();
-                    }
-                }
+                DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), StringUtils.isNotEmpty(configurationId) ? configurationId : null, v);
                 if (securityRealm instanceof LDAPSecurityRealm
-                        && (securityRealm.getSecurityComponents().userDetails == this
-                            || (securityRealm.getSecurityComponents().userDetails instanceof DelegateLDAPUserDetailsService
-                                && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails).contains(this))
+                        && (securityRealm.getSecurityComponents().userDetails2 == this
+                            || (securityRealm.getSecurityComponents().userDetails2 instanceof DelegateLDAPUserDetailsService
+                                && ((DelegateLDAPUserDetailsService) securityRealm.getSecurityComponents().userDetails2).contains(this))
                                )
                         ) {
                     LDAPSecurityRealm ldapSecurityRealm = (LDAPSecurityRealm) securityRealm;
@@ -1359,26 +1361,29 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         synchronized (ldapSecurityRealm) {
                             if (ldapSecurityRealm.userDetailsCache == null) {
                                 ldapSecurityRealm.userDetailsCache =
-                                        new CacheMap<String, LdapUserDetails>(ldapSecurityRealm.cache.getSize());
+                                        new CacheMap<String, DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getSize());
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
-                                    new CacheEntry<LdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
-                                            ldapSecurityRealm.updateUserDetails(ldapUser)));
+                                    new CacheEntry<DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
+                                            ldapSecurityRealm.updateUserDetails(ldapUserDetails, ldapSearch)));
                         }
                     }
                 }
 
-                return ldapUser;
-            } catch (DataAccessException | UsernameNotFoundException x) {
+                return ldapUserDetails;
+            } catch (UsernameNotFoundException x) {
                 throw x;
             } catch (RuntimeException x) {
-                throw new LdapDataAccessException("Failed to search LDAP for " + username, x);
+                throw new AuthenticationServiceException("Failed to search LDAP for " + username, x);
             }
         }
     }
 
     /**
      * If the security realm is LDAP, try to pick up e-mail address from LDAP.
+     * <p>TODO tests of {@link MailAddressResolver} pass even if this is deleted,
+     * since {@link #updateUserDetails(LdapUserDetails, LdapUserSearch)} adds a {@link Mailer.UserProperty}
+     * which takes precedence over resolver extensions!
      */
     @Extension
     public static final class MailAdressResolverImpl extends MailAddressResolver {
@@ -1397,7 +1402,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return null;
             }
             try {
-                LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails.loadUserByUsername(u.getId());
+                LdapUserDetails details = (LdapUserDetails)realm.getSecurityComponents().userDetails2.loadUserByUsername(u.getId());
                 final LDAPConfiguration configuration = ((LDAPSecurityRealm) realm).getConfigurationFor(details);
                 String attr;
                 if (configuration != null) {
@@ -1408,10 +1413,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 } else {
                     attr = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
                 }
-                Attribute mail = details.getAttributes().get(attr);
+                Attribute mail = DelegatedLdapUserDetails.getAttributes(details, /* probably already a DelegatedLdapUserDetails instance */null).get(attr);
                 if(mail==null)  return null;    // not found
                 return (String)mail.get();
-            } catch (DataAccessException | NamingException | AcegiSecurityException e) {
+            } catch (NamingException | AuthenticationException e) {
                 LOGGER.log(Level.FINE, "Failed to look up LDAP for e-mail address",e);
                 return null;
             }
@@ -1441,11 +1446,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails userDetails) throws LdapDataAccessException {
+        public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
             if (strategy.getAuthoritiesPopulator() != populator) {
                 strategy.setAuthoritiesPopulator(populator);
             }
-            return strategy.getGrantedAuthorities(userDetails);
+            return strategy.getGrantedAuthorities(userData, username);
         }
 
     }
@@ -1454,21 +1459,21 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * {@link LdapAuthoritiesPopulator} that adds the automatic 'authenticated' role.
      */
     public static final class AuthoritiesPopulatorImpl extends DefaultLdapAuthoritiesPopulator {
-        // Make these available (private in parent class and no get methods!)
+        // None of this makes a whole lot of sense (setting super to disable but then reimplementing), but tests expect it so…
         String rolePrefix = "ROLE_";
         boolean convertToUpperCase = true;
         private GrantedAuthority defaultRole = null;
 
-        public AuthoritiesPopulatorImpl(InitialDirContextFactory initialDirContextFactory, String groupSearchBase) {
-            super(initialDirContextFactory, fixNull(groupSearchBase));
+        public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase) {
+            super(contextSource, fixNull(groupSearchBase));
 
             super.setRolePrefix("");
             super.setConvertToUpperCase(false);
         }
 
         @Override
-        public Set getAdditionalRoles(LdapUserDetails ldapUser) {
-            return Collections.singleton(AUTHENTICATED_AUTHORITY);
+        public Set<GrantedAuthority> getAdditionalRoles(DirContextOperations user, String username) {
+            return Collections.singleton(AUTHENTICATED_AUTHORITY2);
         }
 
         @Override
@@ -1491,7 +1496,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * then do the backward compatible translation here, so that the user gets both "ROLE_GROUPNAME" and "groupName".
          */
         @Override
-        public Set getGroupMembershipRoles(String userDn, String username) {
+        public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
             Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
@@ -1504,7 +1509,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     // backward compatible name mangling
                     if (convertToUpperCase)
                         role = role.toUpperCase();
-                    r.add(new GrantedAuthorityImpl(rolePrefix + role));
+                    r.add(new SimpleGrantedAuthority(rolePrefix + role));
                 }
             }
 
@@ -1515,11 +1520,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return StringUtils.isNotBlank(rolePrefix) || convertToUpperCase;
         }
 
-        public boolean isConvertToUpperCase() {
+        public boolean _isConvertToUpperCase() {
             return convertToUpperCase;
         }
 
-        public String getRolePrefix() {
+        public String _getRolePrefix() {
             return rolePrefix;
         }
 
@@ -1527,10 +1532,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return defaultRole;
         }
 
+        @Override
         public void setDefaultRole(String defaultRole) {
-            // capture the default role in the event that legacy bean binding scripts are configuring it
             super.setDefaultRole(defaultRole);
-            this.defaultRole = new GrantedAuthorityImpl(defaultRole);
+            this.defaultRole = new SimpleGrantedAuthority(defaultRole);
         }
     }
 
@@ -1677,7 +1682,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             LdapUserDetails loginDetails = null;
             try {
                 // need to access direct so as not to update the user details
-                loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager.authenticate(
+                loginDetails = (LdapUserDetails) realm.getSecurityComponents().manager2.authenticate(
                         new UsernamePasswordAuthenticationToken(fixUsername(user), password)).getPrincipal();
                 ok(response, "authentication",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationSuccessful());
@@ -1712,18 +1717,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 for (GrantedAuthority a : loginDetails.getAuthorities()) {
                     loginAuthorities.add(a.getAuthority());
                 }
-                if (loginDetails.getAuthorities().length < 1) {
+                if (loginDetails.getAuthorities().size() < 1) {
                     error(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
                     // we do not flag this error as may be legitimate config
-                } else if (loginDetails.getAuthorities().length == 1) {
+                } else if (loginDetails.getAuthorities().size() == 1) {
                     warning(response, "authentication-groups",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembershipDetail());
                 } else {
                     List<String> authorities = new ArrayList<>();
                     for (GrantedAuthority a : loginDetails.getAuthorities()) {
-                        if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                        if (AUTHENTICATED_AUTHORITY2.equals(a)) {
                             continue;
                         }
                         authorities.add("<code>"+ Util.escape(a.getAuthority()) + "</code>");
@@ -1742,11 +1747,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             try {
                 // need to access direct so as not to update the user details
                 lookUpDetails =
-                        (LdapUserDetails) realm.getSecurityComponents().userDetails
+                        (LdapUserDetails) realm.getSecurityComponents().userDetails2
                                 .loadUserByUsername(fixUsername(user));
                 ok(response, "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSuccessful());
-            } catch (UserMayOrMayNotExistException e1) {
+            } catch (UserMayOrMayNotExistException2 e1) {
                 rsp(response, loginDetails == null ? "warning" : "error", "lookup",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupInconclusive(user),
                         isAnyManagerBlank(realm)
@@ -1764,7 +1769,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 .LDAPSecurityRealm_UserLookupManagerDnPermissions(),
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserLookupSettingsCorrect());
                 // we do not flag these errors as could be probing user accounts
-            } catch (LdapDataAccessException e) {
+            } catch (AuthenticationException e) {
                 Throwable cause = e.getCause();
                 while (cause != null && !(cause instanceof BadCredentialsException)) {
                     cause = cause.getCause();
@@ -1816,18 +1821,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
                 if (loginDetails == null || !loginAuthorities.equals(lookupAuthorities)) {
                     // report the group details if different or if we did not login
-                    if (lookUpDetails.getAuthorities().length < 1) {
+                    if (lookUpDetails.getAuthorities().size() < 1) {
                         error(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NoGroupMembership());
                         // we do not flag this error as may be legitimate
-                    } else if (lookUpDetails.getAuthorities().length == 1) {
+                    } else if (lookUpDetails.getAuthorities().size() == 1) {
                         warning(response, "lookup-groups",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembership(),
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_BasicGroupMembershipDetail());
                     } else {
                         List<String> authorities = new ArrayList<>();
                         for (GrantedAuthority a : lookUpDetails.getAuthorities()) {
-                            if (AUTHENTICATED_AUTHORITY.equals(a)) {
+                            if (AUTHENTICATED_AUTHORITY2.equals(a)) {
                                 continue;
                             }
                             authorities.add("<code>" + Util.escape(a.getAuthority()) + "</code>");
@@ -1857,16 +1862,18 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                     loginDetails.getDn(), lookUpDetails.getDn()));
                     potentialLockout = true; // consistency is important
                 }
+                Attributes loginAttributes = DelegatedLdapUserDetails.getAttributes(loginDetails, null);
+                Attributes lookupAttributes = DelegatedLdapUserDetails.getAttributes(lookUpDetails, null);
                 // display name
                 if (StringUtils.isNotBlank(loginConfiguration.getDisplayNameAttributeName())) {
-                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getDisplayNameAttributeName());
+                    Attribute loginAttr = loginAttributes.get(loginConfiguration.getDisplayNameAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getDisplayNameAttributeName());
+                    Attribute lookUpAttr = lookupAttributes.get(lookupConfiguration.getDisplayNameAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1883,14 +1890,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 // email address
                 if (!realm.disableMailAddressResolver && StringUtils.isNotBlank(loginConfiguration.getMailAddressAttributeName()))
                 {
-                    Attribute loginAttr = loginDetails.getAttributes().get(loginConfiguration.getMailAddressAttributeName());
+                    Attribute loginAttr = loginAttributes.get(loginConfiguration.getMailAddressAttributeName());
                     Object loginValue;
                     try {
                         loginValue = loginAttr == null ? null : loginAttr.get();
                     } catch (NamingException e) {
                         loginValue = e.getClass();
                     }
-                    Attribute lookUpAttr = lookUpDetails.getAttributes().get(lookupConfiguration.getMailAddressAttributeName());
+                    Attribute lookUpAttr = lookupAttributes.get(lookupConfiguration.getMailAddressAttributeName());
                     Object lookUpValue;
                     try {
                         lookUpValue = lookUpAttr == null ? null : lookUpAttr.get();
@@ -1918,10 +1925,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             Set<String> groups = new HashSet<>(loginAuthorities);
             Set<String> badGroups = new TreeSet<>();
             groups.addAll(lookupAuthorities);
-            groups.remove(AUTHENTICATED_AUTHORITY.getAuthority());
+            groups.remove(AUTHENTICATED_AUTHORITY2.getAuthority());
             for (String group : groups) {
                 try {
-                    realm.loadGroupByGroupname(group);
+                    realm.loadGroupByGroupname2(group, false);
                 } catch (UsernameNotFoundException e) {
                     badGroups.add(group);
                 }
@@ -1972,10 +1979,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private void validateEmailAddress(LDAPConfiguration configuration, StringBuilder response,
                                           LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(configuration.getMailAddressAttributeName());
+            Attributes attributes = DelegatedLdapUserDetails.getAttributes(details, null);
+            Attribute attribute = attributes.get(configuration.getMailAddressAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
-                for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                for (Attribute attr : Collections.list(attributes.getAll())) {
                     alternatives.add("<code>"+Util.escape(attr.getID())+"</code>");
                 }
                 warning(response, testId,
@@ -1995,7 +2003,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 ));
                     } else {
                         List<String> alternatives = new ArrayList<>();
-                        for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                        for (Attribute attr : Collections.list(attributes.getAll())) {
                             alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
@@ -2008,7 +2016,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
-                    for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                    for (Attribute attr : Collections.list(attributes.getAll())) {
                         alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,
@@ -2024,10 +2032,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private void validateDisplayName(LDAPConfiguration configuration, StringBuilder response,
                                          LdapUserDetails details, String testId) {
-            Attribute attribute = details.getAttributes().get(configuration.getDisplayNameAttributeName());
+            Attributes attributes = DelegatedLdapUserDetails.getAttributes(details, null);
+            Attribute attribute = attributes.get(configuration.getDisplayNameAttributeName());
             if (attribute == null) {
                 List<String> alternatives = new ArrayList<>();
-                for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                for (Attribute attr : Collections.list(attributes.getAll())) {
                     alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                 }
                 warning(response, testId,
@@ -2047,7 +2056,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                                 ));
                     } else {
                         List<String> alternatives = new ArrayList<>();
-                        for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                        for (Attribute attr : Collections.list(attributes.getAll())) {
                             alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                         }
                         warning(response, testId,
@@ -2060,7 +2069,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 } catch (NamingException e) {
                     List<String> alternatives = new ArrayList<>();
-                    for (Attribute attr : Collections.list(details.getAttributes().getAll())) {
+                    for (Attribute attr : Collections.list(attributes.getAll())) {
                         alternatives.add("<code>" + Util.escape(attr.getID()) + "</code>");
                     }
                     error(response, testId,

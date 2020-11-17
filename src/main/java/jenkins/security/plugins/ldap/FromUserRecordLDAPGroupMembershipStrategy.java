@@ -26,13 +26,11 @@ package jenkins.security.plugins.ldap;
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
 import java.util.Set;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
+import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
@@ -40,6 +38,7 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -67,9 +66,9 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     }
 
     @Override
-    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails ldapUser) {
+    public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
         List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
-        Attributes attributes = ldapUser.getAttributes();
+        Attributes attributes = userData.getAttributes();
         final String attributeName = getAttributeName();
         Attribute attribute = attributes == null ? null : attributes.get(attributeName);
         if (attribute != null) {
@@ -82,7 +81,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     } catch (InvalidNameException e) {
                         LOGGER.log(Level.FINEST, "Expected a Group DN but found: {0}", groupName);
                     }
-                    result.add(new GrantedAuthorityImpl(groupName));
+                    result.add(new SimpleGrantedAuthority(groupName));
                 }
             } catch (NamingException e) {
                 LogRecord lr = new LogRecord(Level.FINE,
@@ -102,37 +101,37 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
                     String role = ga.getAuthority();
 
                     // backward compatible name mangling
-                    if (authoritiesPopulatorImpl.isConvertToUpperCase()) {
+                    if (authoritiesPopulatorImpl._isConvertToUpperCase()) {
                         role = role.toUpperCase();
                     }
-                    GrantedAuthorityImpl extraAuthority = new GrantedAuthorityImpl(
-                            authoritiesPopulatorImpl.getRolePrefix() + role);
+                    GrantedAuthority extraAuthority = new SimpleGrantedAuthority(
+                            authoritiesPopulatorImpl._getRolePrefix() + role);
                     result.add(extraAuthority);
                 }
             }
-            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(ldapUser));
+            result.addAll(authoritiesPopulatorImpl.getAdditionalRoles(userData, username));
             GrantedAuthority defaultRole = authoritiesPopulatorImpl.getDefaultRole();
             if (defaultRole != null) {
                 result.add(defaultRole);
             }
         }
 
-        return result.toArray(new GrantedAuthority[result.size()]);
+        return result;
     }
 
     @Override
-    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) throws DataAccessException {
+    public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
         String searchBase = conf.getUserSearchBase() != null ? conf.getUserSearchBase() : "";
         String[] filterArgs = { getAttributeName(), groupDn };
-        return new HashSet<>((List<String>)template.searchForAllEntries(searchBase, USER_SEARCH_FILTER,
+        return new HashSet<>(template.searchForAllEntries(searchBase, USER_SEARCH_FILTER,
                 filterArgs, new String[]{}, new UserRecordMapper()));
     }
 
     /**
      * Maps users records to names.
      */
-    private static class UserRecordMapper implements LdapEntryMapper {
+    private static class UserRecordMapper implements LdapEntryMapper<String> {
         @Override
         public String mapAttributes(String dn, Attributes attributes) throws NamingException {
             LdapName name = new LdapName(dn);

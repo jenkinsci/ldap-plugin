@@ -39,23 +39,20 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
-import javax.naming.directory.BasicAttributes;
-
 import hudson.util.Secret;
+import javax.naming.InvalidNameException;
+import javax.naming.directory.BasicAttributes;
+import javax.naming.ldap.LdapName;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.ldap.LdapDataAccessException;
-import org.acegisecurity.ldap.LdapUserSearch;
-import org.acegisecurity.providers.ldap.LdapAuthoritiesPopulator;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
-import org.acegisecurity.userdetails.ldap.LdapUserDetailsImpl;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.springframework.ldap.core.DirContextAdapter;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public class LDAPSecurityRealmTest {
 
@@ -63,34 +60,24 @@ public class LDAPSecurityRealmTest {
     public JenkinsRule r = new JenkinsRule();
 
     @Test
-    public void sessionStressTest() {
+    public void attributesCache() {
         LDAPSecurityRealm.LDAPUserDetailsService s = new LDAPSecurityRealm.LDAPUserDetailsService(
-                new LdapUserSearch() {
-                    @Override
-                    public LdapUserDetails searchForUser(String username) {
-                        LdapUserDetailsImpl.Essence e = new LdapUserDetailsImpl.Essence();
-                        e.setUsername((String) username);
-                        BasicAttributes ba = new BasicAttributes();
-                        ba.put("test", username);
-                        ba.put("xyz", "def");
-                        e.setAttributes(ba);
-                        return e.createUserDetails();
-                    }
-                },
-                new LdapAuthoritiesPopulator() {
-                    @Override
-                    public GrantedAuthority[] getGrantedAuthorities(LdapUserDetails userDetails)
-                            throws LdapDataAccessException {
-                        return new GrantedAuthority[0];
-                    }
+            username -> {
+                BasicAttributes ba = new BasicAttributes();
+                ba.put("test", username);
+                ba.put("xyz", "def");
+                try {
+                    return new DirContextAdapter(ba, new LdapName("dn=" + username));
+                } catch (InvalidNameException x) {
+                    throw new UsernameNotFoundException(x.toString(), x);
                 }
-        );
-        LdapUserDetails d1 = s.loadUserByUsername("me");
-        LdapUserDetails d2 = s.loadUserByUsername("you");
-        LdapUserDetails d3 = s.loadUserByUsername("me");
+            }, (userData, username) -> Collections.emptySet());
+        LDAPSecurityRealm.DelegatedLdapUserDetails d1 = s.loadUserByUsername("me");
+        LDAPSecurityRealm.DelegatedLdapUserDetails d2 = s.loadUserByUsername("you");
+        LDAPSecurityRealm.DelegatedLdapUserDetails d3 = s.loadUserByUsername("me");
         // caching should reuse the same attributes
-        assertSame(d1.getAttributes(), d3.getAttributes());
-        assertNotSame(d1.getAttributes(), d2.getAttributes());
+        assertSame(LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d1, null), LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d3, null));
+        assertNotSame(LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d1, null), LDAPSecurityRealm.DelegatedLdapUserDetails.getAttributes(d2, null));
     }
 
     @LocalData
@@ -105,7 +92,7 @@ public class LDAPSecurityRealmTest {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
         LDAPConfiguration cnf = sr.getConfigurationFor("s");
         assertEquals("s", cnf.getServer());
-        assertEquals("rDN", cnf.getRootDN());
+        assertEquals("rDN=x", cnf.getRootDN());
         assertEquals("uSB", cnf.getUserSearchBase());
         assertEquals("uS", cnf.getUserSearch());
         assertEquals("gSB", cnf.getGroupSearchBase());
@@ -192,7 +179,7 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTrip() throws Exception {
         final String server = "ldap.itd.umich.edu";
-        final String rootDN = "ou=umich,ou.edu";
+        final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
         final String managerSecret = "secret";
@@ -251,8 +238,8 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripTwo() throws Exception {
         TestConf[] confs = new TestConf[2];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -293,8 +280,8 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTwoThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[2];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -336,9 +323,9 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripThreeSameId() throws Exception {
         TestConf[] confs = new TestConf[3];
-        confs[0] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
-        confs[1] = new TestConf("ldap2.example.com", "ou=example2,ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
-        confs[2] = new TestConf("ldap.example.com", "ou=example,ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
+        confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
+        confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
+        confs[2] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
         for (int i = 0; i < confs.length; i++) {
             TestConf conf = confs[i];
@@ -381,7 +368,7 @@ public class LDAPSecurityRealmTest {
     @Test
     public void configRoundTripEnvironmentProperties() throws Exception {
         final String server = "ldap.itd.umich.edu";
-        final String rootDN = "ou=umich,ou.edu";
+        final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
         final String managerSecret = "secret";

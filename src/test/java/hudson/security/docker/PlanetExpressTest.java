@@ -4,7 +4,7 @@ import hudson.Functions;
 import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.Secret;
-import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jenkinsci.test.acceptance.docker.DockerContainer;
 import org.jenkinsci.test.acceptance.docker.DockerFixture;
 import org.jenkinsci.test.acceptance.docker.DockerRule;
@@ -42,7 +42,7 @@ public class PlanetExpressTest {
         assertThat(content, containsString("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertEquals("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com", zoidberg.getDn());
 
         String leelaEmail = MailAddressResolver.resolve(j.jenkins.getUser("leela"));

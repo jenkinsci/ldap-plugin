@@ -27,7 +27,6 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.security.LDAPSecurityRealm.CacheConfiguration;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
-import org.acegisecurity.ldap.LdapEntryMapper;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.Rule;

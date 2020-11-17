@@ -24,31 +24,26 @@
 
 package jenkins.security.plugins.ldap;
 
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.ldap.InitialDirContextFactory;
-import org.acegisecurity.ldap.LdapCallback;
-import org.acegisecurity.ldap.LdapDataAccessException;
-import org.acegisecurity.ldap.LdapEntryMapper;
-import org.acegisecurity.ldap.LdapTemplate;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.springframework.dao.DataAccessException;
+import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.LdapTemplate;
+import org.springframework.security.authentication.AuthenticationServiceException;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
 @Restricted(NoExternalUse.class)
 public class LDAPExtendedTemplate extends LdapTemplate {
 
-    public LDAPExtendedTemplate(InitialDirContextFactory dirContextFactory) {
+    public LDAPExtendedTemplate(ContextSource dirContextFactory) {
         super(dirContextFactory);
     }
 
@@ -64,16 +59,14 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      *
      * @return the first matching entry converted using the specified {@link LdapEntryMapper}, or null if no matching
      * entry was found.
-     *
-     * @see LdapTemplate#searchForSingleEntry
      */
-    public @CheckForNull Object searchForFirstEntry(@Nonnull final String base, @Nonnull final String filter,
-            final Object[] filterArgs, final String[] attributeNames, @Nonnull final LdapEntryMapper mapper)
-            throws DataAccessException {
-        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
+    public <T> @CheckForNull T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
+            final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
+        try (SetContextClassLoader sccl = new SetContextClassLoader();
+                SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             return searchEnum.hasMore() ? searchEnum.next() : null;
         } catch (NamingException e) {
-            throw new LdapDataAccessException("Unable to get first element", e);
+            throw new AuthenticationServiceException("Unable to get first element", e);
         }
     }
 
@@ -88,40 +81,30 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      * @param mapper the {@link LdapEntryMapper} that will convert the search results into returned values. Must not be null.
      *
      * @return a List of matching entries converted using the specified {@link LdapEntryMapper}.
-     *
-     * @see LdapTemplate#searchForSingleEntry
      */
-    public @Nonnull List<? extends Object> searchForAllEntries(@Nonnull final String base, @Nonnull final String filter,
-            final Object[] filterArgs, final String[] attributeNames, @Nonnull final LdapEntryMapper mapper)
-            throws DataAccessException {
-        List<Object> results = new ArrayList<>();
-        try (SearchResultEnumeration searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
+    public @NonNull <T> List<? extends T> searchForAllEntries(@NonNull final String base, @NonNull final String filter,
+            final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
+        List<T> results = new ArrayList<>();
+        try (SetContextClassLoader sccl = new SetContextClassLoader();
+                SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             while (searchEnum.hasMore()) {
                 results.add(searchEnum.next());
             }
         } catch (NamingException e) {
-            throw new LdapDataAccessException("Error processing search results", e);
+            throw new AuthenticationServiceException("Error processing search results", e);
         }
         return results;
     }
 
-    private @Nonnull SearchResultEnumeration searchForAllEntriesEnum(@Nonnull final String base, @Nonnull final String filter,
-            final Object[] params, final String[] attributeNames, @Nonnull final LdapEntryMapper mapper)
-            throws DataAccessException {
-        try {
-            return (SearchResultEnumeration)execute(new LdapCallback() {
-                @Override
-                public SearchResultEnumeration doInDirContext(DirContext ctx) throws NamingException {
-                    SearchControls controls = new SearchControls();
-                    controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-                    controls.setReturningAttributes(attributeNames);
-                    NamingEnumeration<SearchResult> searchResults = ctx.search(base, filter, params, controls);
-                    return new SearchResultEnumeration(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
-                }
-            });
-        } catch (AuthenticationException e) {
-            throw new LdapDataAccessException("Failed to search LDAP", e);
-        }
+    private @NonNull <T> SearchResultEnumeration<T> searchForAllEntriesEnum(@NonNull final String base, @NonNull final String filter,
+            final Object[] params, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
+        return executeReadOnly(ctx -> {
+            SearchControls controls = new SearchControls();
+            controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+            controls.setReturningAttributes(attributeNames);
+            NamingEnumeration<SearchResult> searchResults = ctx.search(base, filter, params, controls);
+            return new SearchResultEnumeration<T>(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
+        });
     }
 
     private String getDnSuffix(String base, String nameInNamespace) {
@@ -135,13 +118,13 @@ public class LDAPExtendedTemplate extends LdapTemplate {
         return suffix.toString();
     }
 
-    private static final class SearchResultEnumeration implements AutoCloseable, NamingEnumeration {
+    private static final class SearchResultEnumeration<T> implements AutoCloseable, NamingEnumeration<T> {
 
         private final NamingEnumeration<SearchResult> searchResults;
-        private final LdapEntryMapper mapper;
+        private final LdapEntryMapper<T> mapper;
         private final String dnSuffix;
 
-        public SearchResultEnumeration(NamingEnumeration<SearchResult> searchResults, LdapEntryMapper mapper, String dnSuffix) {
+        SearchResultEnumeration(NamingEnumeration<SearchResult> searchResults, LdapEntryMapper<T> mapper, String dnSuffix) {
             this.searchResults = searchResults;
             this.mapper = mapper;
             this.dnSuffix = dnSuffix;
@@ -158,7 +141,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
         }
 
         @Override
-        public Object next() throws NamingException {
+        public T next() throws NamingException {
             SearchResult searchResult = searchResults.next();
             return mapper.mapAttributes(searchResult.getName() + dnSuffix, searchResult.getAttributes());
         }
@@ -168,16 +151,16 @@ public class LDAPExtendedTemplate extends LdapTemplate {
             try {
                 return hasMore();
             } catch (NamingException e) {
-                throw new LdapDataAccessException("Unable to check for more elements", e);
+                throw new AuthenticationServiceException("Unable to check for more elements", e);
             }
         }
 
         @Override
-        public Object nextElement() {
+        public T nextElement() {
             try {
                 return next();
             } catch (NamingException e) {
-                throw new LdapDataAccessException("Unable to get next element", e);
+                throw new AuthenticationServiceException("Unable to get next element", e);
             }
         }
     }
