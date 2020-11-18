@@ -84,7 +84,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     public Set<String> getGroupMembers(String groupDn, LDAPConfiguration conf) {
         LDAPExtendedTemplate template = conf.getLdapTemplate();
         String[] memberAttributes = { "member", "uniqueMember", "memberUid" };
-        return template.executeReadOnly(ctx -> new GroupMembersMapper().mapAttributes(groupDn, ctx.getAttributes(LdapUtils.getRelativeName(groupDn, ctx), memberAttributes)));
+        return template.executeReadOnly(ctx -> mapAttributes(groupDn, ctx.getAttributes(LdapUtils.getRelativeName(groupDn, ctx), memberAttributes)));
     }
 
     @Extension
@@ -99,9 +99,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     /**
      * Maps member attributes in groups to a set of member names.
      */
-    private static class GroupMembersMapper implements LdapEntryMapper<Set<String>> {
-        @Override
-        public Set<String> mapAttributes(String dn, Attributes attributes) throws NamingException {
+        private static Set<String> mapAttributes(String dn, Attributes attributes) throws NamingException {
             NamingEnumeration<?> enumeration;
             boolean expectingUidInsteadOfDn = false;
             if (attributes.get("member") != null) {
@@ -131,5 +129,4 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
             }
             return members;
         }
-    }
 }

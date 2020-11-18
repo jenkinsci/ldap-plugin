@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <revision>1.27</revision>
+    <revision>2.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
