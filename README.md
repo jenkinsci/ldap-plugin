@@ -25,9 +25,62 @@ with API token or Jenkins CLI access but can also appear with features
 such as the [Authorize Project
 plugin](http://plugins.jenkins.io/authorize-project/)
 or other plugins that require details of user permissions or group
-membership outside of a user's web session)
+membership outside of a user's web session).
 
- 
+### Compatibility Notes
+
+Various LDAP servers use different operational attributes to make decisions on
+and expose configurations of concepts such as disabling an account, locking an
+account, and specifying a time interval the account is valid for. These policies
+are normally enforced by the LDAP server itself when performing user authentication.
+Jenkins provides alternative authentication mechanisms (such as API tokens and SSH
+keys) that do not perform LDAP authentication directly; instead, Jenkins checks the
+user details attributes for whether the user is enabled, locked, or expired.
+These user attributes are specified by
+[**slapo-ppolicy**(5)](https://linux.die.net/man/5/slapo-ppolicy) from OpenLDAP,
+Active Directory Application Mode (ADAM), classic Active Directory, and eDirectory LDAP.
+The support of these features is entirely dependent upon the LDAP server implementation
+properly exposing these operational attributes which is dependent on the exact version
+and distribution of the LDAP server in use. Being operational attributes, these are not
+always exposed by LDAP server implementations to clients the same way as they may be
+used internally. 
+
+#### Administratively Disabled Accounts
+
+Accounts that are disabled by administrators typically expose an operational attribute
+to indicate such. The following attributes are all supported:
+
+* `pwdAccountLockedTime` value of `000001010000Z`: common LDAP attribute using password policy overlay;
+* `msDS-UserAccountDisabled` value of `TRUE`: modern [Active Directory attribute](https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-useraccountdisabled);
+* `userAccountControl` (UAC) or `msDS-User-Account-Control-Computed` with bit flag of `ADS_UF_ACCOUNTDISABLE` (0x2) present; and
+* `loginDisabled` value of `TRUE`: eDirectory attribute.
+
+#### Expired Accounts
+
+Accounts can have a specific start or end time associated with when the account can be
+authenticated. This feature allows administrators to automate account start and termination
+dates without having to manually disable or delete accounts. The following attributes support this:
+
+* `pwdStartTime` timestamp in the future, or `pwdEndTime` timestamp in the past (LDAP password policy);
+* `accountExpires` timestamp in the past (Active Directory); and
+* `loginExpirationTime` timestamp in the past (eDirectory).
+
+Note that while these timestamps all include timezone information, they are compared against
+the Jenkins system clock.
+
+#### Password Expiration
+
+Active Directory provides some attributes to indicate that an account has expired credentials.
+The boolean attribute `msDS-UserPasswordExpired` (ADAM) or the UAC flag `ADS_UF_PASSWORD_EXPIRED`
+are checked.
+
+#### Locked Accounts
+
+Accounts can be locked by intruder detection systems. The following attributes support this:
+
+* `pwdLockout` value of `TRUE`: LDAP password policy;
+* UAC flag `ADS_UF_LOCK_OUT` (0x10) is present (Active Directory); and
+* `lockedByIntruder` value of `TRUE` (eDirectory).
 
 ## Configuration
 

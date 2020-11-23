@@ -1308,6 +1308,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
+                user.setEnabled(UserAttributesHelper.checkIfUserEnabled(v));
+                user.setAccountNonExpired(UserAttributesHelper.checkIfAccountNonExpired(v));
+                user.setCredentialsNonExpired(UserAttributesHelper.checkIfCredentialsNonExpired(v));
+                user.setAccountNonLocked(UserAttributesHelper.checkIfAccountNonLocked(v));
                 DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId, v);
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this

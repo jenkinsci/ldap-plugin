@@ -36,6 +36,7 @@ import java.util.logging.Level;
 
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
+import org.jvnet.hudson.test.Issue;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
@@ -53,6 +54,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.*;
@@ -600,5 +602,17 @@ public class LDAPEmbeddedTest {
         r.configRoundtrip();
         assertThat(r.jenkins.getSecurityRealm().loadGroupByGroupname2("cn_example1", false).getDisplayName(), is("cn_example1"));
         assertThat(log.getMessages(), hasItem(endsWith("The first one  (cn_example1) has been assigned as external group name")));
+    }
+
+    @Test
+    @Issue("JENKINS-55813")
+    @LDAPSchema(ldif = "planetexpressWithPPolicy", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void userValidityAttributes() throws Exception {
+        LDAPConfiguration configuration = new LDAPConfiguration(ads.getUrl(), "dc=planetexpress,dc=com", false, "uid=admin,ou=system", Secret.fromString("pass"));
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(Collections.singletonList(configuration), false, null, null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        assertFalse(realm.loadUserByUsername2("amy").isEnabled());
+        assertFalse(realm.loadUserByUsername2("bender").isAccountNonExpired());
     }
 }
