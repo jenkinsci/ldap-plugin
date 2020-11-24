@@ -455,7 +455,7 @@ reported to work with Active Directory and nested groups, though they
 should carry a warning that they may impact login performance and they
 have not been tested for completeness:
 
--   User search filter: `sAMAccountName={0`}
+-   User search filter: `sAMAccountName={0}`
 -   Group search filter: `(&(objectclass=group)(cn={0}))`
 -   Group membership, one of
     -   *Search for groups containing user* (if nested group membership
