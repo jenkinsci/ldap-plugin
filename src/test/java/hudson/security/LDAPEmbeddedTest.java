@@ -618,5 +618,6 @@ public class LDAPEmbeddedTest {
         assertThrows(DisabledException.class, () -> User.getById("amy", true).impersonate2());
         assertThrows(AccountExpiredException.class, () -> realm.loadUserByUsername2("bender"));
         assertThrows(AccountExpiredException.class, () -> User.getById("bender", true).impersonate2());
+        assertThrows(FailingHttpStatusCodeException.class, () -> r.createWebClient().withBasicApiToken("amy").goTo(""));
     }
 }
