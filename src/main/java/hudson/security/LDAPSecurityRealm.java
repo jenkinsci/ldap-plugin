@@ -50,6 +50,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
+import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -1224,6 +1225,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             for (LDAPUserDetailsService delegate : delegates) {
                 try {
                     return delegate.loadUserByUsername(username);
+                } catch (AccountStatusException x) {
+                    throw x;
                 } catch (UsernameNotFoundException e) {
                     lastUNFE = e;
                 } catch (AuthenticationException e) {
@@ -1308,10 +1311,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                             user.addAuthority(extraAuthority);
                         }
                     }
-                user.setEnabled(UserAttributesHelper.checkIfUserEnabled(v));
-                user.setAccountNonExpired(UserAttributesHelper.checkIfAccountNonExpired(v));
-                user.setCredentialsNonExpired(UserAttributesHelper.checkIfCredentialsNonExpired(v));
-                user.setAccountNonLocked(UserAttributesHelper.checkIfAccountNonLocked(v));
+                UserAttributesHelper.checkIfUserEnabled(v);
+                UserAttributesHelper.checkIfAccountNonExpired(v);
+                UserAttributesHelper.checkIfCredentialsNonExpired(v);
+                UserAttributesHelper.checkIfAccountNonLocked(v);
                 DelegatedLdapUserDetails ldapUserDetails = new DelegatedLdapUserDetails(user.createUserDetails(), configurationId, v);
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this
@@ -1334,7 +1337,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
 
                 return ldapUserDetails;
-            } catch (UsernameNotFoundException x) {
+            } catch (AuthenticationException x) {
                 throw x;
             } catch (RuntimeException x) {
                 throw new AuthenticationServiceException("Failed to search LDAP for " + username, x);

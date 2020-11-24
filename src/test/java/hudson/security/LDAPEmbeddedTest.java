@@ -37,6 +37,8 @@ import java.util.logging.Level;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
 import org.jvnet.hudson.test.Issue;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
@@ -54,8 +56,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.*;
 
@@ -612,7 +614,7 @@ public class LDAPEmbeddedTest {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(Collections.singletonList(configuration), false, null, null, null);
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
-        assertFalse(realm.loadUserByUsername2("amy").isEnabled());
-        assertFalse(realm.loadUserByUsername2("bender").isAccountNonExpired());
+        assertThrows(DisabledException.class, () -> realm.loadUserByUsername2("amy"));
+        assertThrows(AccountExpiredException.class, () -> realm.loadUserByUsername2("bender"));
     }
 }
