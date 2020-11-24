@@ -88,25 +88,25 @@ final class UserAttributesHelper {
         // Active Directory attributes
         Integer uac = getUserAccountControl(user);
         if (uac != null && (uac & ADS_UF_DISABLED) == ADS_UF_DISABLED) {
-            throw new DisabledException("TODO details");
+            throw new DisabledException(Messages.User_Disabled(user.get("dn")));
         }
         String accountDisabled = getStringAttribute(user, ATTR_USER_ACCOUNT_DISABLED);
         if (accountDisabled != null) {
             if (Boolean.parseBoolean(accountDisabled)) {
-                throw new DisabledException("TODO details");
+                throw new DisabledException(Messages.User_Disabled(user.get("dn")));
             } else {
                 return;
             }
         }
         // (Internet Draft) LDAP password policy attributes
         if (ACCOUNT_DISABLED.equals(getStringAttribute(user, ATTR_PWD_ACCOUNT_LOCKED_TIME))) {
-            throw new DisabledException("TODO details");
+            throw new DisabledException(Messages.User_Disabled(user.get("dn")));
         }
         // EDirectory attributes
         String loginDisabled = getStringAttribute(user, ATTR_LOGIN_DISABLED);
         if (loginDisabled != null) {
             if (Boolean.parseBoolean(loginDisabled)) {
-                throw new DisabledException("TODO details");
+                throw new DisabledException(Messages.User_Disabled(user.get("dn")));
             } else {
                 return;
             }
@@ -114,7 +114,7 @@ final class UserAttributesHelper {
         // Oracle attributes (they were documented on the wiki at least)
         String oracleIsEnabled = getStringAttribute(user, ATTR_ORACLE_IS_ENABLED);
         if (oracleIsEnabled != null && !oracleIsEnabled.equalsIgnoreCase("enabled")) {
-            throw new DisabledException("TODO details");
+            throw new DisabledException(Messages.User_Disabled(user.get("dn")));
         }
     }
 
@@ -132,27 +132,27 @@ final class UserAttributesHelper {
             if (expirationAsLong > nowIn100NsFromJan1601) {
                 return;
             } else {
-                throw new AccountExpiredException("TODO details");
+                throw new AccountExpiredException(Messages.User_AccountExpired(user.get("dn")));
             }
         }
         // (Internet Draft) LDAP password policy attributes
         GeneralizedTime now = GeneralizedTime.now();
         GeneralizedTime startTime = getGeneralizedTimeAttribute(user, ATTR_PWD_START_TIME);
         if (startTime != null && startTime.isAfter(now)) {
-            throw new AccountExpiredException("TODO details");
+            throw new AccountExpiredException(Messages.User_AccountExpired(user.get("dn")));
         }
         GeneralizedTime endTime = getGeneralizedTimeAttribute(user, ATTR_PWD_END_TIME);
         if (endTime != null) {
             if (endTime.isAfter(now)) {
                 return;
             } else {
-                throw new AccountExpiredException("TODO details");
+                throw new AccountExpiredException(Messages.User_AccountExpired(user.get("dn")));
             }
         }
         // EDirectory attributes
         GeneralizedTime loginExpirationTime = getGeneralizedTimeAttribute(user, ATTR_LOGIN_EXPIRATION_TIME);
         if (loginExpirationTime != null && !loginExpirationTime.isAfter(now)) {
-            throw new AccountExpiredException("TODO details");
+            throw new AccountExpiredException(Messages.User_AccountExpired(user.get("dn")));
         }
     }
 
@@ -165,12 +165,12 @@ final class UserAttributesHelper {
                 return;
             }
             if ((uac & ADS_UF_PASSWORD_EXPIRED) == ADS_UF_PASSWORD_EXPIRED) {
-                throw new CredentialsExpiredException("TODO details");
+                throw new CredentialsExpiredException(Messages.User_CredentialsExpired(user.get("dn")));
             }
         }
         String passwordExpired = getStringAttribute(user, ATTR_USER_PASSWORD_EXPIRED);
         if (Boolean.parseBoolean(passwordExpired)) {
-            throw new CredentialsExpiredException("TODO details");
+            throw new CredentialsExpiredException(Messages.User_CredentialsExpired(user.get("dn")));
         }
     }
 
@@ -180,13 +180,13 @@ final class UserAttributesHelper {
         // Active Directory attributes
         Integer uac = getUserAccountControl(user);
         if (uac != null && (uac & ADS_UF_LOCK_OUT) == ADS_UF_LOCK_OUT) {
-            throw new LockedException("TODO details");
+            throw new LockedException(Messages.User_Locked(user.get("dn")));
         }
         // standard attributes
         String lockout = getStringAttribute(user, ATTR_PWD_LOCKOUT);
         if (lockout != null) {
             if (Boolean.parseBoolean(lockout)) {
-                throw new LockedException("TODO details");
+                throw new LockedException(Messages.User_Locked(user.get("dn")));
             } else {
                 return;
             }
@@ -194,7 +194,7 @@ final class UserAttributesHelper {
         // EDirectory attribute
         String lockedByIntruder = getStringAttribute(user, ATTR_LOCKED_BY_INTRUDER);
         if (Boolean.parseBoolean(lockedByIntruder)) {
-            throw new LockedException("TODO details");
+            throw new LockedException(Messages.User_Locked(user.get("dn")));
         }
     }
 
