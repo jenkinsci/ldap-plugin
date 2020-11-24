@@ -615,6 +615,8 @@ public class LDAPEmbeddedTest {
         r.jenkins.setSecurityRealm(realm);
         r.configRoundtrip();
         assertThrows(DisabledException.class, () -> realm.loadUserByUsername2("amy"));
+        assertThrows(DisabledException.class, () -> User.getById("amy", true).impersonate2());
         assertThrows(AccountExpiredException.class, () -> realm.loadUserByUsername2("bender"));
+        assertThrows(AccountExpiredException.class, () -> User.getById("bender", true).impersonate2());
     }
 }
