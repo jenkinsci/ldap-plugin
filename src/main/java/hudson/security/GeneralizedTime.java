@@ -114,4 +114,9 @@ final class GeneralizedTime implements Comparable<GeneralizedTime> {
     public int hashCode() {
         return moment.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return moment.toString();
+    }
 }
