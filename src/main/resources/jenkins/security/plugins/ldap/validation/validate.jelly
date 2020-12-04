@@ -65,12 +65,12 @@
            <h2>${dialog}</h2>
         </div>
         <div class="bd">
-        <table id="${uid}_dialog" width="100%">
+        <div id="${uid}_dialog">
           <d:invokeBody/>
           <f:entry>
             <input type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary" onclick="return false;"/>
           </f:entry>
-        </table>
+        </div>
         </div>
       </div>
     </div>
