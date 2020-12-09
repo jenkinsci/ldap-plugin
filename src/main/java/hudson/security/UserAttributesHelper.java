@@ -36,6 +36,11 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import jenkins.security.plugins.ldap.Messages;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 
 /**
  * Provides helpers for checking operational attributes of LDAP user accounts for validating an account is still in
@@ -80,90 +85,118 @@ final class UserAttributesHelper {
     private static final int ADS_UF_PASSWORD_EXPIRED = 0x80_0000;
 
     // https://ldapwiki.com/wiki/Administratively%20Disabled
-    public static boolean checkIfUserEnabled(@NonNull Attributes user) {
+    public static void checkIfUserEnabled(@NonNull Attributes user) throws DisabledException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(user);
         if (uac != null && (uac & ADS_UF_DISABLED) == ADS_UF_DISABLED) {
-            return false;
+            throw new DisabledException(Messages.UserDetails_Disabled(user.get("dn")));
         }
         String accountDisabled = getStringAttribute(user, ATTR_USER_ACCOUNT_DISABLED);
         if (accountDisabled != null) {
-            return !Boolean.parseBoolean(accountDisabled);
+            if (Boolean.parseBoolean(accountDisabled)) {
+                throw new DisabledException(Messages.UserDetails_Disabled(user.get("dn")));
+            } else {
+                return;
+            }
         }
         // (Internet Draft) LDAP password policy attributes
         if (ACCOUNT_DISABLED.equals(getStringAttribute(user, ATTR_PWD_ACCOUNT_LOCKED_TIME))) {
-            return false;
+            throw new DisabledException(Messages.UserDetails_Disabled(user.get("dn")));
         }
         // EDirectory attributes
         String loginDisabled = getStringAttribute(user, ATTR_LOGIN_DISABLED);
         if (loginDisabled != null) {
-            return !Boolean.parseBoolean(loginDisabled);
+            if (Boolean.parseBoolean(loginDisabled)) {
+                throw new DisabledException(Messages.UserDetails_Disabled(user.get("dn")));
+            } else {
+                return;
+            }
         }
         // Oracle attributes (they were documented on the wiki at least)
         String oracleIsEnabled = getStringAttribute(user, ATTR_ORACLE_IS_ENABLED);
-        return oracleIsEnabled == null || oracleIsEnabled.equalsIgnoreCase("enabled");
+        if (oracleIsEnabled != null && !oracleIsEnabled.equalsIgnoreCase("enabled")) {
+            throw new DisabledException(Messages.UserDetails_Disabled(user.get("dn")));
+        }
     }
 
     // https://ldapwiki.com/wiki/Account%20Expiration
-    public static boolean checkIfAccountNonExpired(@NonNull Attributes user) {
+    public static void checkIfAccountNonExpired(@NonNull Attributes user) throws AccountExpiredException {
         // Active Directory attributes
         String accountExpirationDate = getStringAttribute(user, ATTR_ACCOUNT_EXPIRES);
         if (accountExpirationDate != null) {
             long expirationAsLong = Long.parseLong(accountExpirationDate);
             if (expirationAsLong == 0L || expirationAsLong == ACCOUNT_NO_EXPIRATION) {
-                return true;
+                return;
             }
 
             long nowIn100NsFromJan1601 = getWin32EpochHundredNanos();
-            return expirationAsLong > nowIn100NsFromJan1601;
+            if (expirationAsLong > nowIn100NsFromJan1601) {
+                return;
+            } else {
+                throw new AccountExpiredException(Messages.UserDetails_Expired(user.get("dn"), accountExpirationDate));
+            }
         }
         // (Internet Draft) LDAP password policy attributes
         GeneralizedTime now = GeneralizedTime.now();
         GeneralizedTime startTime = getGeneralizedTimeAttribute(user, ATTR_PWD_START_TIME);
         if (startTime != null && startTime.isAfter(now)) {
-            return false;
+            throw new AccountExpiredException(Messages.UserDetails_Inactive(user.get("dn"), startTime));
         }
         GeneralizedTime endTime = getGeneralizedTimeAttribute(user, ATTR_PWD_END_TIME);
         if (endTime != null) {
-            return endTime.isAfter(now);
+            if (endTime.isAfter(now)) {
+                return;
+            } else {
+                throw new AccountExpiredException(Messages.UserDetails_Expired(user.get("dn"), endTime));
+            }
         }
         // EDirectory attributes
         GeneralizedTime loginExpirationTime = getGeneralizedTimeAttribute(user, ATTR_LOGIN_EXPIRATION_TIME);
-        return loginExpirationTime == null || loginExpirationTime.isAfter(now);
+        if (loginExpirationTime != null && !loginExpirationTime.isAfter(now)) {
+            throw new AccountExpiredException(Messages.UserDetails_Expired(user.get("dn"), loginExpirationTime));
+        }
     }
 
     // https://ldapwiki.com/wiki/Password%20Expiration
-    public static boolean checkIfCredentialsNonExpired(@NonNull Attributes user) {
+    public static void checkIfCredentialsNonExpired(@NonNull Attributes user) throws CredentialsExpiredException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(user);
         if (uac != null) {
             if ((uac & ADS_DONT_EXPIRE_PASSWORD) == ADS_DONT_EXPIRE_PASSWORD) {
-                return true;
+                return;
             }
             if ((uac & ADS_UF_PASSWORD_EXPIRED) == ADS_UF_PASSWORD_EXPIRED) {
-                return false;
+                throw new CredentialsExpiredException(Messages.UserDetails_CredentialsExpired(user.get("dn")));
             }
         }
         String passwordExpired = getStringAttribute(user, ATTR_USER_PASSWORD_EXPIRED);
-        return !Boolean.parseBoolean(passwordExpired);
+        if (Boolean.parseBoolean(passwordExpired)) {
+            throw new CredentialsExpiredException(Messages.UserDetails_CredentialsExpired(user.get("dn")));
+        }
     }
 
     // https://ldapwiki.com/wiki/Account%20Lockout
     // https://ldapwiki.com/wiki/Intruder%20Detection
-    public static boolean checkIfAccountNonLocked(@NonNull Attributes user) {
+    public static void checkIfAccountNonLocked(@NonNull Attributes user) throws LockedException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(user);
         if (uac != null && (uac & ADS_UF_LOCK_OUT) == ADS_UF_LOCK_OUT) {
-            return false;
+            throw new LockedException(Messages.UserDetails_Locked(user.get("dn")));
         }
         // standard attributes
         String lockout = getStringAttribute(user, ATTR_PWD_LOCKOUT);
         if (lockout != null) {
-            return !Boolean.parseBoolean(lockout);
+            if (Boolean.parseBoolean(lockout)) {
+                throw new LockedException(Messages.UserDetails_Locked(user.get("dn")));
+            } else {
+                return;
+            }
         }
         // EDirectory attribute
         String lockedByIntruder = getStringAttribute(user, ATTR_LOCKED_BY_INTRUDER);
-        return !Boolean.parseBoolean(lockedByIntruder);
+        if (Boolean.parseBoolean(lockedByIntruder)) {
+            throw new LockedException(Messages.UserDetails_Locked(user.get("dn")));
+        }
     }
 
     // documentation: https://docs.microsoft.com/en-us/windows/desktop/adschema/a-accountexpires
