@@ -27,14 +27,12 @@ THE SOFTWARE.
          xmlns:v="/jenkins/security/plugins/ldap/validation">
     <f:entry>
         <f:repeatable field="configurations" minimum="1" header="${%Server}" add="${%Add Server}">
-            <table style="width:100%">
-                <st:include page="config.jelly" class="jenkins.security.plugins.ldap.LDAPConfiguration"/>
-                <f:entry title="">
-                    <div align="right">
-                        <f:repeatableDeleteButton/>
-                    </div>
-                </f:entry>
-            </table>
+            <st:include page="config.jelly" class="jenkins.security.plugins.ldap.LDAPConfiguration"/>
+            <f:entry title="">
+                <div align="right">
+                    <f:repeatableDeleteButton/>
+                </div>
+            </f:entry>
         </f:repeatable>
     </f:entry>
     <j:choose>
