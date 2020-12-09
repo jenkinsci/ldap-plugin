@@ -12,21 +12,6 @@ This plugin provides yet another way of authenticating users using LDAP.
 It can be used with LDAP servers like Active Directory or OpenLDAP among
 others. Supported configuration can be found below these lines. 
 
-It is **strongly** encouraged that you upgrade to at least version 1.15
-of the LDAP plugin as that version includes the `Test LDAP settings`
-button which contains a number of important diagnostic checks to
-validate subtle issues with your LDAP configuration.
-
-Existing LDAP users are strongly encouraged to upgrade to this version
-and use the button to ensure that their existing configuration does not
-have subtle issues (most common subtle issues revolve around group
-resolution and user lookup and typically surface for users as issues
-with API token or Jenkins CLI access but can also appear with features
-such as the [Authorize Project
-plugin](http://plugins.jenkins.io/authorize-project/)
-or other plugins that require details of user permissions or group
-membership outside of a user's web session).
-
 ### Compatibility Notes
 
 Various LDAP servers use different operational attributes to make decisions on
