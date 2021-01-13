@@ -78,7 +78,7 @@
     <dependency>
       <groupId>net.time4j</groupId>
       <artifactId>time4j-tzdata</artifactId>
-      <version>5.0-2020a</version>
+      <version>5.0-2020e</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
