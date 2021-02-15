@@ -85,7 +85,7 @@ final class UserAttributesHelper {
     private static final int ADS_UF_PASSWORD_EXPIRED = 0x80_0000;
 
     // https://ldapwiki.com/wiki/Administratively%20Disabled
-    public static void checkIfUserEnabled(String username, @NonNull Attributes attributes) throws DisabledException {
+    public static void checkIfUserEnabled(@NonNull String username, @NonNull Attributes attributes) throws DisabledException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(attributes);
         if (uac != null && (uac & ADS_UF_DISABLED) == ADS_UF_DISABLED) {
@@ -120,7 +120,7 @@ final class UserAttributesHelper {
     }
 
     // https://ldapwiki.com/wiki/Account%20Expiration
-    public static void checkIfAccountNonExpired(String username, @NonNull Attributes attributes) throws AccountExpiredException {
+    public static void checkIfAccountNonExpired(@NonNull String username, @NonNull Attributes attributes) throws AccountExpiredException {
         // Active Directory attributes
         String accountExpirationDate = getStringAttribute(attributes, ATTR_ACCOUNT_EXPIRES);
         if (accountExpirationDate != null) {
@@ -158,7 +158,7 @@ final class UserAttributesHelper {
     }
 
     // https://ldapwiki.com/wiki/Password%20Expiration
-    public static void checkIfCredentialsNonExpired(String username, @NonNull Attributes attributes) throws CredentialsExpiredException {
+    public static void checkIfCredentialsNonExpired(@NonNull String username, @NonNull Attributes attributes) throws CredentialsExpiredException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(attributes);
         if (uac != null) {
@@ -177,7 +177,7 @@ final class UserAttributesHelper {
 
     // https://ldapwiki.com/wiki/Account%20Lockout
     // https://ldapwiki.com/wiki/Intruder%20Detection
-    public static void checkIfAccountNonLocked(String username, @NonNull Attributes attributes) throws LockedException {
+    public static void checkIfAccountNonLocked(@NonNull String username, @NonNull Attributes attributes) throws LockedException {
         // Active Directory attributes
         Integer uac = getUserAccountControl(attributes);
         if (uac != null && (uac & ADS_UF_LOCK_OUT) == ADS_UF_LOCK_OUT) {
