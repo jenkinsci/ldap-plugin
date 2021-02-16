@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>2.4</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <revision>2.4</revision>
+    <revision>2.5</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
@@ -37,7 +37,7 @@
     <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
-    <tag>ldap-2.4</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>
