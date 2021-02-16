@@ -30,7 +30,7 @@
     <apacheds.version>2.0.0.AM25</apacheds.version>
     <jenkins.version>2.266</jenkins.version>
     <java.level>8</java.level>
-    <configuration-as-code.version>1.46</configuration-as-code.version>
+    <configuration-as-code.version>1.47</configuration-as-code.version>
   </properties>
 
   <scm>
