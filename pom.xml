@@ -86,15 +86,18 @@
       <version>1.32.1</version>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.test</groupId>
-      <artifactId>docker-fixtures</artifactId>
-      <version>1.10</version>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>1.15.2</version>
       <scope>test</scope>
       <exclusions>
-        <!-- Required: 2.2.3, JCasC includes: 2.10.2 -->
+        <exclusion>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-compress</artifactId>
+        </exclusion>
         <exclusion>
           <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
+          <artifactId>jackson-annotations</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
