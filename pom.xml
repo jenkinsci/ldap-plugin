@@ -13,7 +13,6 @@
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
-  <description>Adds LDAP authentication to Jenkins</description>
   <url>https://github.com/jenkinsci/ldap-plugin</url>
   <licenses>
     <license>
