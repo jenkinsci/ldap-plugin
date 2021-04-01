@@ -83,6 +83,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.naming.InvalidNameException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -1778,11 +1779,25 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     potentialLockout = true; // consistency is important
                 }
                 // dn
-                if (!StringUtils.equals(loginDetails.getDn(), lookUpDetails.getDn())) {
-                    error(response, "consistency-dn",
-                            jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DnMismatch(
-                                    loginDetails.getDn(), lookUpDetails.getDn()));
-                    potentialLockout = true; // consistency is important
+                try {
+                    // do not use string comparison here as Attributes are always case insentive
+                    // the values may or may not be and that depend in part on the attributetype
+                    // and configuration
+                    LdapName loginDN = new LdapName(loginDetails.getDn());
+                    LdapName lookupDN = new LdapName(lookUpDetails.getDn());
+                    if (!loginDN.equals(lookupDN)) {
+                        // do not use the loginDN.toString() directory as this returns the unparsed version
+                        // and we want the parsed version for consistency.
+                        error(response, "consistency-dn",
+                                jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DnMismatch(
+                                        loginDN, loginDN));
+                        potentialLockout = true; // consistency is important
+                    }
+                } catch (InvalidNameException inEx) {
+                    error(response, "consistency-dn-parse",
+                          jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DnParse(
+                                  inEx.getMessage()));
+                    potentialLockout = true;
                 }
                 Attributes loginAttributes = DelegatedLdapUserDetails.getAttributes(loginDetails, null);
                 Attributes lookupAttributes = DelegatedLdapUserDetails.getAttributes(lookUpDetails, null);
