@@ -1786,7 +1786,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     LdapName loginDN = new LdapName(loginDetails.getDn());
                     LdapName lookupDN = new LdapName(lookUpDetails.getDn());
                     if (!loginDN.equals(lookupDN)) {
-                        // do not use the loginDN.toString() directory as this returns the unparsed version
+                        // TODO do not use the loginDN.toString() directory as this returns the unparsed version
                         // and we want the parsed version for consistency.
                         error(response, "consistency-dn",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DnMismatch(
