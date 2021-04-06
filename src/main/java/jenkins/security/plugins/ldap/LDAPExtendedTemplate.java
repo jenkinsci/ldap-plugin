@@ -60,7 +60,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      * @return the first matching entry converted using the specified {@link LdapEntryMapper}, or null if no matching
      * entry was found.
      */
-    public <T> @CheckForNull T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
+    public @CheckForNull <T> T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
         try (SetContextClassLoader sccl = new SetContextClassLoader();
                 SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
