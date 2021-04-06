@@ -6,17 +6,9 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
+import java.util.Arrays;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.jenkinsci.test.acceptance.docker.DockerRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.Arrays;
-
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -24,6 +16,12 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
+import org.testcontainers.containers.GenericContainer;
 
 /**
  * Tests connecting to two different servers
@@ -31,12 +29,14 @@ import org.junit.BeforeClass;
 @LDAPTestConfiguration
 public class MultiServerTest {
 
-    @BeforeClass public static void linuxOnly() {
-        PlanetExpressTest.linuxOnly();
+    @BeforeClass public static void requiresDocker() {
+        PlanetExpressTest.requiresDocker();
     }
 
+    @SuppressWarnings("rawtypes")
     @Rule
-    public DockerRule<PlanetExpressTest.PlanetExpress> docker = new DockerRule<>(PlanetExpressTest.PlanetExpress.class);
+    public GenericContainer container = new GenericContainer(PlanetExpressTest.TEST_IMAGE).withExposedPorts(389);
+
     public JenkinsRule j = new JenkinsRule();
     public LDAPRule ads = new LDAPRule();
     @Rule
@@ -64,13 +64,12 @@ public class MultiServerTest {
         adsConf.setDisplayNameAttributeName("cn");
         adsConf.setMailAddressAttributeName(null);
 
-        PlanetExpressTest.PlanetExpress d = docker.get();
         LDAPConfiguration plExprs = new LDAPConfiguration(
-                d.ipBound(389) + ":" + d.port(389),
-                PlanetExpressTest.PlanetExpress.DN,
+                container.getHost() + ":" + container.getFirstMappedPort(),
+                PlanetExpressTest.DN,
                 false,
-                PlanetExpressTest.PlanetExpress.MANAGER_DN,
-                Secret.fromString(PlanetExpressTest.PlanetExpress.MANAGER_SECRET));
+                PlanetExpressTest.MANAGER_DN,
+                Secret.fromString(PlanetExpressTest.MANAGER_SECRET));
         plExprs.setUserSearchBase(null);
         plExprs.setUserSearch(null);
         plExprs.setGroupSearchBase(null);
