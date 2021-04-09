@@ -251,6 +251,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public transient String server;
 
     /**
+     * whether to verify ldaps sever certificate? default is false
+     */
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+            justification = "This public field is exposed to the plugin's API")
+    @Deprecated @Restricted(NoExternalUse.class)
+    public transient boolean sslVerify;
+
+    /**
      * The root DN to connect to. Normally something like "dc=sun,dc=com"
      *
      * How do I infer this?
@@ -415,17 +423,17 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN, false);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN, false);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
                              boolean disableMailAddressResolver) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN,
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, managerDN, managerPassword, inhibitInferRootDN,
                                      disableMailAddressResolver, null);
     }
 
@@ -433,57 +441,57 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String managerDN, String managerPassword, boolean inhibitInferRootDN,
                              boolean disableMailAddressResolver, CacheConfiguration cache) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, null, null, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache);
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, null, null, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, null);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, null);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, managerPassword, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, Secret.fromString(managerPassword), inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, String managerPassword, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipFilter, managerDN, Secret.fromString(managerPassword), inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, null, null);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, new FromGroupSearchLDAPGroupMembershipStrategy(groupMembershipFilter), managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, String groupMembershipFilter, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, new FromGroupSearchLDAPGroupMembershipStrategy(groupMembershipFilter), managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
-        this(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName, IdStrategy.CASE_INSENSITIVE, IdStrategy.CASE_INSENSITIVE);
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        this(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, disableMailAddressResolver, cache, environmentProperties, displayNameAttributeName, mailAddressAttributeName, IdStrategy.CASE_INSENSITIVE, IdStrategy.CASE_INSENSITIVE);
     }
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public LDAPSecurityRealm(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, IdStrategy userIdStrategy, IdStrategy groupIdStrategy) {
-        this(createLdapConfiguration(server, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, environmentProperties, displayNameAttributeName, mailAddressAttributeName),
+    public LDAPSecurityRealm(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, boolean disableMailAddressResolver, CacheConfiguration cache, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName, IdStrategy userIdStrategy, IdStrategy groupIdStrategy) {
+        this(createLdapConfiguration(server, sslVerify, rootDN, userSearchBase, userSearch, groupSearchBase, groupSearchFilter, groupMembershipStrategy, managerDN, managerPasswordSecret, inhibitInferRootDN, environmentProperties, displayNameAttributeName, mailAddressAttributeName),
                 disableMailAddressResolver, cache, userIdStrategy, groupIdStrategy);
     }
 
@@ -514,8 +522,8 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         this.groupIdStrategy = groupIdStrategy;
     }
 
-    private static List<LDAPConfiguration> createLdapConfiguration(String server, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
-        LDAPConfiguration conf = new LDAPConfiguration(server, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
+    private static List<LDAPConfiguration> createLdapConfiguration(String server, boolean sslVerify, String rootDN, String userSearchBase, String userSearch, String groupSearchBase, String groupSearchFilter, LDAPGroupMembershipStrategy groupMembershipStrategy, String managerDN, Secret managerPasswordSecret, boolean inhibitInferRootDN, EnvironmentProperty[] environmentProperties, String displayNameAttributeName, String mailAddressAttributeName) {
+        LDAPConfiguration conf = new LDAPConfiguration(server, sslVerify, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
         conf.setUserSearchBase(userSearchBase);
         conf.setUserSearch(userSearch);
         conf.setGroupSearchBase(groupSearchBase);
@@ -550,7 +558,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             managerPassword = null;
         }
         if (server != null) {
-            LDAPConfiguration conf = new LDAPConfiguration(server, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
+            LDAPConfiguration conf = new LDAPConfiguration(server, sslVerify, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
             server = null;
             rootDN = null;
             managerDN = null;
@@ -1587,7 +1595,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             // we can only do deep validation if the connection is correct
             LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.getActiveInstance().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
-                FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret());
+                FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.isSslVerify(), configuration.getManagerDN(), configuration.getManagerPasswordSecret());
                 if (connectionCheck.kind != FormValidation.Kind.OK) {
                     return connectionCheck;
                 }
