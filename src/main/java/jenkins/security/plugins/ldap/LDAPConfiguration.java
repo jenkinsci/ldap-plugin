@@ -396,7 +396,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             return "ldap";
         }
 
-        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret) {
+        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
 
@@ -412,7 +412,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                     props.put(Context.SECURITY_CREDENTIALS,managerPassword);
                 }
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-                props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server, ""));
+                props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server,rootDN));
 
                 DirContext ctx = new InitialDirContext(props);
                 ctx.getAttributes("");
