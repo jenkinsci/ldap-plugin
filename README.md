@@ -321,7 +321,7 @@ Some LDAP servers may be slow, or rate limit client requests.
 
 In such cases enabling caching may improve performance of Jenkins with
 the risk of delayed propagation of user changes from LDAP and increased
-memory usage on the controller.
+memory usage on the Jenkins controller.
 
 Note: The default configuration is to leave the cache turned off.
 
