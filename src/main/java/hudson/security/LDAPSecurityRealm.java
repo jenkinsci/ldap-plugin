@@ -1587,7 +1587,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             // we can only do deep validation if the connection is correct
             LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.getActiveInstance().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
-                FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret(),configuration.getRootDN());
+                FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.isSslVerify(),configuration.getManagerDN(), configuration.getManagerPasswordSecret(),configuration.getRootDN());
                 if (connectionCheck.kind != FormValidation.Kind.OK) {
                     return connectionCheck;
                 }
