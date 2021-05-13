@@ -186,10 +186,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     public String getLDAPURL() {
-        
-        String s = LDAPSecurityRealm.toProviderUrl(getServerUrl(), fixNull(rootDN));
-        System.out.println("******* getLDAPURL -> " + s);
-        return s;
+        return LDAPSecurityRealm.toProviderUrl(getServerUrl(), fixNull(rootDN));
     }
 
     /**
