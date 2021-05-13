@@ -24,113 +24,106 @@
 package jenkins.security.plugins.ldap;
 
 import java.io.InputStream;
-
 import java.util.Collections;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import org.hamcrest.Matchers;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.springframework.security.core.userdetails.UserDetails;
-import hudson.model.User;
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
+import hudson.security.GroupDetails;
 import hudson.security.LDAPSecurityRealm;
-import hudson.security.LDAPSecurityRealm.CacheConfiguration;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests {@link LDAPConfiguration} with DNs that are not URL safe.
  */
 @LDAPTestConfiguration
+@RunWith(JUnitParamsRunner.class)
 public class LDAPDNEscapingTest {
 
-    //@Rule
-    public LDAPRule ads = new LDAPRule();
-    //@Rule
-    public JenkinsRule r = new JenkinsRule();
+    @ClassRule
+    public static LDAPRule ads = new LDAPRule();
 
     @Rule
-    public RuleChain chain = RuleChain.outerRule(ads).around(r);
-    
-    @Test
+    public JenkinsRule r = new JenkinsRule();
+
+
+    @BeforeClass
+    public static void setupLdap() throws Exception {
+        try (InputStream ldifIs = LDAPDNEscapingTest.class.getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif")) {
+            ads.loadSchema("planetexpress", "dc=planet express,dc=com", ldifIs);
+       }
+    }
+
+    // here as eclipse can not run a single parameterized test as it does not support the custom JUnitParamsRunner
+    //@Test
     public void testSpacesInDN() throws Exception {
-        /*
-         try (InputStream ldifIs = getClass().getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif")) {
-            ads.loadSchema("default", "dc=com", ldifIs);
-        }
-         */
-        InputStream ldifIs = getClass().getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif");
-        assertThat(ldifIs, notNullValue());
-        ads.loadSchema("planetexpress", "dc=planet express,dc=com", ldifIs);
-        //ads.loadSchema("sevenSeas", "o=sevenSeas", getClass().getResourceAsStream("/hudson/security/sevenSeas.ldif"));
-
-        LDAPConfiguration conf = new LDAPConfiguration(
-                ads.getUrl(),
-                null,
-                false,
-                "uid=admin,ou=system",
-                Secret.fromString("pass"));
-        LDAPSecurityRealm realm = new LDAPSecurityRealm(
-                Collections.singletonList(conf),
-                false,
-                new CacheConfiguration(100, 100),
-                IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE);
-        r.jenkins.setSecurityRealm(realm);
-        
-        // check we can get some userDetails about "fry".
-        UserDetails userDetails = r.jenkins.getSecurityRealm().loadUserByUsername2("fry");
-        assertThat(userDetails, notNullValue());
-
-        // check login works.
-        WebClient wc = r.createWebClient().login("professor", "professor"); 
-        
-        HtmlPage whoAmI = wc.goTo("whoAmI");
-        assertThat(whoAmI.asText(), Matchers.containsString("Professor Farnsworth"));
+        testOrgEscaping("dc=planet express,dc=com", null, null);
     }
 
     @Test
     @Issue("JENKINS-12345")
-    public void testSpacesInDNWithRootDN() throws Exception {
-        /*
-         try (InputStream ldifIs = getClass().getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif")) {
-            ads.loadSchema("default", "dc=com", ldifIs);
-        }
-         */
-        InputStream ldifIs = getClass().getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif");
-        assertThat(ldifIs, notNullValue());
-        ads.loadSchema("planetexpress", "dc=planet express,dc=com", ldifIs);
-        //ads.loadSchema("sevenSeas", "o=sevenSeas", getClass().getResourceAsStream("/hudson/security/sevenSeas.ldif"));
+    @Parameters
+    public void testOrgEscaping(String rootDN, String userSearchBase, String groupSearchBase) throws Exception {
 
         LDAPConfiguration conf = new LDAPConfiguration(
                 ads.getUrl(),
-                "dc=planet express,dc=com",
+                rootDN,
                 false,
                 "uid=admin,ou=system",
                 Secret.fromString("pass"));
+        conf.setUserSearchBase(userSearchBase);
+        conf.setGroupSearchBase(groupSearchBase);
+
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 Collections.singletonList(conf),
                 false,
-                new CacheConfiguration(100, 100),
+                null, // no caching new CacheConfiguration(100, 100),
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE);
+
         r.jenkins.setSecurityRealm(realm);
         
         // check we can get some userDetails about "fry".
         UserDetails userDetails = r.jenkins.getSecurityRealm().loadUserByUsername2("fry");
-        assertThat(userDetails, notNullValue());
+        assertThat("failed to find user fry", userDetails, notNullValue());
 
-        // check login works.
+        // and a group
+        GroupDetails groupDetails = r.jenkins.getSecurityRealm().loadGroupByGroupname2("crew", true);
+        assertThat("failed to find group staff", groupDetails, notNullValue());
+        assertThat("failed to obtain users for group staff", groupDetails.getMembers(), hasSize(3));
+
+        // check login works (different user and a group that fry is not a member of)
         WebClient wc = r.createWebClient().login("professor", "professor"); 
         
         HtmlPage whoAmI = wc.goTo("whoAmI");
-        assertThat(whoAmI.asText(), Matchers.containsString("Professor Farnsworth"));
+        assertThat(whoAmI.asText(), allOf(containsString("Professor Farnsworth"), // user is loaded 
+                                          containsString("management"))); // groups are recognized
     }
 
+    @SuppressWarnings("unused")
+    public Object[] parametersForTestOrgEscaping() {
+        return new Object[] {
+                  // DN, user search base, group search base
+                  new Object[] { null, null, null },
+                  new Object[] { "dc=planet express,dc=com", null, null },
+                  new Object[] { null, "dc=planet express,dc=com", null },
+                  new Object[] { null, null, "dc=planet express,dc=com" },
+                  new Object[] { "dc=com", "dc=planet express", "dc=planet express" }
+                  };
+    }
 }
