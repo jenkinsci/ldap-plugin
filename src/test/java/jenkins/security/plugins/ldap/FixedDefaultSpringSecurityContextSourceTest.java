@@ -19,4 +19,10 @@ public class FixedDefaultSpringSecurityContextSourceTest {
         assertThat(decode("/wibble%20space"), is("/wibble space"));
     }
 
+    @Test
+    public void testUnencodingOfSomethignAlreadyUnEcoded() {
+        assertThat(decode("wibble space"), is("wibble space"));
+        assertThat(decode("/wibble space"), is("/wibble space"));
+    }
+
 }
