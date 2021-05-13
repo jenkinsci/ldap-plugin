@@ -186,7 +186,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     public String getLDAPURL() {
-        return LDAPSecurityRealm.toProviderUrl(getServerUrl(), fixNull(rootDN));
+        
+        String s = LDAPSecurityRealm.toProviderUrl(getServerUrl(), fixNull(rootDN));
+        System.out.println("******* getLDAPURL -> " + s);
+        return s;
     }
 
     /**
@@ -565,7 +568,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @Restricted(NoExternalUse.class)
     public ApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
-        DefaultSpringSecurityContextSource contextSource = new DefaultSpringSecurityContextSource(getLDAPURL());
+        // https://issues.jenkins.io/browse/JENKINS-65628 / https://github.com/spring-projects/spring-security/issues/9742
+        DefaultSpringSecurityContextSource contextSource = new FixedDefaultSpringSecurityContextSource(getLDAPURL());
         if (getManagerDN() != null) {
             contextSource.setUserDn(getManagerDN());
             contextSource.setPassword(getManagerPassword());
