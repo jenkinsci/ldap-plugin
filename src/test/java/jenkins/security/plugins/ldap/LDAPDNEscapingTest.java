@@ -70,10 +70,12 @@ public class LDAPDNEscapingTest {
     }
 
     // here as eclipse can not run a single parameterized test as it does not support the custom JUnitParamsRunner
-    //@Test
+    /*
+    @Test
     public void testSpacesInDN() throws Exception {
         testOrgEscaping("dc=planet express,dc=com", null, null);
     }
+    */
 
     @Test
     @Issue("JENKINS-12345")
