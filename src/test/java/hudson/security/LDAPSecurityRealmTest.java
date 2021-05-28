@@ -92,6 +92,7 @@ public class LDAPSecurityRealmTest {
         LDAPSecurityRealm sr = (LDAPSecurityRealm) r.jenkins.getSecurityRealm();
         LDAPConfiguration cnf = sr.getConfigurations().get(0);
         assertEquals("s", cnf.getServer());
+        assertTrue(cnf.isSslVerify());
         assertEquals("rDN=x", cnf.getRootDN());
         assertEquals("uSB", cnf.getUserSearchBase());
         assertEquals("uS", cnf.getUserSearch());
@@ -209,6 +210,7 @@ public class LDAPSecurityRealmTest {
         assertNotSame(realm, newRealm);
         LDAPConfiguration config = newRealm.getConfigurations().get(0);
         assertEquals(server, config.getServer());
+        assertTrue(config.isSslVerify());
         assertEquals(rootDN, config.getRootDN());
         assertEquals(userSearchBase, config.getUserSearchBase());
         assertEquals(managerDN, config.getManagerDN());
@@ -265,6 +267,7 @@ public class LDAPSecurityRealmTest {
             LDAPConfiguration config = configurations.get(i);
             TestConf conf = confs[i];
             assertEquals(conf.server, config.getServer());
+            assertTrue(config.isSslVerify());
             assertEquals(conf.rootDN, config.getRootDN());
             assertEquals(conf.userSearchBase, config.getUserSearchBase());
             assertEquals(conf.managerDN, config.getManagerDN());
@@ -398,6 +401,7 @@ public class LDAPSecurityRealmTest {
         assertNotSame(realm, newRealm);
         LDAPConfiguration newConfig = newRealm.getConfigurations().get(0);
         assertEquals(server, newConfig.getServer());
+        assertTrue(newConfig.isSslVerify());
         assertEquals(rootDN, newConfig.getRootDN());
         assertEquals(userSearchBase, newConfig.getUserSearchBase());
         assertEquals(managerDN, newConfig.getManagerDN());

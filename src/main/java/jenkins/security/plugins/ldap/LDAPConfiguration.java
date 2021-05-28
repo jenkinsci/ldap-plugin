@@ -103,7 +103,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * whether to verify ldaps sever certificate? default is false
      */
-    private boolean sslVerify;
+    private final boolean sslVerify;
 
     /**
      * The root DN to connect to. Normally something like "dc=sun,dc=com"
@@ -145,9 +145,18 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
+        this(server, true, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
+    }
+
+    @DataBoundConstructor
+    public LDAPConfiguration(@NonNull String server, boolean sslVerify,  String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
         this.server = server.trim();
+        this.sslVerify = sslVerify;
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
         this.inhibitInferRootDN = inhibitInferRootDN;
@@ -176,11 +185,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     public boolean isSslVerify() {
         return sslVerify;
-    }
-
-    @DataBoundSetter
-    public void setSslVerify(boolean sslVerify) {
-        this.sslVerify = sslVerify;
     }
 
     public String getServerUrl() {
