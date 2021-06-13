@@ -54,6 +54,7 @@ import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
@@ -614,6 +615,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
         vars.putAll(getExtraEnvVars());
         contextSource.setBaseEnvironmentProperties(vars);
+
+        // pooled connections do not work with StartTLS
+        contextSource.setPooled(false);
+        contextSource.setAuthenticationStrategy(new DefaultTlsDirContextAuthenticationStrategy());
         contextSource.afterPropertiesSet();
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
