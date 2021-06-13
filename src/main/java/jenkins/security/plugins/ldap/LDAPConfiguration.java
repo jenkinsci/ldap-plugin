@@ -54,6 +54,7 @@ import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
+import org.springframework.ldap.core.support.DefaultTlsDirContextAuthenticationStrategy;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
@@ -61,6 +62,12 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.StartTlsRequest;
+import javax.naming.ldap.StartTlsResponse;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -405,18 +412,37 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
             try {
                 Hashtable<String,String> props = new Hashtable<String,String>();
-                if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
-                    props.put(Context.SECURITY_PRINCIPAL,managerDN);
-                }
-                if(managerPassword!=null && managerPassword.trim().length() > 0 && !"undefined".equals(managerPassword)) {
-                    props.put(Context.SECURITY_CREDENTIALS,managerPassword);
-                }
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server,rootDN));
 
-                DirContext ctx = new InitialDirContext(props);
+                LdapContext ctx = new InitialLdapContext(props, null);
+                StartTlsResponse tls = (StartTlsResponse) ctx.extendedOperation(new StartTlsRequest());
+                SSLSession session = tls.negotiate();
+
+                if (!session.isValid()) {
+                    throw new IOException("Couldn't negotiate StartTls session, session is invalid");
+                }
+                ctx.addToEnvironment(Context.SECURITY_AUTHENTICATION, "simple");
+                if (managerDN != null && managerDN.trim().length() > 0 && !"undefined".equals(managerDN)) {
+                    ctx.addToEnvironment(Context.SECURITY_PRINCIPAL, managerDN);
+                    props.put(Context.SECURITY_PRINCIPAL, managerDN);
+                }
+                if(managerPassword!=null && managerPassword.trim().length() > 0 && !"undefined".equals(managerPassword)) {
+                    ctx.addToEnvironment(Context.SECURITY_CREDENTIALS, managerPassword);
+                    props.put(Context.SECURITY_CREDENTIALS, managerPassword);
+                }
+
+
                 ctx.getAttributes("");
+
+                // Stop TLS
+                tls.close();
+                // Close the context when we're done
+                ctx.close();
+
                 return FormValidation.ok();   // connected
+            } catch (IOException ioe) {
+                return FormValidation.error(Messages.LDAPSecurityRealm_UnableToConnect(server, ioe.getMessage()));
             } catch (NamingException e) {
                 // trouble-shoot
                 Matcher m = Pattern.compile("(ldaps?://)?([^:]+)(?:\\:(\\d+))?(\\s+(ldaps?://)?([^:]+)(?:\\:(\\d+))?)*").matcher(server.trim());
@@ -458,26 +484,38 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private String inferRootDN(String server) {
         try {
             Hashtable<String, String> props = new Hashtable<String, String>();
-            if (managerDN != null) {
-                props.put(Context.SECURITY_PRINCIPAL, managerDN);
-                props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
-            }
             props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
             props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(getServerUrl(), ""));
 
-            DirContext ctx = new InitialDirContext(props);
+            LdapContext ctx = new InitialLdapContext(props, null);
+            StartTlsResponse tls = (StartTlsResponse) ctx.extendedOperation(new StartTlsRequest());
+            SSLSession session = tls.negotiate();
+            if (session.isValid()) {
+                LOGGER.log(Level.INFO, "session is valid!s");
+            }
+            ctx.addToEnvironment(Context.SECURITY_AUTHENTICATION, "simple");
+
+            if (managerDN != null) {
+                props.put(Context.SECURITY_PRINCIPAL, managerDN);
+                ctx.addToEnvironment(Context.SECURITY_PRINCIPAL, managerDN);
+                props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
+                ctx.addToEnvironment(Context.SECURITY_CREDENTIALS, getManagerPassword());
+            }
+
             Attributes atts = ctx.getAttributes("");
             Attribute a = atts.get("defaultNamingContext");
             if (a != null && a.get() != null) // this entry is available on Active Directory. See http://msdn2.microsoft.com/en-us/library/ms684291(VS.85).aspx
                 return a.get().toString();
 
             a = atts.get("namingcontexts");
+            tls.close();
+            ctx.close();
             if (a == null) {
                 LOGGER.warning("namingcontexts attribute not found in root DSE of " + server);
                 return null;
             }
             return a.get().toString();
-        } catch (NamingException e) {
+        } catch (IOException|NamingException e) {
             LOGGER.log(Level.WARNING, "Failed to connect to LDAP to infer Root DN for " + server, e);
             return null;
         }
@@ -577,6 +615,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
         vars.putAll(getExtraEnvVars());
         contextSource.setBaseEnvironmentProperties(vars);
+
+        // pooled connections do not work with StartTLS
+        contextSource.setPooled(false);
+        contextSource.setAuthenticationStrategy(new DefaultTlsDirContextAuthenticationStrategy());
         contextSource.afterPropertiesSet();
 
         FilterBasedLdapUserSearch ldapUserSearch = new FilterBasedLdapUserSearch(getUserSearchBase(), getUserSearch(), contextSource);
