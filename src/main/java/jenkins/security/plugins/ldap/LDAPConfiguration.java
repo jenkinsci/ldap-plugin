@@ -413,9 +413,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 }
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server,rootDN));
-
-                DirContext ctx = new InitialDirContext(props);
-                ctx.getAttributes("");
+                
+                new InitialDirContext(props);
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
