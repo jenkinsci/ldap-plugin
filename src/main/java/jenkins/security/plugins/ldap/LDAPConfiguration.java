@@ -61,10 +61,7 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
-import javax.naming.ldap.Control;
 import javax.naming.ldap.InitialLdapContext;
-import javax.naming.ldap.LdapName;
-import javax.naming.spi.NamingManager;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -88,7 +85,8 @@ import java.util.regex.Pattern;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
-import static org.apache.commons.lang.StringUtils.*;
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
  * A configuration for one ldap connection
@@ -430,7 +428,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 props.put("com.sun.jndi.ldap.connect.pool", "true");
                 props.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT));
 
-                ctx = new InitialLdapContext(props,  null);
+                ctx = new InitialDirContext(props);
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
