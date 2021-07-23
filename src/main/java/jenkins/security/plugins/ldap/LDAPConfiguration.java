@@ -36,7 +36,7 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import org.apache.commons.codec.Charsets;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
@@ -499,17 +499,17 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     @Restricted(NoExternalUse.class)
     static String generateId(String serverUrl, String rootDN, String userSearchBase, String userSearch) {
         final MessageDigest digest = DigestUtils.getMd5Digest();
-        digest.update(normalizeServer(serverUrl).getBytes(Charsets.UTF_8));
+        digest.update(normalizeServer(serverUrl).getBytes(StandardCharsets.UTF_8));
         String userSearchBaseNormalized = normalizeUserSearchBase(rootDN, userSearchBase);
         if (isNotBlank(userSearchBaseNormalized)) {
-            digest.update(userSearchBaseNormalized.getBytes(Charsets.UTF_8));
+            digest.update(userSearchBaseNormalized.getBytes(StandardCharsets.UTF_8));
         } else {
             digest.update(new byte[]{0});
         }
         if (isNotBlank(userSearch)) {
-            digest.update(userSearch.getBytes(Charsets.UTF_8));
+            digest.update(userSearch.getBytes(StandardCharsets.UTF_8));
         } else {
-            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(Charsets.UTF_8));
+            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(StandardCharsets.UTF_8));
         }
         return Base64.encodeBase64String(digest.digest());
     }
