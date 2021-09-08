@@ -61,6 +61,7 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import javax.naming.ldap.InitialLdapContext;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -93,6 +94,12 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration> {
 
     private static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
+
+    public static final int CONNECT_TIMEOUT =
+            Integer.getInteger(LDAPConfiguration.class.getName() + "connect.timeout", 30000);
+    public static final int READ_TIMEOUT =
+            Integer.getInteger(LDAPConfiguration.class.getName() + "read.timeout", 60000);
+
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
@@ -135,7 +142,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private boolean ignoreIfUnavailable;
     private Map<String,String> extraEnvVars;
     /**
-     * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
+     * Set in {@link #createApplicationContext(LDAPSecurityRealm)}
      */
     private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
@@ -403,19 +410,25 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
+            Context ctx = null;
             try {
-                Hashtable<String,String> props = new Hashtable<String,String>();
-                if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
+                Hashtable<String,Object> props = new Hashtable<>();
+                if(StringUtils.isNotBlank(managerDN)  && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
                 }
-                if(managerPassword!=null && managerPassword.trim().length() > 0 && !"undefined".equals(managerPassword)) {
+                if(StringUtils.isNotBlank(managerPassword) && !"undefined".equals(managerPassword)) {
                     props.put(Context.SECURITY_CREDENTIALS,managerPassword);
                 }
+                // normal
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server,rootDN));
 
-                DirContext ctx = new InitialDirContext(props);
-                ctx.getAttributes("");
+                props.put("java.naming.referral", "follow");
+                props.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT));
+                props.put("com.sun.jndi.ldap.connect.pool", "true");
+                props.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT));
+
+                ctx = new InitialDirContext(props);
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
@@ -442,6 +455,19 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             } catch (NumberFormatException x) {
                 // The getLdapCtxInstance method throws this if it fails to parse the port number
                 return FormValidation.error(Messages.LDAPSecurityRealm_InvalidPortNumber());
+            } finally {
+                forceClose(ctx);
+            }
+        }
+
+        private void forceClose(Context ctx){
+            if(ctx==null){
+                return;
+            }
+            try {
+                ctx.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "fail to close ldap context", e);
             }
         }
 
@@ -573,8 +599,9 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         contextSource.setReferral("follow");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
-        vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
+        vars.put("com.sun.jndi.ldap.connect.pool", "true");
+        vars.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT)); // timeout if no connection after 30 seconds
+        vars.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT)); // timeout if no response after 60 seconds
         vars.putAll(getExtraEnvVars());
         contextSource.setBaseEnvironmentProperties(vars);
         contextSource.afterPropertiesSet();
