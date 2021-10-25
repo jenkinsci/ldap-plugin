@@ -76,7 +76,7 @@
     <dependency>
       <groupId>net.time4j</groupId>
       <artifactId>time4j-tzdata</artifactId>
-      <version>5.0-2021a</version>
+      <version>5.0-2021d</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
