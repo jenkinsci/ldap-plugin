@@ -81,8 +81,8 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.naming.InvalidNameException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
@@ -734,7 +734,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return server;
     }
 
-    @Override @Nonnull
+    @Override @NonNull
     public SecurityComponents createSecurityComponents() {
             DelegateLDAPUserDetailsService details = new DelegateLDAPUserDetailsService();
             LDAPAuthenticationManager manager = new LDAPAuthenticationManager(details);
@@ -859,7 +859,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         return group;
     }
 
-    private @Nonnull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
+    private @NonNull GroupDetailsImpl searchForGroupName(String groupname, boolean fetchMembers) throws UsernameNotFoundException {
         for (LDAPConfiguration conf : configurations) {
             try {
                 String searchBase = conf.getGroupSearchBase() != null ? conf.getGroupSearchBase() : "";
@@ -1097,12 +1097,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     static class DelegatedLdapUserDetails implements LdapUserDetails, Serializable {
         private static final long serialVersionUID = 1L;
         private final LdapUserDetails userDetails;
-        @Nonnull
+        @NonNull
         private final String configurationId;
         @CheckForNull
         private final Attributes attributes;
 
-        DelegatedLdapUserDetails(@Nonnull LdapUserDetails userDetails, @Nonnull String configurationId, @CheckForNull Attributes attributes) {
+        DelegatedLdapUserDetails(@NonNull LdapUserDetails userDetails, @NonNull String configurationId, @CheckForNull Attributes attributes) {
             this.userDetails = userDetails;
             this.configurationId = configurationId;
             this.attributes = attributes;
@@ -1152,7 +1152,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return userDetails;
         }
 
-        @Nonnull
+        @NonNull
         public String getConfigurationId() {
             return configurationId;
         }
