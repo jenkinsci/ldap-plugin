@@ -132,7 +132,7 @@ public class LDAPSecurityRealmTest {
         final String previousValue = "previousValue";
         final String testValue = "testValue";
         final LDAPSecurityRealm realm = new LDAPSecurityRealm(
-                "ldap.itd.umich.edu",
+                "localhost",
                 null,
                 null,
                 null,
@@ -178,7 +178,7 @@ public class LDAPSecurityRealmTest {
 
     @Test
     public void configRoundTrip() throws Exception {
-        final String server = "ldap.itd.umich.edu";
+        final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
@@ -367,7 +367,7 @@ public class LDAPSecurityRealmTest {
 
     @Test
     public void configRoundTripEnvironmentProperties() throws Exception {
-        final String server = "ldap.itd.umich.edu";
+        final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
