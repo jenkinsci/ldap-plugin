@@ -113,7 +113,7 @@ public class LDAPDNEscapingTest {
         WebClient wc = r.createWebClient().login("professor", "professor"); 
         
         HtmlPage whoAmI = wc.goTo("whoAmI");
-        assertThat(whoAmI.asText(), allOf(containsString("Professor Farnsworth"), // user is loaded 
+        assertThat(whoAmI.asNormalizedText(), allOf(containsString("Professor Farnsworth"), // user is loaded 
                                           containsString("management"))); // groups are recognized
     }
 
