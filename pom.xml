@@ -84,7 +84,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.16.0</version>
+      <version>1.17.1</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -301,6 +301,11 @@
         <version>1289.v5c4b_1c43511b_</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.36</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
