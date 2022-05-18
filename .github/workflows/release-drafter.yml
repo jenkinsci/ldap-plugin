@@ -8,8 +8,8 @@ on:
       - master
 
 permissions:
-  security-events: write
-  contents: read
+  security-events: read
+  contents: write
   actions: read
 
 jobs:
