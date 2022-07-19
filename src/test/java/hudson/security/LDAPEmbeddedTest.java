@@ -32,10 +32,14 @@ import hudson.util.FormValidation;
 import hudson.util.Secret;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import jenkins.model.IdStrategy;
+import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.*;
+import org.jetbrains.annotations.NotNull;
 import org.jvnet.hudson.test.Issue;
 import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.DisabledException;
@@ -368,6 +372,35 @@ public class LDAPEmbeddedTest {
 
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
         assertThat(leelaEmail, is("leela@planetexpress.com"));
+    }
+    
+    @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    @Issue("JENKINS-67664")
+    public void fireAuthenticated() throws Exception {
+        LDAPSecurityRealm realm =
+            new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
+                "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+
+        final AtomicBoolean authenticatedFired = new AtomicBoolean(false);
+        r.jenkins.getExtensionList(SecurityListener.class).add(0, new SecurityListener() {
+            @Override
+            protected void authenticated2(@NotNull UserDetails details) {
+                assertThat(details, instanceOf(LdapUserDetails.class));
+                assertThat(details.getUsername(), is("fry"));
+                assertThat(details.getAuthorities().size(), is(5));
+                assertThat(details.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()), 
+                    containsInAnyOrder("ROLE_CREW","authenticated","staff","crew","ROLE_STAFF"));
+                assertThat(((LdapUserDetails)details).getDn(), is("cn=Philip J. Fry,ou=people,dc=planetexpress,dc=com"));
+                authenticatedFired.set(true);
+            }
+        });
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        assertThat(content, containsString("Philip J. Fry"));
+        assertThat(authenticatedFired.get(), is(true));
     }
 
     @Test
