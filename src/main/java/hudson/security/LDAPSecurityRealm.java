@@ -40,6 +40,7 @@ import hudson.util.Secret;
 import hudson.util.VersionNumber;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
@@ -992,6 +993,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     if (principal instanceof LdapUserDetails && !(principal instanceof DelegatedLdapUserDetails)) {
                         principal = new DelegatedLdapUserDetails((LdapUserDetails) principal, delegate.configurationId, null);
                     }
+                    SecurityListener.fireAuthenticated2((UserDetails) principal);
                     return updateUserDetails(new DelegatedLdapAuthentication(a, principal, delegate.configurationId), delegate.ldapUserSearch);
                 } catch (BadCredentialsException e) {
                     if (detailsService != null && delegates.size() > 1) {
