@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.43.1</version>
+    <version>4.45</version>
     <relativePath />
   </parent>
 
@@ -27,7 +27,7 @@
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.332.1</jenkins.version>
+    <jenkins.version>2.346.1</jenkins.version>
   </properties>
 
   <scm>
