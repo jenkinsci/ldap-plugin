@@ -20,7 +20,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import net.time4j.Moment;
 import net.time4j.PlainDate;
 import net.time4j.PlainTime;
-import net.time4j.format.DisplayMode;
 import net.time4j.format.expert.ChronoFormatter;
 
 import java.text.ParseException;

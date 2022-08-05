@@ -595,7 +595,7 @@ public class LDAPEmbeddedTest {
         LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.security.protocol", "ssl")};
         c.setEnvironmentProperties(environmentProperties);
 
-        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        List<LDAPConfiguration> configurations = new ArrayList<>();
         configurations.add(c);
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
             configurations,

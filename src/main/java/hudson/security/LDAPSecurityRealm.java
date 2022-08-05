@@ -103,6 +103,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -972,7 +973,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     private class LDAPAuthenticationManager implements AuthenticationManager {
-        private final List<ManagerEntry> delegates = new ArrayList<>();;
+        private final List<ManagerEntry> delegates = new ArrayList<>();
         private final DelegateLDAPUserDetailsService detailsService;
 
         private LDAPAuthenticationManager(DelegateLDAPUserDetailsService detailsService) {
@@ -1331,10 +1332,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         synchronized (ldapSecurityRealm) {
                             if (ldapSecurityRealm.userDetailsCache == null) {
                                 ldapSecurityRealm.userDetailsCache =
-                                        new CacheMap<String, DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getSize());
+                                        new CacheMap<>(ldapSecurityRealm.cache.getSize());
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
-                                    new CacheEntry<DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
+                                    new CacheEntry<>(ldapSecurityRealm.cache.getTtl(),
                                             ldapSecurityRealm.updateUserDetails(ldapUserDetails, ldapSearch)));
                         }
                     }
@@ -1425,7 +1426,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
-            Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
+            Set<GrantedAuthority> r = new HashSet<>(names.size() * 2);
             r.addAll(names);
 
             if (isGeneratingPrefixRoles()) {
@@ -1820,7 +1821,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } catch (NamingException e) {
                         lookUpValue = e.getClass();
                     }
-                    if (loginValue == null ? lookUpValue != null : !loginValue.equals(lookUpValue)) {
+                    if (!Objects.equals(loginValue, lookUpValue)) {
                         error(response, "consistency-displayname",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayNameMismatch(
                                         loginValue, lookUpValue));
@@ -1844,7 +1845,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } catch (NamingException e) {
                         lookUpValue = e.getClass();
                     }
-                    if (loginValue == null ? lookUpValue != null : !loginValue.equals(lookUpValue)) {
+                    if (!Objects.equals(loginValue, lookUpValue)) {
                         error(response, "consistency-email",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmailAddressMismatch(
                                         loginValue, lookUpValue));
@@ -2153,7 +2154,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public static Map<String,String> toMap(List<EnvironmentProperty> properties) {
             if (properties != null) {
-                final Map<String, String> result = new LinkedHashMap<String, String>();
+                final Map<String, String> result = new LinkedHashMap<>();
                 for (EnvironmentProperty property:properties) {
                     result.put(property.getName(), property.getValue());
                 }

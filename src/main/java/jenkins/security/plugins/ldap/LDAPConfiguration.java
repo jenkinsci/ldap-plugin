@@ -26,7 +26,6 @@
 package jenkins.security.plugins.ldap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Util;
@@ -59,7 +58,6 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
-import javax.naming.ldap.InitialLdapContext;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -483,7 +481,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     private String inferRootDN(String server) {
         try {
-            Hashtable<String, String> props = new Hashtable<String, String>();
+            Hashtable<String, String> props = new Hashtable<>();
             if (managerDN != null) {
                 props.put(Context.SECURITY_PRINCIPAL, managerDN);
                 props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());

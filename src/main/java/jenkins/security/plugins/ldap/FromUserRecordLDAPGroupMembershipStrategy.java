@@ -67,7 +67,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
 
     @Override
     public Collection<? extends GrantedAuthority> getGrantedAuthorities(DirContextOperations userData, String username) {
-        List<GrantedAuthority> result = new ArrayList<GrantedAuthority>();
+        List<GrantedAuthority> result = new ArrayList<>();
         Attributes attributes = userData.getAttributes();
         final String attributeName = getAttributeName();
         Attribute attribute = attributes == null ? null : attributes.get(attributeName);

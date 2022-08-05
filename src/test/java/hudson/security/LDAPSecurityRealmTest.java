@@ -291,8 +291,7 @@ public class LDAPSecurityRealmTest {
         confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
-        for (int i = 0; i < confs.length; i++) {
-            TestConf conf = confs[i];
+        for (TestConf conf : confs) {
             final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
@@ -335,8 +334,7 @@ public class LDAPSecurityRealmTest {
         confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
         confs[2] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example3,ou.com", "secret3");
         List<LDAPConfiguration> ldapConfigurations = new ArrayList<>();
-        for (int i = 0; i < confs.length; i++) {
-            TestConf conf = confs[i];
+        for (TestConf conf : confs) {
             final LDAPConfiguration configuration = new LDAPConfiguration(conf.server, conf.rootDN, false, conf.managerDN, Secret.fromString(conf.managerSecret));
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
@@ -387,7 +385,7 @@ public class LDAPSecurityRealmTest {
         c.setEnvironmentProperties(environmentProperties);
         c.setUserSearchBase(userSearchBase);
 
-        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        List<LDAPConfiguration> configurations = new ArrayList<>();
         configurations.add(c);
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 configurations,
