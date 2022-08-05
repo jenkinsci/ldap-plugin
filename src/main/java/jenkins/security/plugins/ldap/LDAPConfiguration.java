@@ -396,6 +396,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
         public static final String DEFAULT_USER_SEARCH = LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH;
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "ldap";

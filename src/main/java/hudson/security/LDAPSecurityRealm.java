@@ -1473,6 +1473,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
         public static final String DEFAULT_USER_SEARCH = "uid={0}";
 
+        @NonNull
         public String getDisplayName() {
             return jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayName();
         }
@@ -2067,6 +2068,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Extension public static class DescriptorImpl extends Descriptor<CacheConfiguration> {
 
+            @NonNull
             @Override public String getDisplayName() {
                 return "";
             }
@@ -2166,6 +2168,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Extension
         public static class DescriptorImpl extends Descriptor<EnvironmentProperty> {
 
+            @NonNull
             @Override
             public String getDisplayName() {
                 return "";

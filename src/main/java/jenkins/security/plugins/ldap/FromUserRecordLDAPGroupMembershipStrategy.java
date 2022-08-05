@@ -23,6 +23,7 @@
  */
 package jenkins.security.plugins.ldap;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
 import java.util.Set;
@@ -142,6 +143,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     @Extension
     public static class DescriptorImpl extends LDAPGroupMembershipStrategyDescriptor {
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return Messages.FromUserRecordLDAPGroupMembershipStrategy_DisplayName();
