@@ -7,14 +7,17 @@ import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import java.util.Arrays;
+import java.util.Collections;
+
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -89,11 +92,11 @@ public class MultiServerTest {
         //j.configRoundtrip();
 
         //ads verification
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS Lydia"), hasItem("ROLE_HMS LYDIA")));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS Victory"), hasItem("ROLE_HMS VICTORY")));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -101,7 +104,7 @@ public class MultiServerTest {
         //Planet Express verification
         String content = j.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
         assertThat(content, containsString("Philip J. Fry"));
-        user = User.get("fry");
+        user = User.get("fry", true, Collections.emptyMap());
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
 
 

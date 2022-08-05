@@ -4,9 +4,10 @@ import hudson.Functions;
 import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.Secret;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import org.junit.BeforeClass;

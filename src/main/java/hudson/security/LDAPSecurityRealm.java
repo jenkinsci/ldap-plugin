@@ -95,6 +95,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -689,7 +690,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull
     private static LDAPConfiguration _getConfigurationFor(String configurationId) {
-        final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+        final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
         if (securityRealm instanceof LDAPSecurityRealm) {
             return ((LDAPSecurityRealm) securityRealm).getConfigurationFor(configurationId);
         }
@@ -777,7 +778,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public DelegatedLdapUserDetails updateUserDetails(LdapUserDetails d, @CheckForNull LdapUserSearch ldapUserSearch) {
-        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
+        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()), true, Collections.emptyMap());
         LDAPConfiguration configuration = getConfigurationFor(d);
         String displayNameAttributeName;
         String mailAddressAttributeName;
@@ -1526,12 +1527,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @RequirePOST
         public FormValidation doValidate(StaplerRequest req) throws Exception {
-            if (!Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) {
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
                 // require admin to test
                 return FormValidation.ok();
             }
             // extract the submitted details
-            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream()));
+            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), Charset.defaultCharset()));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
             JSONObject realmCfg;
@@ -1587,7 +1588,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public FormValidation validate(LDAPSecurityRealm realm, String user, String password) {
             // we can only do deep validation if the connection is correct
-            LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.getActiveInstance().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
+            LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.get().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
                 FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret(),configuration.getRootDN());
                 if (connectionCheck.kind != FormValidation.Kind.OK) {

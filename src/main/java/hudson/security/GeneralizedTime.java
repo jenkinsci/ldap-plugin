@@ -24,6 +24,7 @@ import net.time4j.format.DisplayMode;
 import net.time4j.format.expert.ChronoFormatter;
 
 import java.text.ParseException;
+import java.time.format.FormatStyle;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -70,16 +71,16 @@ final class GeneralizedTime implements Comparable<GeneralizedTime> {
                         .endSection()
                         .endSection()
                         .endSection()
-                        .addTimezoneOffset(DisplayMode.SHORT, false, Collections.singletonList("Z"))
+                        .addTimezoneOffset(FormatStyle.SHORT, false, Collections.singletonList("Z"))
                         .or()
                         .addCustomized(PlainDate.COMPONENT, df)
                         .addFixedInteger(PlainTime.DIGITAL_HOUR_OF_DAY, 2)
                         .addFixedDecimal(PlainTime.DECIMAL_MINUTE)
-                        .addTimezoneOffset(DisplayMode.SHORT, false, Collections.singletonList("Z"))
+                        .addTimezoneOffset(FormatStyle.SHORT, false, Collections.singletonList("Z"))
                         .or()
                         .addCustomized(PlainDate.COMPONENT, df)
                         .addFixedDecimal(PlainTime.DECIMAL_HOUR)
-                        .addTimezoneOffset(DisplayMode.SHORT, false, Collections.singletonList("Z"))
+                        .addTimezoneOffset(FormatStyle.SHORT, false, Collections.singletonList("Z"))
                         .build();
     }
 
