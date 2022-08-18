@@ -1534,7 +1534,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return FormValidation.ok();
             }
             // extract the submitted details
-            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), Charset.defaultCharset()));
+            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), req.getCharacterEncoding()));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
             JSONObject realmCfg;
