@@ -103,7 +103,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
             controls.setSearchScope(SearchControls.SUBTREE_SCOPE);
             controls.setReturningAttributes(attributeNames);
             NamingEnumeration<SearchResult> searchResults = ctx.search(base, filter, params, controls);
-            return new SearchResultEnumeration<T>(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
+            return new SearchResultEnumeration<>(searchResults, mapper, getDnSuffix(base, ctx.getNameInNamespace()));
         });
     }
 

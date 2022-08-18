@@ -54,16 +54,18 @@ import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
-import static org.hamcrest.Matchers.*;
 
 @LDAPTestConfiguration
 public class LDAPEmbeddedTest {
@@ -96,13 +98,13 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE);
         r.jenkins.setSecurityRealm(realm);
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia", "ROLE_HMS LYDIA"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory", "ROLE_HMS VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -132,13 +134,13 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE);
         r.jenkins.setSecurityRealm(realm);
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -169,13 +171,13 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE);
         realm.setDisableRolePrefixing(true);
         r.jenkins.setSecurityRealm(realm);
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Lydia"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS Lydia"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -206,13 +208,13 @@ public class LDAPEmbeddedTest {
                 IdStrategy.CASE_INSENSITIVE);
         realm.setDisableRolePrefixing(true);
         r.jenkins.setSecurityRealm(realm);
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia"));
         assertThat(user.getDisplayName(), is("Horatio Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
         UserDetails details = realm.authenticate2("hhornblo", "pass");
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory"));
         assertThat(user.getDisplayName(), is("Horatio Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -593,7 +595,7 @@ public class LDAPEmbeddedTest {
         LDAPSecurityRealm.EnvironmentProperty[] environmentProperties = {new LDAPSecurityRealm.EnvironmentProperty("java.naming.security.protocol", "ssl")};
         c.setEnvironmentProperties(environmentProperties);
 
-        List<LDAPConfiguration> configurations = new ArrayList<LDAPConfiguration>();
+        List<LDAPConfiguration> configurations = new ArrayList<>();
         configurations.add(c);
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
             configurations,

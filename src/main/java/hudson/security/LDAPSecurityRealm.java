@@ -95,6 +95,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -102,6 +103,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -689,7 +691,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @CheckForNull
     private static LDAPConfiguration _getConfigurationFor(String configurationId) {
-        final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+        final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
         if (securityRealm instanceof LDAPSecurityRealm) {
             return ((LDAPSecurityRealm) securityRealm).getConfigurationFor(configurationId);
         }
@@ -777,7 +779,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public DelegatedLdapUserDetails updateUserDetails(LdapUserDetails d, @CheckForNull LdapUserSearch ldapUserSearch) {
-        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()));
+        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()), true, Collections.emptyMap());
         LDAPConfiguration configuration = getConfigurationFor(d);
         String displayNameAttributeName;
         String mailAddressAttributeName;
@@ -971,7 +973,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     private class LDAPAuthenticationManager implements AuthenticationManager {
-        private final List<ManagerEntry> delegates = new ArrayList<>();;
+        private final List<ManagerEntry> delegates = new ArrayList<>();
         private final DelegateLDAPUserDetailsService detailsService;
 
         private LDAPAuthenticationManager(DelegateLDAPUserDetailsService detailsService) {
@@ -1330,10 +1332,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                         synchronized (ldapSecurityRealm) {
                             if (ldapSecurityRealm.userDetailsCache == null) {
                                 ldapSecurityRealm.userDetailsCache =
-                                        new CacheMap<String, DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getSize());
+                                        new CacheMap<>(ldapSecurityRealm.cache.getSize());
                             }
                             ldapSecurityRealm.userDetailsCache.put(username,
-                                    new CacheEntry<DelegatedLdapUserDetails>(ldapSecurityRealm.cache.getTtl(),
+                                    new CacheEntry<>(ldapSecurityRealm.cache.getTtl(),
                                             ldapSecurityRealm.updateUserDetails(ldapUserDetails, ldapSearch)));
                         }
                     }
@@ -1424,7 +1426,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
             Set<GrantedAuthority> names = super.getGroupMembershipRoles(userDn,username);
 
-            Set<GrantedAuthority> r = new HashSet<GrantedAuthority>(names.size()*2);
+            Set<GrantedAuthority> r = new HashSet<>(names.size() * 2);
             r.addAll(names);
 
             if (isGeneratingPrefixRoles()) {
@@ -1471,6 +1473,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = "mail";
         public static final String DEFAULT_USER_SEARCH = "uid={0}";
 
+        @NonNull
         public String getDisplayName() {
             return jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayName();
         }
@@ -1526,12 +1529,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @RequirePOST
         public FormValidation doValidate(StaplerRequest req) throws Exception {
-            if (!Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) {
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
                 // require admin to test
                 return FormValidation.ok();
             }
             // extract the submitted details
-            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream()));
+            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), Charset.defaultCharset()));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
             JSONObject realmCfg;
@@ -1587,7 +1590,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public FormValidation validate(LDAPSecurityRealm realm, String user, String password) {
             // we can only do deep validation if the connection is correct
-            LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.getActiveInstance().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
+            LDAPConfiguration.LDAPConfigurationDescriptor confDescriptor = Jenkins.get().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
                 FormValidation connectionCheck = confDescriptor.doCheckServer(configuration.getServerUrl(), configuration.getManagerDN(), configuration.getManagerPasswordSecret(),configuration.getRootDN());
                 if (connectionCheck.kind != FormValidation.Kind.OK) {
@@ -1819,7 +1822,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } catch (NamingException e) {
                         lookUpValue = e.getClass();
                     }
-                    if (loginValue == null ? lookUpValue != null : !loginValue.equals(lookUpValue)) {
+                    if (!Objects.equals(loginValue, lookUpValue)) {
                         error(response, "consistency-displayname",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_DisplayNameMismatch(
                                         loginValue, lookUpValue));
@@ -1843,7 +1846,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     } catch (NamingException e) {
                         lookUpValue = e.getClass();
                     }
-                    if (loginValue == null ? lookUpValue != null : !loginValue.equals(lookUpValue)) {
+                    if (!Objects.equals(loginValue, lookUpValue)) {
                         error(response, "consistency-email",
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_EmailAddressMismatch(
                                         loginValue, lookUpValue));
@@ -2065,6 +2068,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Extension public static class DescriptorImpl extends Descriptor<CacheConfiguration> {
 
+            @NonNull
             @Override public String getDisplayName() {
                 return "";
             }
@@ -2152,7 +2156,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         public static Map<String,String> toMap(List<EnvironmentProperty> properties) {
             if (properties != null) {
-                final Map<String, String> result = new LinkedHashMap<String, String>();
+                final Map<String, String> result = new LinkedHashMap<>();
                 for (EnvironmentProperty property:properties) {
                     result.put(property.getName(), property.getValue());
                 }
@@ -2164,6 +2168,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Extension
         public static class DescriptorImpl extends Descriptor<EnvironmentProperty> {
 
+            @NonNull
             @Override
             public String getDisplayName() {
                 return "";

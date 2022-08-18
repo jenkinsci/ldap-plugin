@@ -21,14 +21,15 @@ import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.Arrays;
+import java.util.Collections;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -85,7 +86,7 @@ public class LdapMultiEmbedded2Test {
     @Test
     public void lookUp() {
         //First server
-        User user = User.get("hnelson");
+        User user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS_Victory"), hasItem("ROLE_HMS_VICTORY")));
         assertThat(user.getDisplayName(), is("Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
@@ -95,7 +96,7 @@ public class LdapMultiEmbedded2Test {
         assertEquals(sevenSeasConf.getId(), ((LDAPSecurityRealm.DelegatedLdapUserDetails)details).getConfigurationId());
 
         //Second server
-        user = User.get("fry");
+        user = User.get("fry", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("fry@planetexpress.com"));
