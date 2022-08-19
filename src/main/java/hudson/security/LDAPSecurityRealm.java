@@ -96,6 +96,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1534,7 +1535,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return FormValidation.ok();
             }
             // extract the submitted details
-            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), req.getCharacterEncoding()));
+            JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), Util.fixNull(req.getCharacterEncoding(), StandardCharsets.UTF_8.name())));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
             JSONObject realmCfg;
