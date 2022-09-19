@@ -101,7 +101,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private final String server;
 
     /**
-     * whether to verify ldaps sever certificate? default is false
+     * whether to verify ldaps sever certificate? default is true
      */
     private final boolean sslVerify;
 
@@ -181,7 +181,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     /**
-     * whether to verify ldaps sever certificate? default is false
+     * whether to verify ldaps sever certificate? default is true
      */
     public boolean isSslVerify() {
         return sslVerify;
