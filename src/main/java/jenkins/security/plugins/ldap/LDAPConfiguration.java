@@ -26,7 +26,6 @@
 package jenkins.security.plugins.ldap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Util;
@@ -36,9 +35,7 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import org.apache.commons.codec.Charsets;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.digest.DigestUtils;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -69,8 +66,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.HashMap;
@@ -93,6 +92,12 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration> {
 
     private static final Logger LOGGER = LDAPSecurityRealm.LOGGER;
+
+    public static final int CONNECT_TIMEOUT =
+            Integer.getInteger(LDAPConfiguration.class.getName() + "connect.timeout", 30000);
+    public static final int READ_TIMEOUT =
+            Integer.getInteger(LDAPConfiguration.class.getName() + "read.timeout", 60000);
+
 
     /**
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
@@ -140,7 +145,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private boolean ignoreIfUnavailable;
     private Map<String,String> extraEnvVars;
     /**
-     * Set in {@link #createApplicationContext(LDAPSecurityRealm, boolean)}
+     * Set in {@link #createApplicationContext(LDAPSecurityRealm)}
      */
     private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
@@ -412,6 +417,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         public static final String DEFAULT_MAILADDRESS_ATTRIBUTE_NAME = LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
         public static final String DEFAULT_USER_SEARCH = LDAPSecurityRealm.DescriptorImpl.DEFAULT_USER_SEARCH;
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "ldap";
@@ -425,22 +431,28 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 return FormValidation.ok();
             String url = LDAPSecurityRealm.toProviderUrl(server,rootDN);
 
+            Context ctx = null;
             try(SetContextClassLoader sccl = new SetContextClassLoader()) {
-                Hashtable<String,String> props = new Hashtable<String,String>();
-                if(managerDN!=null && managerDN.trim().length() > 0  && !"undefined".equals(managerDN)) {
+                Hashtable<String,Object> props = new Hashtable<>();
+                if(StringUtils.isNotBlank(managerDN)  && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
                 }
-                if(managerPassword!=null && managerPassword.trim().length() > 0 && !"undefined".equals(managerPassword)) {
+                if(StringUtils.isNotBlank(managerPassword) && !"undefined".equals(managerPassword)) {
                     props.put(Context.SECURITY_CREDENTIALS,managerPassword);
                 }
+                // normal
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.PROVIDER_URL, url);
                 if(url.startsWith("ldaps:") && !sslVerify) {
                     props.put("java.naming.ldap.factory.socket", BlindSSLSocketFactory.class.getName());
                 }
 
-                DirContext ctx = new InitialDirContext(props);
-                ctx.getAttributes("");
+                props.put("java.naming.referral", "follow");
+                props.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT));
+                props.put("com.sun.jndi.ldap.connect.pool", "true");
+                props.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT));
+
+                ctx = new InitialDirContext(props);
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
@@ -467,6 +479,19 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             } catch (NumberFormatException x) {
                 // The getLdapCtxInstance method throws this if it fails to parse the port number
                 return FormValidation.error(Messages.LDAPSecurityRealm_InvalidPortNumber());
+            } finally {
+                forceClose(ctx);
+            }
+        }
+
+        private void forceClose(Context ctx){
+            if(ctx==null){
+                return;
+            }
+            try {
+                ctx.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "fail to close ldap context", e);
             }
         }
 
@@ -527,20 +552,25 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @Restricted(NoExternalUse.class)
     static String generateId(String serverUrl, String rootDN, String userSearchBase, String userSearch) {
-        final MessageDigest digest = DigestUtils.getMd5Digest();
-        digest.update(normalizeServer(serverUrl).getBytes(Charsets.UTF_8));
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
+        }
+        digest.update(normalizeServer(serverUrl).getBytes(StandardCharsets.UTF_8));
         String userSearchBaseNormalized = normalizeUserSearchBase(rootDN, userSearchBase);
         if (isNotBlank(userSearchBaseNormalized)) {
-            digest.update(userSearchBaseNormalized.getBytes(Charsets.UTF_8));
+            digest.update(userSearchBaseNormalized.getBytes(StandardCharsets.UTF_8));
         } else {
             digest.update(new byte[]{0});
         }
         if (isNotBlank(userSearch)) {
-            digest.update(userSearch.getBytes(Charsets.UTF_8));
+            digest.update(userSearch.getBytes(StandardCharsets.UTF_8));
         } else {
-            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(Charsets.UTF_8));
+            digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(StandardCharsets.UTF_8));
         }
-        return Base64.encodeBase64String(digest.digest());
+        return Base64.getEncoder().encodeToString(digest.digest());
     }
 
     private static String normalizeUserSearchBase(String rootDN, String userSearchBase) {
@@ -594,15 +624,17 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @Restricted(NoExternalUse.class)
     public ApplicationContext createApplicationContext(LDAPSecurityRealm realm) {
-        DefaultSpringSecurityContextSource contextSource = new DefaultSpringSecurityContextSource(getLDAPURL());
+        // https://issues.jenkins.io/browse/JENKINS-65628 / https://github.com/spring-projects/spring-security/issues/9742
+        DefaultSpringSecurityContextSource contextSource = new FixedDefaultSpringSecurityContextSource(getLDAPURL());
         if (getManagerDN() != null) {
             contextSource.setUserDn(getManagerDN());
             contextSource.setPassword(getManagerPassword());
         }
         contextSource.setReferral("follow");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("com.sun.jndi.ldap.connect.timeout", "30000"); // timeout if no connection after 30 seconds
-        vars.put("com.sun.jndi.ldap.read.timeout", "60000"); // timeout if no response after 60 seconds
+        vars.put("com.sun.jndi.ldap.connect.pool", "true");
+        vars.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT)); // timeout if no connection after 30 seconds
+        vars.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT)); // timeout if no response after 60 seconds
         if(getLDAPURL().startsWith("ldaps:") && !sslVerify) {
             vars.put("java.naming.ldap.factory.socket", BlindSSLSocketFactory.class.getName());
         }

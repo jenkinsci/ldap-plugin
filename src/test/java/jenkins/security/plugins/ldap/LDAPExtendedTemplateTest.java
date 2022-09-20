@@ -34,14 +34,15 @@ import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.naming.directory.Attributes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 @LDAPTestConfiguration
 public class LDAPExtendedTemplateTest {
@@ -62,7 +63,7 @@ public class LDAPExtendedTemplateTest {
                 false,
                 "uid=admin,ou=system", Secret.fromString("pass"));
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
-                Arrays.asList(conf),
+                Collections.singletonList(conf),
                 false,
                 new CacheConfiguration(100, 100),
                 IdStrategy.CASE_INSENSITIVE,

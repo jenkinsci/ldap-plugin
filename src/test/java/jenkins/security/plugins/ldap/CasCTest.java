@@ -23,8 +23,7 @@ public class CasCTest {
     @Test
     @ConfiguredWithCode("casc.yml")
     public void configure_ldap() {
-        final Jenkins jenkins = Jenkins.getInstance();
-        final LDAPSecurityRealm securityRealm = (LDAPSecurityRealm) jenkins.getSecurityRealm();
+        final LDAPSecurityRealm securityRealm = (LDAPSecurityRealm) Jenkins.get().getSecurityRealm();
         assertEquals(1, securityRealm.getConfigurations().size());
         assertTrue(securityRealm.getUserIdStrategy() instanceof IdStrategy.CaseInsensitive);
         assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);

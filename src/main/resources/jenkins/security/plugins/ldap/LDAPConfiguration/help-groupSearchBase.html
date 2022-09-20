@@ -8,7 +8,7 @@
     If login attempts result in "Administrative Limit Exceeded" or similar error, try to
     make this setting as specific as possible for your LDAP structure, to reduce the scope
     of the query. If the error persists, you may need to edit the
-    <b>Group search filter<b>. Change: <br/>
+    <b>Group search filter</b>. Change: <br/>
     <tt>groupSearchFilter = "(| (member={0}) (uniqueMember={0}) (memberUid={1}))";</tt><br/>
     to query only of the field used in your LDAP for group membership, such as: <br/>
     <tt>groupSearchFilter = "(member={0})";</tt><br/>

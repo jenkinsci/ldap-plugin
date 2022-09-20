@@ -16,6 +16,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -24,11 +25,11 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.jvnet.hudson.test.LoggerRule.recorded;
@@ -87,32 +88,32 @@ public class LdapMultiEmbeddedTest {
     public void lookUp() {
 
         //Second server
-        User user = User.get("hhornblo");
+        User user = User.get("hhornblo", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS_Lydia"), hasItem("ROLE_HMS_LYDIA")));
         assertThat(user.getDisplayName(), is("Hornblower"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
-        user = User.get("hnelson");
+        user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS_Victory"), hasItem("ROLE_HMS_VICTORY")));
         assertThat(user.getDisplayName(), is("Nelson"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
 
         //First server
-        user = User.get("fry");
+        user = User.get("fry", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("fry@planetexpress.com"));
 
-        user = User.get("bender");
+        user = User.get("bender", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("crew"), hasItem("staff")));
         //Has something encrypted as cn
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("bender@planetexpress.com"));
 
-        user = User.get("amy");
+        user = User.get("amy", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), hasItem("staff"));
         assertThat(user.getDisplayName(), is("Amy Wong"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("amy@planetexpress.com"));
 
-        user = User.get("professor");
+        user = User.get("professor", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("management"), hasItem("staff")));
         assertThat(user.getDisplayName(), is("Hubert J. Farnsworth"));
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("professor@planetexpress.com"));

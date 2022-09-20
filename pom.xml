@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.18</version>
+    <version>4.46</version>
     <relativePath />
   </parent>
 
@@ -13,7 +13,7 @@
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
-  <url>https://github.com/jenkinsci/ldap-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -23,17 +23,16 @@
   </licenses>
 
   <properties>
-    <revision>2.7</revision>
+    <revision>2.13</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.277.1</jenkins.version>
-    <java.level>8</java.level>
+    <jenkins.version>2.346.1</jenkins.version>
   </properties>
 
   <scm>
-    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
@@ -71,12 +70,12 @@
     <dependency>
       <groupId>net.time4j</groupId>
       <artifactId>time4j-base</artifactId>
-      <version>5.8</version>
+      <version>5.9.1</version>
     </dependency>
     <dependency>
       <groupId>net.time4j</groupId>
       <artifactId>time4j-tzdata</artifactId>
-      <version>5.0-2021a</version>
+      <version>5.0-2021e</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -85,7 +84,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.15.2</version>
+      <version>1.17.3</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -102,7 +101,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.20</version>
       <scope>test</scope>
     </dependency>
 
@@ -272,7 +270,7 @@
     <dependency>
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
-      <version>1.13.1</version>
+      <version>1.15.2</version>
       <scope>test</scope>
     </dependency>
     
@@ -287,16 +285,27 @@
       <artifactId>test-harness</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>pl.pragmatists</groupId>
+      <artifactId>JUnitParams</artifactId>
+      <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.277.x</artifactId>
-        <version>28</version>
+        <artifactId>bom-2.332.x</artifactId>
+        <version>1595.v8c71c13cc3a_9</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.36</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -249,7 +249,7 @@ public class LDAPRule implements TestRule, MethodRule {
             tlsTransport.setEnableSSL(true);
             transports.add(tlsTransport);
         }
-        server.setTransports(transports.toArray(new Transport[transports.size()]));
+        server.setTransports(transports.toArray(new Transport[0]));
         server.setDirectoryService(service);
         server.start();
     }
