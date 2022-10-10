@@ -35,16 +35,8 @@ THE SOFTWARE.
             </f:entry>
         </f:repeatable>
     </f:entry>
-    <j:choose>
-        <j:when test="${descriptor.hasEnableSecurityForm()}">
-            <j:set var="validateFilter" value="useSecurity.realm" />
-        </j:when>
-        <j:otherwise>
-            <j:set var="validateFilter" value="realm" />
-        </j:otherwise>
-    </j:choose>
     
-    <v:validate name="validateLdapSettings" method="validate" filter="${validateFilter}"
+    <v:validate name="validateLdapSettings" method="validate" filter="securityRealm"
                 title="${%Test LDAP settings}"
                 dialog="${%Test LDAP settings}"
                 submit="${%Test}">
