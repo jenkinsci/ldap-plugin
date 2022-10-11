@@ -78,6 +78,7 @@
       <img src="${imagesURL}/spinner.gif"/>
       ${attrs.progress}
     </div>
+    <!-- TODO: remove once pom is based off 2.361-->
     <div id="${uid}_result"><!-- this is where the error message goes --></div>
   </f:entry>
   <script>
