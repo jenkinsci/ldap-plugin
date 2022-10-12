@@ -27,7 +27,7 @@
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.346.1</jenkins.version>
+    <jenkins.version>2.361.1</jenkins.version>
   </properties>
 
   <scm>
