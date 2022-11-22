@@ -1021,6 +1021,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 }
             }
             if (lastException != null) {
+                SecurityListener.fireFailedToAuthenticate(String.valueOf(authentication.getPrincipal()));
                 throw lastException;
             } else {
                 throw new UserMayOrMayNotExistException2("No ldap server configuration");
