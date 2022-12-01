@@ -406,6 +406,38 @@ public class LDAPEmbeddedTest {
     }
 
     @Test
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    @Issue("JENKINS-2131")
+    public void fireFailedToAuthenticate() throws Exception {
+        log.record(SecurityListener.class, Level.FINE).capture(20);
+        LDAPSecurityRealm realm =
+            new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
+                "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+
+        final AtomicBoolean failedToAuthFired = new AtomicBoolean(false);
+        r.jenkins.getExtensionList(SecurityListener.class).add(0, new SecurityListener() {
+                @Override
+                protected void failedToAuthenticate(@NotNull String username) {
+                        assertThat(username, is("fry"));
+                        failedToAuthFired.set(true);
+                }
+        });
+
+        try {
+            r.createWebClient().login("fry", "imposter");
+            fail("Should not be able to login");
+        } catch (FailingHttpStatusCodeException e) {
+            System.out.println("Got a bad login==good");
+        }
+
+        assertThat(log, LoggerRule.recorded(Level.FINE, containsString("failed to authenticate")));
+        assertThat(failedToAuthFired.get(), is(true));
+    }
+
+    @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
     public void validate() throws Exception {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
