@@ -25,6 +25,12 @@
 package hudson.security;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlButton;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
@@ -63,6 +69,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
@@ -584,6 +591,100 @@ public class LDAPEmbeddedTest {
         assertThat(validationDoc.select("[data-test='resolve-groups']").attr("class"),
                 containsString("validation-ok"));
         assertThat("Always report outer kind as OK", validation.kind, is(FormValidation.Kind.OK));
+    }
+
+    @Test
+    @Issue("JENKINS-68748")
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void validateUI() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+            ads.getUrl(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            new FromGroupSearchLDAPGroupMembershipStrategy(null),
+            "uid=admin,ou=system",
+            Secret.fromString("pass"),
+            false,
+            false,
+            new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+            new LDAPSecurityRealm.EnvironmentProperty[0],
+            "cn",
+            null,
+            IdStrategy.CASE_INSENSITIVE,
+            IdStrategy.CASE_INSENSITIVE);
+        realm.setDisableRolePrefixing(true);
+        r.jenkins.setSecurityRealm(realm);
+        r.jenkins.getSecurityRealm().createSecurityComponents();
+
+        try(JenkinsRule.WebClient c = r.createWebClient().withJavaScriptEnabled(true)) {
+            
+            final HtmlPage security = c.goTo("configureSecurity");
+            final HtmlForm form = security.getFormByName("config");
+
+            HtmlButton testButton = null;
+            for (HtmlElement e : form.getElementsByTagName("button")) {
+                if ("validateLdapSettings".equals(e.getAttribute("name"))) {
+                    testButton = (HtmlButton) e;
+                    break;
+                }
+            }
+
+            assertThat(testButton, notNullValue());
+            testButton.click();
+
+            c.waitForBackgroundJavaScript(2000);
+
+            final HtmlInput testUser = security.getElementByName("testUser");
+            testUser.setAttribute("value", "hnelson");
+            final HtmlInput testPassword = security.getElementByName("testPassword");
+            testPassword.setAttribute("value", "pass");
+
+            HtmlButton submitElement = null;
+            for (DomElement e : security.getElementsByTagName("button")) {
+                if ("submit".equals(e.getAttribute("type")) && "Test".equals(e.getTextContent())) {
+                    submitElement = (HtmlButton) e;
+                    break;
+                }
+            }
+
+            assertThat(submitElement, notNullValue());
+            submitElement.click();
+
+            c.waitForBackgroundJavaScript(2000);
+
+            Document validationDoc = Jsoup.parse(security.asXml());
+            assertThat(validationDoc.select("[data-test='authentication']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='authentication-username']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='authentication-dn']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='authentication-displayname']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='authentication-email']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='authentication-groups']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='lookup']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='lookup-username']").attr("class"),
+                is(""));
+            assertThat(validationDoc.select("[data-test='lookup-dn']").attr("class"),
+                is(""));
+            assertThat(validationDoc.select("[data-test='lookup-displayname']").attr("class"),
+                is(""));
+            assertThat(validationDoc.select("[data-test='lookup-email']").attr("class"),
+                is(""));
+            assertThat(validationDoc.select("[data-test='lookup-groups']").attr("class"),
+                is(""));
+            assertThat(validationDoc.select("[data-test='consistency']").attr("class"),
+                containsString("validation-ok"));
+            assertThat(validationDoc.select("[data-test='resolve-groups']").attr("class"),
+                containsString("validation-ok"));
+        }
     }
 
     @Test
