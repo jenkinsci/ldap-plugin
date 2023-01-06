@@ -162,7 +162,7 @@ public class LDAPSecurityRealmTest {
         final JenkinsRule.WebClient c = r.createWebClient();
         final HtmlPage security = c.goTo("configureSecurity");
         final HtmlForm form = security.getFormByName("config");
-        getButtonByText(form, "Advanced Server Configuration...").click();
+        getButtonByText(form, "Advanced Server Configuration").click();
         for (HtmlInput e : form.getInputsByName("_.attributeName")) {
             if (e.getValueAttribute().equals(previousValue)) {
                 e.setValueAttribute(testValue);
@@ -177,7 +177,7 @@ public class LDAPSecurityRealmTest {
 
     private HtmlButton getButtonByText(HtmlForm form, String text) throws Exception {
         for (HtmlElement e : form.getElementsByTagName("button")) {
-            if (text.equals(e.getTextContent())) {
+            if (e.getTextContent().contains(text)) {
                 return ((HtmlButton) e);
             }
         }
