@@ -624,14 +624,7 @@ public class LDAPEmbeddedTest {
             final HtmlPage security = c.goTo("configureSecurity");
             final HtmlForm form = security.getFormByName("config");
 
-            HtmlButton testButton = null;
-            for (HtmlElement e : form.getElementsByTagName("button")) {
-                if ("validateLdapSettings".equals(e.getAttribute("name"))) {
-                    testButton = (HtmlButton) e;
-                    break;
-                }
-            }
-
+            HtmlButton testButton = form.getButtonByName("validateLdapSettings");
             assertThat(testButton, notNullValue());
             testButton.click();
 
