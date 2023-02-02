@@ -1,3 +1,0 @@
-_extends: .github
-tag-template: ldap-$NEXT_MINOR_VERSION
-name-template: LDAP Plugin $NEXT_MINOR_VERSION

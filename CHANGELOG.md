@@ -1,5 +1,7 @@
 ## Changelog
 
+For newer versions, see [GitHub Releases](https://github.com/jenkinsci/ldap-plugin/releases)
+
 ### Version 1.20 (19th Feb 2018)
 
 -   [JENKINS-48917](https://issues.jenkins-ci.org/browse/JENKINS-48917):

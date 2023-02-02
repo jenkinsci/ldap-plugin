@@ -4,12 +4,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.46</version>
+    <version>4.51</version>
     <relativePath />
   </parent>
 
   <artifactId>ldap</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>LDAP Plugin</name>
@@ -23,8 +23,7 @@
   </licenses>
 
   <properties>
-    <revision>2.13</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
     <jenkins.version>2.361.1</jenkins.version>
@@ -75,7 +74,7 @@
     <dependency>
       <groupId>net.time4j</groupId>
       <artifactId>time4j-tzdata</artifactId>
-      <version>5.0-2021e</version>
+      <version>5.0-2022f</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -84,7 +83,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.17.3</version>
+      <version>1.17.6</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -270,7 +269,7 @@
     <dependency>
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
-      <version>1.15.2</version>
+      <version>1.15.3</version>
       <scope>test</scope>
     </dependency>
     
@@ -298,14 +297,14 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.332.x</artifactId>
-        <version>1595.v8c71c13cc3a_9</version>
+        <version>1763.v092b_8980a_f5e</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.36</version>
+        <version>2.0.6</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

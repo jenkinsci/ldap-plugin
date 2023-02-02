@@ -10,7 +10,7 @@ it. If you do not use this plugin at all, you can simply disable it.
 
 This plugin provides yet another way of authenticating users using LDAP.
 It can be used with LDAP servers like Active Directory or OpenLDAP among
-others. Supported configuration can be found below these lines. 
+others. Supported configuration can be found below these lines.
 
 ### Compatibility Notes
 
@@ -18,6 +18,7 @@ Various LDAP servers use different operational attributes to make decisions on
 and expose configurations of concepts such as disabling an account, locking an
 account, and specifying a time interval the account is valid for. These policies
 are normally enforced by the LDAP server itself when performing user authentication.
+
 Jenkins provides alternative authentication mechanisms (such as API tokens and SSH
 keys) that do not perform LDAP authentication directly; instead, Jenkins checks the
 user details attributes for whether the user is enabled, locked, or expired.
@@ -28,7 +29,7 @@ The support of these features is entirely dependent upon the LDAP server impleme
 properly exposing these operational attributes which is dependent on the exact version
 and distribution of the LDAP server in use. Being operational attributes, these are not
 always exposed by LDAP server implementations to clients the same way as they may be
-used internally. 
+used internally.
 
 #### Administratively Disabled Accounts
 
@@ -71,7 +72,7 @@ Accounts can be locked by intruder detection systems. The following attributes s
 
 Select LDAP for the Security Realm. You will most likely need to
 configure some of the Advanced options. There is on-line help available
-for each option. 
+for each option.
 ![](/docs/images/Screen_Shot_2017-05-02_at_09.52.20.png)
 
 ### Server
@@ -205,8 +206,10 @@ membership is retained with a modified group membership filter.
 ### Group search filter
 
 When Jenkins is asked to determine if a named group exists, it uses a
-default filter of:  
-`(& (cn={0}) (| (objectclass=groupOfNames) (objectclass=groupOfUniqueNames) (objectclass=posixGroup)))`
+default filter of:
+```
+(& (cn={0}) (| (objectclass=groupOfNames) (objectclass=groupOfUniqueNames) (objectclass=posixGroup)))
+```
 
 relative to the Group search base to determine if there is a group with
 the specified name ({`0`} is substituted by the name being searched
@@ -218,8 +221,10 @@ restricting the filter to just the required object class.
 
 Note: if you are using the LDAP security realm to connect to Active
 Directory (as opposed to using the Active Directory plugin's security
-realm) then you will need to change this filter to:  
-`(& (cn={0}) (objectclass=group) )`
+realm) then you will need to change this filter to:
+```
+(& (cn={0}) (objectclass=group) )
+```
 
 Note: if you leave this empty, the default search filter will be used.
 
@@ -264,23 +269,23 @@ For example:
 
 -   Active Directory's query optimizer can make significant
     optimizations if it knows that the object category is
-    group: `(&(objectCategory=group)(member={0}))` this may be relevant
+    group: `(&(objectCategory=group)(member={0}))` this may be relevant
     if using Active Directory's matching rule in chain extension, e.g.
     `(&(objectCategory=group)(member:1.2.840.113556.1.4.1941:={0}))`
 
-Note: in this field there are two available substitutions:  
-{`0`} - the fully qualified DN of the user  
+Note: in this field there are two available substitutions:
+{`0`} - the fully qualified DN of the user
 {`1`} - the username portion of the user
 
 #### Parse user attribute for list of groups
 
-![](/docs/images/Screen_Shot_2014-07-15_at_10.19.14.png)  
-Some LDAP servers can provide a `memberOf` attribute within the User's
+![](/docs/images/Screen_Shot_2014-07-15_at_10.19.14.png)
+Some LDAP servers can provide a `memberOf` attribute within the User's
 record:
 
 -   Active Directory
--   OpenLDAP with the [memberof
-    overlay](http://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance)
+-   OpenLDAP with the [memberof overlay](
+    http://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance)
     active (untested, and as memberof is an operational attribute in
     OpenLDAP it must be explicitly requested, so may or may not work)
 -   (If you know of others please provide details here)
@@ -308,7 +313,7 @@ It can be any valid DN as long as LDAP allows this user to query data.
 This configuration is also useful when you are connecting to Active
 Directory from a Unix machine, as AD doesn't allow anonymous bind by
 default. But if you can't figure this out, you can also change AD
-setting to allow anonymous bind. 
+setting to allow anonymous bind.
 
 ### Disable LDAP Email resolver
 
@@ -328,9 +333,9 @@ Note: The default configuration is to leave the cache turned off.
 ### Environment Properties
 
 As of 1.7 of the LDAP plugin, you can now specify additional Environment
-properties to provide the backing Java LDAP client API. See [Oracle's
-documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/jndi/jndi-ldap.html) for
-details of what properties are available and what functionality they
+properties to provide the backing Java LDAP client API. See [Oracle's
+documentation](https://docs.oracle.com/javase/8/docs/technotes/guides/jndi/jndi-ldap.html)
+for details of what properties are available and what functionality they
 provide. As a minimum you should strongly consider providing the
 following
 
@@ -352,7 +357,7 @@ configured correctly:
       println("Checking the name '" + name + "'...")
       try {
         println("  It is a USER: " + Jenkins.instance.securityRealm.loadUserByUsername(name))
-        println("  Has groups/authorities: " + Jenkins.instance.securityRealm.loadUserByUsername(name).getAuthorities())
+        println("  Has groups/authorities: " + Jenkins.instance.securityRealm.loadUserByUsername(name).getAuthorities())
       } catch (Exception e) {
           try {
             println("  It is a GROUP: " + Jenkins.instance.securityRealm.loadGroupByGroupname(name))
@@ -382,11 +387,11 @@ configured correctly:
     ROLE\_Developers in Jenkins, but since 1.404 they are available as
     is: no prefix or upper casing,
     by checking **Disable Backward Compatibility for Roles**.
--   If you are using this plugin and not the [Active Directory
-    plugin](https://wiki.jenkins.io/display/JENKINS/Active+Directory+plugin) to
+-   If you are using this plugin and not the [Active Directory plugin](
+    https://wiki.jenkins.io/display/JENKINS/Active+Directory+plugin) to
     connect to Active Directory, you will need to change the Group
-    Search Filter to filter to: `(& (cn={0}) (objectclass=group) )` and
-    change the Group Membership Filter to: `(member={0})`. If you want
+    Search Filter to filter to: `(& (cn={0}) (objectclass=group) )` and
+    change the Group Membership Filter to: `(member={0})`. If you want
     AD to return nested group membership then change the Group
     Membership Filter to: `(member:1.2.840.113556.1.4.1941:={0})`
 
@@ -433,8 +438,8 @@ max anticipated concurrent users... but a longer TTL is better)
 ### Tips and Tricks
 
 If you are using the LDAP plugin to connect to Active Directory you
-should probably read this page of [AD syntax
-notes](http://social.technet.microsoft.com/wiki/contents/articles/5392.active-directory-ldap-syntax-filters.aspx).
+should probably read this page of [AD syntax notes](
+http://social.technet.microsoft.com/wiki/contents/articles/5392.active-directory-ldap-syntax-filters.aspx).
 Pay special attention to Notes 10 and 19. The following settings are
 reported to work with Active Directory and nested groups, though they
 should carry a warning that they may impact login performance and they
@@ -446,24 +451,24 @@ have not been tested for completeness:
     -   *Search for groups containing user* (if nested group membership
         required)
         -   Group membership
-            filter: `(&(objectCategory=group)(member:1.2.840.113556.1.4.1941:={0}))`
+            filter: `(&(objectCategory=group)(member:1.2.840.113556.1.4.1941:={0}))`
     -   *Parse user attribute for list of groups* (if nested group
         membership not required this will be faster)
-        -    Group membership attribute: `memberOf`
+        -   Group membership attribute: `memberOf`
 
-Additionally, If you are using the `/` character in the name of some `Organization Unit` 
+Additionally, If you are using the `/` character in the name of some `Organization Unit`
 and some of your users or groups are located inside this `Organization Unit`
 you can face some authentication trouble due to how Java8 treat the `principalDN`.
-You will know you will face this issue because you can see the following exception 
+You will know you will face this issue because you can see the following exception
 in the Jenkins logs:
 
 ```
-Caused by: org.acegisecurity.ldap.LdapDataAccessException: 
+Caused by: org.acegisecurity.ldap.LdapDataAccessException:
 Unable to get first element; nested exception is javax.naming.InvalidNameException: Invalid name: "XXXXXXX / XXXXXXX",dc=example,dc=org
-```  
+```
 
 For avoid this kind of authentication error you shouldn't use `/` character in the
-name of any `Organization Unit` that is used for containing users or groups. 
+name of any `Organization Unit` that is used for containing users or groups.
 
 
 Development
@@ -481,12 +486,12 @@ Run
 
 	mvn clean package
 
-to create the plugin .hpi file.
+to create the plugin `.hpi` file.
 
 
 To install:
 
-1. copy the resulting ./target/ldap.hpi file to the $JENKINS_HOME/plugins directory. Don't forget to restart Jenkins afterwards.
+1. copy the resulting `./target/ldap.hpi` file to the `$JENKINS_HOME/plugins` directory. Don't forget to restart Jenkins afterwards.
 
 2. or use the plugin management console (http://example.com:8080/pluginManager/advanced) to upload the hpi file. You have to restart Jenkins in order to find the plugin in the installed plugins list.
 
