@@ -1,1 +1,5 @@
-buildPlugin(platforms: ['docker', 'maven-windows'])
+buildPlugin(
+  configurations: [
+    [platform: 'linux', jdk: 17],
+    [platform: 'windows', jdk: 11],
+])
