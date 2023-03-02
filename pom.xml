@@ -4,8 +4,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.51</version>
-    <relativePath />
+    <version>4.55</version>
+    <relativePath/>
   </parent>
 
   <artifactId>ldap</artifactId>
@@ -26,7 +26,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.361.1</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
   </properties>
 
   <scm>
@@ -296,8 +296,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.332.x</artifactId>
-        <version>1763.v092b_8980a_f5e</version>
+        <artifactId>bom-2.361.x</artifactId>
+        <version>1841.v7b_22c5218e1a</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
