@@ -37,7 +37,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Scrambler;
 import hudson.util.Secret;
-import hudson.util.VersionNumber;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
@@ -1515,20 +1514,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             return super.newInstance(req, formData);
         }
 
-        /**
-         * Used by config.jelly to determine whether we are running on a Jenkins with Enable Security checkbox or not.
-         * It impacts the json structure to send when checking the ldap configuration in the filter attribute of the
-         * validate element
-         * @return true if this Jenkins has Enable Security checkbox
-         */
-        @Restricted(NoExternalUse.class)
-        public boolean hasEnableSecurityForm() {
-            // make spotbugs happy and if the version is not computed, we assume we are on a modern version, without
-            // the enable security form
-            VersionNumber currentVersion = Jenkins.getVersion();
-            return currentVersion != null && currentVersion.isOlderThan(new VersionNumber("2.214"));
-        }
-
         @RequirePOST
         public FormValidation doValidate(StaplerRequest req) throws Exception {
             if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
@@ -1539,12 +1524,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             JSONObject json = JSONObject.fromObject(IOUtils.toString(req.getInputStream(), Util.fixNull(req.getCharacterEncoding(), StandardCharsets.UTF_8.name())));
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
-            JSONObject realmCfg;
-            if (hasEnableSecurityForm()) {
-                realmCfg = json.getJSONObject("useSecurity").getJSONObject("realm");
-            } else {
-                realmCfg = json.getJSONObject("realm");
-            }
+            JSONObject realmCfg = json.getJSONObject("securityRealm");
             
             // instantiate the realm
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);

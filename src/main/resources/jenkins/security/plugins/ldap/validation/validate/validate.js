@@ -72,9 +72,7 @@ function ldapValidateButton(checkUrl, formFilter, button, id) {
             var buttons = dialogDiv.getElementsByTagName("BUTTON");
             buttons[buttons.length-1].onclick = function () {
                 var spinner = document.getElementById(id + "_spinner");
-                var target = document.getElementById(id+"_result");
-                target.style.display = "none";
-                target.innerHTML = '';
+                var target = spinner.closest('.jenkins-form-item').querySelector(".validation-error-area");
                 spinner.style.display = "block";
                 for (var i = 0; i < inputs.length; i++) {
                     json[inputs[i].name] = inputs[i].value;
@@ -87,8 +85,8 @@ function ldapValidateButton(checkUrl, formFilter, button, id) {
                     postBody: Object.toJSON(json),
                     onComplete: function (rsp) {
                         spinner.style.display = "none";
-                        applyErrorMessage(target, rsp);
-                        target.style.display = "block";
+                        target.innerHTML = `<div class="validation-error-area" />`;
+                        updateValidationArea(target, rsp.responseText);
                         layoutUpdateCallback.call();
                         var s = rsp.getResponseHeader("script");
                         try {

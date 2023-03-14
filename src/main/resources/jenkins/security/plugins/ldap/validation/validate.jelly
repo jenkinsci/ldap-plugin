@@ -78,23 +78,6 @@
       <img src="${imagesURL}/spinner.gif"/>
       ${attrs.progress}
     </div>
-    <div id="${uid}_result"><!-- this is where the error message goes --></div>
   </f:entry>
-  <script>
-    // HACK: can be removed once base version of Jenkins has fix of https://issues.jenkins-ci.org/browse/JENKINS-26578
-    // conditionally include the adjunct resources as AdjunctManager doesn't do this correctly for CSS
-    if (!document.getElementById('jenkins.security.plugins.ldap.validation.validate')) {
-    var link = document.createElement('link');
-    link.id = 'jenkins.security.plugins.ldap.validation.validate';
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = "${request.contextPath+'/'+app.getAdjuncts(null).rootURL+'/jenkins/security/plugins/ldap/validation/validate/validate.css'}";
-    link.media = 'all';
-    document.getElementsByTagName('head')[0].appendChild(link);
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = "${request.contextPath+'/'+app.getAdjuncts(null).rootURL+'/jenkins/security/plugins/ldap/validation/validate/validate.js'}";
-    document.getElementsByTagName('body')[0].appendChild(script);
-    }
-  </script>
+  <st:adjunct includes="jenkins.security.plugins.ldap.validation.validate.validate" />
 </j:jelly>
