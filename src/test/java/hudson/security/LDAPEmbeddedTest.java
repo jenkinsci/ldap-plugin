@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 import jenkins.model.IdStrategy;
 import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.*;
-import org.jetbrains.annotations.NotNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jvnet.hudson.test.Issue;
 import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.DisabledException;
@@ -397,7 +397,7 @@ public class LDAPEmbeddedTest {
         final AtomicBoolean authenticatedFired = new AtomicBoolean(false);
         r.jenkins.getExtensionList(SecurityListener.class).add(0, new SecurityListener() {
             @Override
-            protected void authenticated2(@NotNull UserDetails details) {
+            protected void authenticated2(@NonNull UserDetails details) {
                 assertThat(details, instanceOf(LdapUserDetails.class));
                 assertThat(details.getUsername(), is("fry"));
                 assertThat(details.getAuthorities().size(), is(5));
@@ -427,7 +427,7 @@ public class LDAPEmbeddedTest {
         final AtomicBoolean failedToAuthFired = new AtomicBoolean(false);
         r.jenkins.getExtensionList(SecurityListener.class).add(0, new SecurityListener() {
                 @Override
-                protected void failedToAuthenticate(@NotNull String username) {
+                protected void failedToAuthenticate(@NonNull String username) {
                         assertThat(username, is("fry"));
                         failedToAuthFired.set(true);
                 }
