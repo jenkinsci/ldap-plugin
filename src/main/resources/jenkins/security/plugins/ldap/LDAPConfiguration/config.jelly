@@ -1,7 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" >
     <f:entry field="server" title="${%Server}">
-        <f:textbox/>
+        <f:textbox checkMethod="post"/>
     </f:entry>
     <f:advanced title="${%Advanced Server Configuration}">
         <f:entry field="rootDN" title="${%root DN}">
