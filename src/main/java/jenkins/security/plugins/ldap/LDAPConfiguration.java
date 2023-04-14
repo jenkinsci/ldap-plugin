@@ -42,6 +42,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 import org.springframework.security.authentication.AnonymousAuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -402,6 +403,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             return "ldap";
         }
 
+        @POST
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
