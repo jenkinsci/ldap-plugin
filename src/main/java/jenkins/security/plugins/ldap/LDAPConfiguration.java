@@ -106,6 +106,11 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private final String server;
 
     /**
+     * whether to verify ldaps sever certificate? default is true
+     */
+    private final boolean sslVerify;
+
+    /**
      * The root DN to connect to. Normally something like "dc=sun,dc=com"
      */
     private final String rootDN;
@@ -145,9 +150,18 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private transient LDAPExtendedTemplate ldapTemplate;
     private transient String id;
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
+        this(server, true, rootDN, inhibitInferRootDN, managerDN, managerPasswordSecret);
+    }
+
+    @DataBoundConstructor
+    public LDAPConfiguration(@NonNull String server, boolean sslVerify,  String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
         this.server = server.trim();
+        this.sslVerify = sslVerify;
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
         this.inhibitInferRootDN = inhibitInferRootDN;
@@ -169,6 +183,13 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      */
     public String getServer() {
         return server;
+    }
+
+    /**
+     * whether to verify ldaps sever certificate? default is true
+     */
+    public boolean isSslVerify() {
+        return sslVerify;
     }
 
     public String getServerUrl() {
@@ -402,15 +423,16 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             return "ldap";
         }
 
-        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
+        public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter boolean sslVerify, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
 
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
+            String url = LDAPSecurityRealm.toProviderUrl(server,rootDN);
 
             Context ctx = null;
-            try {
+            try(SetContextClassLoader sccl = new SetContextClassLoader()) {
                 Hashtable<String,Object> props = new Hashtable<>();
                 if(StringUtils.isNotBlank(managerDN)  && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
@@ -420,7 +442,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 }
                 // normal
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-                props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(server,rootDN));
+                props.put(Context.PROVIDER_URL, url);
+                if(url.startsWith("ldaps:") && !sslVerify) {
+                    props.put("java.naming.ldap.factory.socket", BlindSSLSocketFactory.class.getName());
+                }
 
                 props.put("java.naming.referral", "follow");
                 props.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT));
@@ -481,14 +506,18 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
      * @return null if not found.
      */
     private String inferRootDN(String server) {
-        try {
-            Hashtable<String, String> props = new Hashtable<>();
+        try(SetContextClassLoader sccl = new SetContextClassLoader()) {
+            Hashtable<String, String> props = new Hashtable<String, String>();
+            String url = LDAPSecurityRealm.toProviderUrl(getServerUrl(), "");
             if (managerDN != null) {
                 props.put(Context.SECURITY_PRINCIPAL, managerDN);
                 props.put(Context.SECURITY_CREDENTIALS, getManagerPassword());
             }
             props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-            props.put(Context.PROVIDER_URL, LDAPSecurityRealm.toProviderUrl(getServerUrl(), ""));
+            props.put(Context.PROVIDER_URL, url);
+            if(url.startsWith("ldaps:") && !sslVerify) {
+                props.put("java.naming.ldap.factory.socket", BlindSSLSocketFactory.class.getName());
+            }
 
             DirContext ctx = new InitialDirContext(props);
             Attributes atts = ctx.getAttributes("");
@@ -606,6 +635,9 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         vars.put("com.sun.jndi.ldap.connect.pool", "true");
         vars.put("com.sun.jndi.ldap.connect.timeout", Integer.toString(CONNECT_TIMEOUT)); // timeout if no connection after 30 seconds
         vars.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT)); // timeout if no response after 60 seconds
+        if(getLDAPURL().startsWith("ldaps:") && !sslVerify) {
+            vars.put("java.naming.ldap.factory.socket", BlindSSLSocketFactory.class.getName());
+        }
         vars.putAll(getExtraEnvVars());
         contextSource.setBaseEnvironmentProperties(vars);
         contextSource.afterPropertiesSet();

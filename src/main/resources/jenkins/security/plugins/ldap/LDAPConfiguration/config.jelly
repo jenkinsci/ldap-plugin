@@ -4,6 +4,9 @@
         <f:textbox/>
     </f:entry>
     <f:advanced title="${%Advanced Server Configuration}">
+        <f:entry field="sslVerify">
+            <f:checkbox default="true" title="${%SSL Verify}"/>
+        </f:entry>
         <f:entry field="rootDN" title="${%root DN}">
             <f:textbox/>
         </f:entry>
