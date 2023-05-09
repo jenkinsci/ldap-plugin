@@ -77,24 +77,26 @@ function ldapValidateButton(checkUrl, formFilter, button, id) {
                 for (var i = 0; i < inputs.length; i++) {
                     json[inputs[i].name] = inputs[i].value;
                 }
-                new Ajax.Request(checkUrl, {
-                    contentType: "application/json",
-                    encoding: "UTF-8",
-                    method: 'post',
-                    requestHeaders: {'Crumb': crumb},
-                    postBody: Object.toJSON(json),
-                    onComplete: function (rsp) {
+                // TODO simplify when Prototype.js is removed
+                fetch(checkUrl, {
+                    method: "post",
+                    headers: crumb.wrap({
+                        "Content-Type": "application/json",
+                    }),
+                    body: Object.toJSON ? Object.toJSON(json) : JSON.stringify(json),
+                }).then(function(rsp) {
+                    rsp.text().then((responseText) => {
                         spinner.style.display = "none";
                         target.innerHTML = `<div class="validation-error-area" />`;
-                        updateValidationArea(target, rsp.responseText);
+                        updateValidationArea(target, responseText);
                         layoutUpdateCallback.call();
-                        var s = rsp.getResponseHeader("script");
+                        var s = rsp.headers.get("script");
                         try {
                             geval(s);
                         } catch (e) {
                             window.alert("failed to evaluate " + s + "\n" + e.message);
                         }
-                    }
+                    });
                 });
                 cleanUp();
             };
