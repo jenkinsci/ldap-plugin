@@ -40,12 +40,12 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
 
 import hudson.util.Secret;
 import javax.naming.InvalidNameException;
@@ -164,8 +164,8 @@ public class LDAPSecurityRealmTest {
         final HtmlForm form = security.getFormByName("config");
         getButtonByText(form, "Advanced Server Configuration").click();
         for (HtmlInput e : form.getInputsByName("_.attributeName")) {
-            if (e.getValueAttribute().equals(previousValue)) {
-                e.setValueAttribute(testValue);
+            if (e.getValue().equals(previousValue)) {
+                e.setValue(testValue);
             }
         }
         getButtonByText(form, "Save").click();

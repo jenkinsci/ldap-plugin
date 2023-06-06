@@ -24,13 +24,13 @@
 
 package hudson.security;
 
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.html.DomElement;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
@@ -663,9 +663,9 @@ public class LDAPEmbeddedTest {
             c.waitForBackgroundJavaScript(2000);
 
             final HtmlInput testUser = security.getElementByName("testUser");
-            testUser.setAttribute("value", "hnelson");
+            testUser.setValue("hnelson");
             final HtmlInput testPassword = security.getElementByName("testPassword");
-            testPassword.setAttribute("value", "pass");
+            testPassword.setValue("pass");
 
             HtmlButton submitElement = null;
             for (DomElement e : security.getElementsByTagName("button")) {
