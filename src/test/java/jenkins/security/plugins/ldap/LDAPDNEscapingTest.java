@@ -25,7 +25,7 @@ package jenkins.security.plugins.ldap;
 
 import java.io.InputStream;
 import java.util.Collections;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlPage;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;

@@ -1,6 +1,6 @@
 package hudson.security;
 
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.FailingHttpStatusCodeException;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
@@ -145,7 +145,7 @@ public class LdapMultiEmbeddedTest {
         try {
             r.createWebClient().login("hnelson", "pass");
             fail("hnelson should not be able to login because there is a broken server in between");
-        } catch (com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException e) {
+        } catch (org.htmlunit.FailingHttpStatusCodeException e) {
             assertEquals(401, e.getStatusCode());
         }
 
