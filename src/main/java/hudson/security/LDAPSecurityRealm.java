@@ -94,7 +94,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -629,7 +628,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     @Deprecated @Restricted(DoNotUse.class)
     public Map<String,String> getExtraEnvVars() {
-        return hasConfiguration() ? configurations.get(0).getExtraEnvVars() : Collections.<String, String>emptyMap();
+        return hasConfiguration() ? configurations.get(0).getExtraEnvVars() : Collections.emptyMap();
     }
 
     @Deprecated @Restricted(DoNotUse.class)
@@ -956,7 +955,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String groupName = String.valueOf(name.getRdn(name.size() - 1).getValue());
             Attribute cnAttribute = attributes.get(CN);
             if (cnAttribute != null) {
-                NamingEnumeration e = cnAttribute.getAll();
+                NamingEnumeration<?> e = cnAttribute.getAll();
                 while (e.hasMore() && !isCN) {
                     groupName = e.next().toString();
                     isCN = true;

@@ -27,7 +27,6 @@ package hudson.security;
 import org.htmlunit.FailingHttpStatusCodeException;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.HtmlButton;
-import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlInput;
 import org.htmlunit.html.HtmlPage;
