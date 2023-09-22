@@ -54,7 +54,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
     /**
      * The search filter to apply to groups. Only those groups matching this criteria will be considered as groups
      * that the user belongs to.
-     *
+     * <p>
      * Note: we leave the default blank for historical reasons.
      */
     private final String filter;

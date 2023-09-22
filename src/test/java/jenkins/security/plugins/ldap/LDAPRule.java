@@ -234,7 +234,7 @@ public class LDAPRule implements TestRule, MethodRule {
     /**
      * starts the LdapServer
      *
-     * @throws Exception
+     * @throws Exception if LDAP server start fails
      */
     public void startServer() throws Exception {
         server = new LdapServer();

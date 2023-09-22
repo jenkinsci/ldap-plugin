@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 
 /**
- * DefaultSpringSecurityContextSource with a workaround for https://github.com/spring-projects/spring-security/issues/9742
+ * DefaultSpringSecurityContextSource with a workaround for <a href="https://github.com/spring-projects/spring-security/issues/9742">spring-security #9742</a>
  */
 public class FixedDefaultSpringSecurityContextSource extends DefaultSpringSecurityContextSource {
 

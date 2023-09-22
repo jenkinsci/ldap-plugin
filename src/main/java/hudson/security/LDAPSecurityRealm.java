@@ -113,7 +113,7 @@ import static hudson.Util.fixNull;
 
 /**
  * {@link SecurityRealm} implementation that uses LDAP for authentication.
- *
+ * <p>
  *
  * <h2>Key Object Classes</h2>
  *
@@ -225,11 +225,9 @@ import static hudson.Util.fixNull;
  * Because this is a standard, we expect most LDAP servers out there to use it, although
  * there are different objectClasses that can be used for similar purposes, and apparently
  * many deployments choose to use different objectClasses.
- *
  * <dt><a href="http://www.ietf.org/rfc/rfc2256.txt">RFC 2256</a>
  * <dd>
  * Defines the meaning of several key datatypes used in the schemas with some explanations.
- *
  * <dt><a href="http://msdn.microsoft.com/en-us/library/ms675085(VS.85).aspx">Active Directory schema</a>
  * <dd>
  * More navigable schema list, including core and MS extensions specific to Active Directory.
@@ -254,7 +252,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * The root DN to connect to. Normally something like "dc=sun,dc=com"
-     *
+     * <p>
      * How do I infer this?
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
@@ -274,7 +272,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * Specifies the relative DN from {@link #rootDN the root DN}.
      * This is used to narrow down the search space when doing user search.
-     *
+     * <p>
      * Something like "ou=people" but can be empty.
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
@@ -284,7 +282,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * Query to locate an entry that identifies the user, given the user name string.
-     *
+     * <p>
      * Normally "uid={0}"
      *
      * @see FilterBasedLdapUserSearch
@@ -296,7 +294,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     
     /**
      * This defines the organizational unit that contains groups.
-     *
+     * <p>
      * Normally "" to indicate the full LDAP search, but can be often narrowed down to
      * something like "ou=groups"
      *
@@ -354,7 +352,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * If non-null, we use this and {@link #managerPasswordSecret}
      * when binding to LDAP.
-     *
+     * <p>
      * This is necessary when LDAP doesn't support anonymous access.
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
@@ -1417,7 +1415,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         /**
          * Retrieves the group membership in two ways.
-         *
+         * <p>
          * We'd like to retain the original name, but we historically used to do "ROLE_GROUPNAME".
          * So to remain backward compatible, we make the super class pass the unmodified "groupName",
          * then do the backward compatible translation here, so that the user gets both "ROLE_GROUPNAME" and "groupName".
@@ -2021,9 +2019,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
     /**
      * LDAP filter to look for groups by their names.
-     *
+     * <p>
      * "{0}" is the group name as given by the user.
-     * See http://msdn.microsoft.com/en-us/library/aa746475(VS.85).aspx for the syntax by example.
+     * See <a href="http://msdn.microsoft.com/en-us/library/aa746475(VS.85).aspx">Search Filter Syntax</a> for the syntax by example.
      * WANTED: The specification of the syntax.
      */
     public static final String GROUP_SEARCH = System.getProperty(LDAPSecurityRealm.class.getName()+".groupSearch",
