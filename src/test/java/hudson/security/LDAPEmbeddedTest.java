@@ -781,4 +781,19 @@ public class LDAPEmbeddedTest {
         assertThrows(AccountExpiredException.class, () -> User.getById("bender", true).impersonate2());
         assertThrows(FailingHttpStatusCodeException.class, () -> r.createWebClient().withBasicApiToken("amy").goTo(""));
     }
+
+    @Test
+    @Issue("JENKINS-70035")
+    @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
+    public void do_not_create_two_users_when_userId_have_special_chars() throws Exception {
+        LDAPSecurityRealm realm =
+                new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
+                        "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
+                        null, "cn", "mail", null, null);
+        r.jenkins.setSecurityRealm(realm);
+        r.configRoundtrip();
+        String content = r.createWebClient().login("bender<", "bender").goTo("asynchPeople").getBody().getTextContent();
+        assertThat(content, containsString("bender<"));
+        assertThat(content, not(containsString("bender_")));
+    }
 }

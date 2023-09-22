@@ -779,7 +779,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     }
 
     public DelegatedLdapUserDetails updateUserDetails(LdapUserDetails d, @CheckForNull LdapUserSearch ldapUserSearch) {
-        hudson.model.User u = hudson.model.User.get(fixUsername(d.getUsername()), true, Collections.emptyMap());
+        hudson.model.User u = hudson.model.User.getById(fixUsername(d.getUsername()), true);
         LDAPConfiguration configuration = getConfigurationFor(d);
         String displayNameAttributeName;
         String mailAddressAttributeName;

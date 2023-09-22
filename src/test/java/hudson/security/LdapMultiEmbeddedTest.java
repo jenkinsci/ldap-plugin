@@ -340,7 +340,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -351,7 +351,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
