@@ -60,7 +60,7 @@ THE SOFTWARE.
         <f:entry field="disableMailAddressResolver">
             <f:checkbox title="${%Disable Ldap Email Resolver}"/>
         </f:entry>
-        <f:entry field="disableRolePrefixing" help="/plugin/ldap/help-disableRolePrefixing.html">
+        <f:entry field="disableRolePrefixing">
             <f:checkbox default="true" title="${%Disable Backward Compatibility for Roles}"/>
         </f:entry>
         <f:optionalProperty field="cache" title="${%Enable cache}"/>
