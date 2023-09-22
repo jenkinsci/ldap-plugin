@@ -88,7 +88,7 @@ public class LDAPExtendedTemplateTest {
 
     @Test
     public void searchForAllEntries() throws Exception {
-        List<String> matchingEntries = (List)template.searchForAllEntries("", "(memberOf={0})",
+        List<String> matchingEntries = template.searchForAllEntries("", "(memberOf={0})",
                 new String[]{"cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas"}, null, new DnEntryMapper());
         assertThat(matchingEntries, containsInAnyOrder(
                 "cn=Horatio Hornblower,ou=people,o=sevenSeas",
@@ -99,7 +99,7 @@ public class LDAPExtendedTemplateTest {
 
     @Test
     public void searchForAllEntries_noMatch() throws Exception {
-        List<String> matchingEntries = (List)template.searchForAllEntries("", "(memberOf={0})",
+        List<String> matchingEntries = template.searchForAllEntries("", "(memberOf={0})",
                 new String[]{"does not exist"}, null, new DnEntryMapper());
         assertThat(matchingEntries, empty());
     }

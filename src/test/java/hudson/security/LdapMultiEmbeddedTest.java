@@ -213,7 +213,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -243,7 +243,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -285,7 +285,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -301,7 +301,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -329,7 +329,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -340,7 +340,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -351,7 +351,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -368,12 +368,12 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + sevenSeas.getPort())),
-                CoreMatchers.<Throwable>instanceOf(AuthenticationServiceException.class)));
+                CoreMatchers.instanceOf(AuthenticationServiceException.class)));
     }
 
     @Test
@@ -384,7 +384,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -401,12 +401,12 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + planetExpress.getPort())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(INVALID_URL_PREFIX + sevenSeas.getPort())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_second_then_log() throws Exception {
@@ -420,7 +420,7 @@ public class LdapMultiEmbeddedTest {
         assertThat(log, recorded(Level.WARNING,
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(sevenSeas.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -436,7 +436,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_NOT_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     @Test
@@ -447,7 +447,7 @@ public class LdapMultiEmbeddedTest {
                 allOf(containsString(FAILED_COMMUNICATION_WITH_LDAP_SERVER),
                         containsString(WILL_TRY_NEXT_CONFIGURATION),
                         containsString(planetExpress.getUrl())),
-                CoreMatchers.<Throwable>instanceOf(UserMayOrMayNotExistException2.class)));
+                CoreMatchers.instanceOf(UserMayOrMayNotExistException2.class)));
     }
 
     public void when_second_is_wrong_and_lookup_group_on_first_then_no_log() throws Exception {

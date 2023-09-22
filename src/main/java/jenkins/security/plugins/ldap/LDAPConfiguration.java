@@ -351,7 +351,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     public Map<String,String> getExtraEnvVars() {
         return extraEnvVars == null || extraEnvVars.isEmpty()
-                ? Collections.<String,String>emptyMap()
+                ? Collections.emptyMap()
                 : Collections.unmodifiableMap(extraEnvVars);
     }
 
