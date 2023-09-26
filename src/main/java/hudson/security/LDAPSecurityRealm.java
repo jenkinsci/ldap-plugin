@@ -113,7 +113,6 @@ import static hudson.Util.fixNull;
 
 /**
  * {@link SecurityRealm} implementation that uses LDAP for authentication.
- * <p>
  *
  * <h2>Key Object Classes</h2>
  *
