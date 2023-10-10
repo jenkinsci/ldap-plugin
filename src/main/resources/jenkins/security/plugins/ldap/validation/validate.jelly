@@ -54,10 +54,11 @@
     <div style="float:right" class="ldap-validate-section">
       <span class="yui-button">
         <span>
-          <button id="${uid}" type="button" name="${name}" class="ldap-validate-button"
-                  onclick="ldapValidateButton('${descriptor.descriptorFullUrl}/${method}','${attrs.filter}',this,'${uid}'); return false;">
+        <span class="ldap-validate-button-reference-holder" data-id="${uid}" data-fullurl="${descriptor.descriptorFullUrl}/${method}" data-attributes="${attrs.filter}"/>
+          <button id="${uid}" type="button" name="${name}" class="ldap-validate-button">
             ${title}
           </button>
+          <st:adjunct includes = "jenkins.security.plugins.ldap.validation.validateButton"/>
         </span>
       </span>
       <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
@@ -68,7 +69,9 @@
         <div id="${uid}_dialog">
           <d:invokeBody/>
           <f:entry>
-            <input type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary" onclick="return false;"/>
+        <span class="ldap-validate-input-button-reference-holder"/>
+            <input id = "ldap-validate-input" type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary"/>
+            <st:adjunct includes = "jenkins.security.plugins.ldap.validation.validateButtonOnClick"/>
           </f:entry>
         </div>
         </div>
