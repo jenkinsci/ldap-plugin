@@ -58,7 +58,7 @@
           <button id="${uid}" type="button" name="${name}" class="ldap-validate-button">
             ${title}
           </button>
-          <st:adjunct includes = "jenkins.security.plugins.ldap.validation.validateButton"/>
+          <st:adjunct includes="jenkins.security.plugins.ldap.validation.validateButton"/>
         </span>
       </span>
       <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
