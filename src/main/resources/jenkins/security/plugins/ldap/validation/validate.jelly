@@ -70,7 +70,7 @@
           <d:invokeBody/>
           <f:entry>
         <span class="ldap-validate-input-button-reference-holder"/>
-            <input id = "ldap-validate-input" type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary"/>
+            <input id="ldap-validate-input" type="submit" name="Validate" value="${attrs.submit}" class="ldap-validate submit-button primary"/>
             <st:adjunct includes = "jenkins.security.plugins.ldap.validation.validateButtonOnClick"/>
           </f:entry>
         </div>
