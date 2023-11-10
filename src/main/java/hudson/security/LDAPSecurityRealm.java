@@ -1,20 +1,20 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, Seiji Sogabe,
  *    Olivier Lamy
  * Copyright (c) 2017 CloudBees, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -293,7 +293,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String userSearch;
-    
+
     /**
      * This defines the organizational unit that contains groups.
      *
@@ -326,7 +326,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated use {@link #groupMembershipStrategy}
      */
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     public transient String groupMembershipFilter;
 
@@ -363,7 +363,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public transient String managerDN;
 
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
         justification = "This public field is exposed to the plugin's API")
     private transient String managerPassword;
 
@@ -1391,10 +1391,15 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         boolean convertToUpperCase = true;
         private GrantedAuthority defaultRole = null;
 
-        public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase) {
+        public AuthoritiesPopulatorImpl(ContextSource contextSource, String groupSearchBase, LDAPGroupMembershipStrategy ldapGroupMembershipStrategy) {
             super(contextSource, fixNull(groupSearchBase));
-
             super.setRolePrefix("");
+            if (ldapGroupMembershipStrategy instanceof FromGroupSearchLDAPGroupMembershipStrategy) {
+                FromGroupSearchLDAPGroupMembershipStrategy fromGroupSearchLDAPGroupMembershipStrategy = (FromGroupSearchLDAPGroupMembershipStrategy) ldapGroupMembershipStrategy;
+                if (StringUtils.isNotBlank(fromGroupSearchLDAPGroupMembershipStrategy.getAttribute())) {
+                    super.setGroupRoleAttribute(fromGroupSearchLDAPGroupMembershipStrategy.getAttribute());
+                }
+            }
             super.setConvertToUpperCase(false);
         }
 
@@ -1524,7 +1529,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             String user = json.getString("testUser");
             String password = json.getString("testPassword");
             JSONObject realmCfg = json.getJSONObject("securityRealm");
-            
+
             // instantiate the realm
             LDAPSecurityRealm realm = req.bindJSON(LDAPSecurityRealm.class, realmCfg);
             return validate(realm, user, password);

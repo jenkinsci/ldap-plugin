@@ -623,7 +623,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         // this is when we need to find it.
         bindAuthenticator.setUserSearch(ldapUserSearch);
 
-        LDAPSecurityRealm.AuthoritiesPopulatorImpl ldapAuthoritiesPopulator = new LDAPSecurityRealm.AuthoritiesPopulatorImpl(contextSource, getGroupSearchBase());
+        LDAPSecurityRealm.AuthoritiesPopulatorImpl ldapAuthoritiesPopulator = new LDAPSecurityRealm.AuthoritiesPopulatorImpl(contextSource, getGroupSearchBase(), getGroupMembershipStrategy());
         ldapAuthoritiesPopulator.setSearchSubtree(true);
         ldapAuthoritiesPopulator.setGroupSearchFilter("(| (member={0}) (uniqueMember={0}) (memberUid={1}))");
         if (realm.isDisableRolePrefixing()) {
