@@ -11,6 +11,7 @@ jenkins:
           groupMembershipStrategy:
             fromGroupSearch:
               filter: "(&(objectClass=group)(|(cn=GROUP_1)(cn=GROUP_2)))"
+              attribute: "description"
       cache:
         size: 100
         ttl: 10

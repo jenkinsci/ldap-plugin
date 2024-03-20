@@ -228,6 +228,43 @@ public class LDAPEmbeddedTest {
         assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory"));
     }
 
+    @Test
+    @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
+    public void userLookup_rolesFromGroupSearchWithGroupAttribute() throws Exception {
+        LDAPSecurityRealm realm = new LDAPSecurityRealm(
+                ads.getUrl(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FromGroupSearchLDAPGroupMembershipStrategy(null, "description"),
+                "uid=admin,ou=system",
+                Secret.fromString("pass"),
+                false,
+                false,
+                new LDAPSecurityRealm.CacheConfiguration(100, 1000),
+                new LDAPSecurityRealm.EnvironmentProperty[0],
+                "cn",
+                null,
+                IdStrategy.CASE_INSENSITIVE,
+                IdStrategy.CASE_INSENSITIVE);
+        r.jenkins.setSecurityRealm(realm);
+        User user = User.get("hhornblo", true, Collections.emptyMap());
+        List<String> authorities = user.getAuthorities();
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
+        assertThat(user.getDisplayName(), is("Horatio Hornblower"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hhornblo@royalnavy.mod.uk"));
+        UserDetails details = realm.authenticate2("hhornblo", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Lydia", "ROLE_HMS_LYDIA"));
+        user = User.get("hnelson", true, Collections.emptyMap());
+        assertThat(user.getAuthorities(), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
+        assertThat(user.getDisplayName(), is("Horatio Nelson"));
+        assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
+        details = realm.authenticate2("hnelson", "pass");
+        assertThat(userGetAuthorities(details), containsInAnyOrder("HMS_Victory", "ROLE_HMS_VICTORY"));
+    }
+
     private Set<String> userGetAuthorities(UserDetails details) {
         Set<String> authorities = new LinkedHashSet<>();
         for (GrantedAuthority a : details.getAuthorities()) {

@@ -168,6 +168,7 @@ dn: cn=HMS Lydia,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
 objectclass: top
 cn: HMS Lydia
+description: HMS_Lydia
 uniquemember: cn=Horatio Hornblower,ou=people,o=sevenSeas
 uniquemember: cn=William Bush,ou=people,o=sevenSeas
 uniquemember: cn=Thomas Quist,ou=people,o=sevenSeas
@@ -236,6 +237,7 @@ dn: cn=HMS Victory,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
 objectclass: top
 cn: HMS Victory
+description: HMS_Victory
 uniquemember: cn=Horatio Nelson,ou=people,o=sevenSeas
 uniquemember: cn=Thomas Masterman Hardy,ou=people,o=sevenSeas
 uniquemember: cn=Cornelius Buckley,ou=people,o=sevenSeas
@@ -320,6 +322,7 @@ dn: cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas
 objectclass: groupOfUniqueNames
 objectclass: top
 cn: HMS Bounty
+description: HMS_Bounty
 uniquemember: cn=William Bligh,ou=people,o=sevenSeas
 uniquemember: cn=Fletcher Christian,ou=people,o=sevenSeas
 uniquemember: cn=John Fryer,ou=people,o=sevenSeas

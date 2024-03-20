@@ -59,19 +59,39 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
      */
     private final String filter;
 
-    @DataBoundConstructor
+    /**
+     * The LDAP attribute name which contains the group name (default = "cn").
+     */
+    private final String attribute;
+
     public FromGroupSearchLDAPGroupMembershipStrategy(String filter) {
         this.filter = filter;
+        this.attribute = "";
+    }
+
+    @DataBoundConstructor
+    public FromGroupSearchLDAPGroupMembershipStrategy(String filter, String attribute) {
+        this.filter = filter;
+        this.attribute = attribute;
     }
 
     public String getFilter() {
         return filter;
     }
 
+    public String getAttribute() {
+        return attribute;
+    }
+
     @Override
     public void setAuthoritiesPopulator(LdapAuthoritiesPopulator authoritiesPopulator) {
-        if (authoritiesPopulator instanceof LDAPSecurityRealm.AuthoritiesPopulatorImpl && StringUtils.isNotBlank(filter)) {
-            ((LDAPSecurityRealm.AuthoritiesPopulatorImpl) authoritiesPopulator).setGroupSearchFilter(filter);
+        if (authoritiesPopulator instanceof LDAPSecurityRealm.AuthoritiesPopulatorImpl) {
+            if (StringUtils.isNotBlank(filter)) {
+                ((LDAPSecurityRealm.AuthoritiesPopulatorImpl) authoritiesPopulator).setGroupSearchFilter(filter);
+            }
+            if (StringUtils.isNotBlank(attribute)) {
+                ((LDAPSecurityRealm.AuthoritiesPopulatorImpl) authoritiesPopulator).setGroupRoleAttribute(attribute);
+            }
         }
         super.setAuthoritiesPopulator(authoritiesPopulator);
     }
