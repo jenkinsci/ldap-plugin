@@ -78,7 +78,7 @@
       </div>
     </div>
     <div id="${uid}_spinner" style="display:none;">
-      <img src="${imagesURL}/spinner.gif"/>
+      <l:progressAnimation/>
       ${attrs.progress}
     </div>
   </f:entry>
