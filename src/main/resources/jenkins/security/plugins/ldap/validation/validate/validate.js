@@ -1,5 +1,5 @@
 Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', -200, function (div) {
-    var id = div.getAttribute("id");
+    const id = div.getAttribute("id");
     if (window['ldap validate'] === undefined) {
         window['ldap validate'] = {};
     }
@@ -10,97 +10,61 @@ Behaviour.specify("DIV.ldap-validate-form", 'ldap-validate', -200, function (div
     div = null; // avoid memory leak
 });
 
-function ldapValidateButton(checkUrl, formFilter, button, id) {
-    var form = findAncestor(button, "FORM");
-    button = button._button;
+function ldapValidateButton(button, dataset) {
+    const checkUrl = dataset['fullurl'];
+    const formFilter = dataset['attributes']
+    const id = dataset['id'];
+    const submitText = dataset['submit'];
+    const dialogTitle = dataset['dialogtitle'];
+
+    const form = button.closest("FORM");
     buildFormTree(form);
-    var json = JSON.parse(form['json'].value);
+    let json = JSON.parse(form['json'].value);
     if (formFilter) {
-        var cur = json;
+        let cur = json;
         json = {};
-        var filtered = json;
-        var path = formFilter.split('.');
-        for (var i = 0; i < path.length; i++) {
+        const path = formFilter.split('.');
+        for (let i = 0; i < path.length; i++) {
             cur = cur[path[i]];
-            filtered[path[i]] = i === path.length - 1 ? cur : {};
-            filtered = filtered[path[i]];
+            if (i === path.length - 1) {
+                json[path[i]] = cur;
+            }
         }
     }
 
-    try {
-        var dialogDiv = document.createElement("DIV");
-        document.body.appendChild(dialogDiv);
-        dialogDiv.innerHTML = "<div></div>";
-        var dialogBody = dialogDiv.firstElementChild;
-        dialogBody.innerHTML = window['ldap validate'][id+"_div"];
-        var cleanUp = function() {
-            dialog.destroy();
-            document.body.removeChild(dialogDiv);
-            dialogDiv = null;
-            dialogBody = null;
-            dialog = null;
-        };
-        var dialog = new YAHOO.widget.Panel(dialogBody, {
-            fixedcenter: true,
-            close: true,
-            draggable: false,
-            zindex: 1000,
-            modal: true,
-            visible: false,
-            keylisteners: [
-                new YAHOO.util.KeyListener(document, {keys: 27}, {
-                    fn: cleanUp,
-                    scope: document,
-                    correctScope: false
-                })
-            ]
+    function validateSubmit(validationForm) {
+        const spinner = document.getElementById(id + "_spinner");
+        const target = spinner.closest('.jenkins-form-item').querySelector(".validation-error-area");
+        spinner.style.display = "block";
+        const inputs = validationForm.querySelectorAll("input");
+        for (let i = 0; i < inputs.length; i++) {
+            json[inputs[i].name] = inputs[i].value;
+        }
+        fetch(checkUrl, {
+            method: "post",
+            headers: crumb.wrap({
+                "Content-Type": "application/json",
+            }),
+            body: JSON.stringify(json),
+        }).then(function(rsp) {
+            rsp.text().then((responseText) => {
+                spinner.style.display = "none";
+                target.innerHTML = `<div class="validation-error-area" />`;
+                updateValidationArea(target, responseText);
+                layoutUpdateCallback.call();
+            });
         });
-        dialog.render();
-        YAHOO.util.Event.removeListener(dialog.close, "click");
-        YAHOO.util.Event.on(dialog.close, "click", cleanUp);
-        Behaviour.applySubtree(dialogDiv, true);
-        var r = YAHOO.util.Dom.getClientRegion();
-        dialog.cfg.setProperty("width", r.width * 1 / 2 + "px");
-        dialog.cfg.setProperty("height", "auto");
-        dialog.center();
-        dialog.show();
-        window.setTimeout(function () {
-            var inputs = dialogDiv.getElementsByTagName("INPUT");
-            if (inputs && inputs.length > 0) {
-                inputs[0].focus();
-            }
-            var buttons = dialogDiv.getElementsByTagName("BUTTON");
-            buttons[buttons.length-1].onclick = function () {
-                var spinner = document.getElementById(id + "_spinner");
-                var target = spinner.closest('.jenkins-form-item').querySelector(".validation-error-area");
-                spinner.style.display = "block";
-                for (var i = 0; i < inputs.length; i++) {
-                    json[inputs[i].name] = inputs[i].value;
-                }
-                // TODO simplify when Prototype.js is removed
-                fetch(checkUrl, {
-                    method: "post",
-                    headers: crumb.wrap({
-                        "Content-Type": "application/json",
-                    }),
-                    body: Object.toJSON ? Object.toJSON(json) : JSON.stringify(json),
-                }).then(function(rsp) {
-                    rsp.text().then((responseText) => {
-                        spinner.style.display = "none";
-                        target.innerHTML = `<div class="validation-error-area" />`;
-                        updateValidationArea(target, responseText);
-                        layoutUpdateCallback.call();
-                        var s = rsp.headers.get("script");
-                        try {
-                            geval(s);
-                        } catch (e) {
-                            window.alert("failed to evaluate " + s + "\n" + e.message);
-                        }
-                    });
-                });
-                cleanUp();
-            };
-        }, 100);
+    }
+    try {
+        const dialogDiv = document.createElement("DIV");
+        document.body.appendChild(dialogDiv);
+        dialogDiv.innerHTML = "<form></form>";
+        const dialogBody = dialogDiv.firstElementChild;
+        dialogBody.innerHTML = window['ldap validate'][id+"_div"];
+        dialog.form(dialogBody, {okText: submitText, title:dialogTitle,
+                minWidth: "50vw", submitButton: false}).then(() => validateSubmit(dialogBody));
+        const input = dialogBody.querySelector("INPUT");
+        input && input.focus();
     } catch (e) {
         console.log(e);
     }
