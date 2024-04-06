@@ -53,19 +53,17 @@
     <j:set var="uid" value="${h.generateId()}" />
     <div style="float:right" class="ldap-validate-section">
       <span class="ldap-validate-button-reference-holder" data-id="${uid}"
-      data-fullurl="${descriptor.descriptorFullUrl}/${method}"
-      data-attributes="${attrs.filter}"
-      data-dialogTitle="${dialog}"
-      data-submit="${attrs.submit}"/>
+        data-fullurl="${descriptor.descriptorFullUrl}/${method}"
+        data-attributes="${attrs.filter}"
+        data-dialogTitle="${dialog}"
+        data-submit="${attrs.submit}"/>
       <button id="${uid}" type="button" name="${name}" class="ldap-validate-button jenkins-button">
         ${title}
       </button>
       <st:adjunct includes="jenkins.security.plugins.ldap.validation.validateButton"/>
       <div id="${uid}_div" style="display:none;" class="ldap-validate-form">
-        <div class="bd">
         <div id="${uid}_dialog">
           <d:invokeBody/>
-        </div>
         </div>
       </div>
     </div>
