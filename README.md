@@ -2,10 +2,7 @@ Jenkins LDAP Plugin
 ===================
 
 *Note*: This plugin was part of the Jenkins core until 1.468. After
-that, it was split out into a separately-updateable plugin. However, for
-backwards compatibility purposes, subsequent core releases still bundle
-it. If you do not use this plugin at all, you can simply disable it.
-
+that, it was split out into a separately-updateable plugin.
 ## Description
 
 This plugin provides yet another way of authenticating users using LDAP.
