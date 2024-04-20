@@ -37,6 +37,7 @@ to indicate such. The following attributes are all supported:
 * `msDS-UserAccountDisabled` value of `TRUE`: modern [Active Directory attribute](https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-useraccountdisabled);
 * `userAccountControl` (UAC) or `msDS-User-Account-Control-Computed` with bit flag of `ADS_UF_ACCOUNTDISABLE` (0x2) present; and
 * `loginDisabled` value of `TRUE`: eDirectory attribute.
+* `orclIsEnabled` value of `DISABLED`: Oracle Internet Directory
 
 #### Expired Accounts
 
