@@ -36,7 +36,7 @@ to indicate such. The following attributes are all supported:
 * `pwdAccountLockedTime` value of `000001010000Z`: common LDAP attribute using password policy overlay;
 * `msDS-UserAccountDisabled` value of `TRUE`: modern [Active Directory attribute](https://docs.microsoft.com/en-us/windows/win32/adschema/a-msds-useraccountdisabled);
 * `userAccountControl` (UAC) or `msDS-User-Account-Control-Computed` with bit flag of `ADS_UF_ACCOUNTDISABLE` (0x2) present;
-* `loginDisabled` value of `TRUE`: eDirectory attribute;
+* `loginDisabled` value of `TRUE`: eDirectory attribute; and
 * `orclIsEnabled` value of `DISABLED`: [Oracle Internet Directory attribute](https://docs.oracle.com/en/middleware/idm/internet-directory/12.2.1.4/administer/managing-accounts-and-passwords-oracle-internet-directory.html#GUID-2E7FAE4E-9762-4559-8204-776A1BF5E66C).
 
 #### Expired Accounts
