@@ -114,7 +114,7 @@ final class UserAttributesHelper {
         }
         // Oracle attributes (they were documented on the wiki at least)
         String oracleIsEnabled = getStringAttribute(attributes, ATTR_ORACLE_IS_ENABLED);
-        if (oracleIsEnabled != null && !oracleIsEnabled.equalsIgnoreCase("enabled")) {
+        if (oracleIsEnabled != null && oracleIsEnabled.equalsIgnoreCase("DISABLED")) {
             throw new DisabledException(Messages.UserDetails_Disabled(username));
         }
     }
