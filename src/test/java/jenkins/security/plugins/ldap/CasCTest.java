@@ -35,5 +35,6 @@ public class CasCTest {
         assertEquals("(&(cn={0})(objectclass=group))", configuration.getGroupSearchFilter());
         final FromGroupSearchLDAPGroupMembershipStrategy strategy = ((FromGroupSearchLDAPGroupMembershipStrategy) configuration.getGroupMembershipStrategy());
         assertEquals("(&(objectClass=group)(|(cn=GROUP_1)(cn=GROUP_2)))", strategy.getFilter());
+        assertEquals("description", strategy.getAttribute());
     }
 }

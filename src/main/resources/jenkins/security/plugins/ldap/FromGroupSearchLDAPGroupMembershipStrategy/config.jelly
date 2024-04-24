@@ -28,4 +28,7 @@ THE SOFTWARE.
     <f:entry field="filter" title="${%Group membership filter}">
       <f:textbox/>
     </f:entry>
+    <f:entry field="attribute" title="${%Group name attribute}">
+        <f:textbox/>
+    </f:entry>
 </j:jelly>
