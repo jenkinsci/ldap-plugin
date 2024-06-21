@@ -26,7 +26,11 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <apacheds.version>2.0.0.AM25</apacheds.version>
-    <jenkins.version>2.361.4</jenkins.version>
+    <!-- TODO JENKINS-73278 https://ci.jenkins.io/job/Core/job/jenkins/job/jakarta/ -->
+    <jenkins.version>2.464-rc35069.54d5e6a_108a_0</jenkins.version>
+    <!-- TODO JENKINS-73339 until in parent POM -->
+    <jenkins-test-harness.version>2230.v4fa_477b_634f4</jenkins-test-harness.version>
+    <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
   <scm>
@@ -300,6 +304,12 @@
         <version>2102.v854b_fec19c92</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <!-- TODO JENKINS-73339 until in parent POM, work around https://github.com/jenkinsci/plugin-pom/issues/936 -->
+      <dependency>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>5.0.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
