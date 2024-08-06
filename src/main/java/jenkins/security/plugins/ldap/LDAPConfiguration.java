@@ -123,7 +123,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * If non-null, we use this and {@link #getManagerPassword()}
      * when binding to LDAP.
-     *
+     * <p>
      * This is necessary when LDAP doesn't support anonymous access.
      */
     private final String managerDN;
@@ -206,7 +206,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * Specifies the relative DN from {@link #rootDN the root DN}.
      * This is used to narrow down the search space when doing user search.
-     *
+     * <p>
      * Something like "ou=people" but can be empty.
      */
     public String getUserSearchBase() {
@@ -216,7 +216,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * Specifies the relative DN from {@link #rootDN the root DN}.
      * This is used to narrow down the search space when doing user search.
-     *
+     * <p>
      * Something like "ou=people" but can be empty.
      */
     @DataBoundSetter
@@ -226,7 +226,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * Query to locate an entry that identifies the user, given the user name string.
-     *
+     * <p>
      * Normally "uid={0}"
      *
      * @see FilterBasedLdapUserSearch
@@ -237,7 +237,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * Query to locate an entry that identifies the user, given the user name string.
-     *
+     * <p>
      * Normally "uid={0}"
      *
      * @see FilterBasedLdapUserSearch
@@ -250,7 +250,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * This defines the organizational unit that contains groups.
-     *
+     * <p>
      * Normally "" to indicate the full LDAP search, but can be often narrowed down to
      * something like "ou=groups"
      *
@@ -262,7 +262,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     /**
      * This defines the organizational unit that contains groups.
-     *
+     * <p>
      * Normally "" to indicate the full LDAP search, but can be often narrowed down to
      * something like "ou=groups"
      *
@@ -304,7 +304,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     /**
      * If non-null, we use this and {@link #getManagerPassword()}
      * when binding to LDAP.
-     *
+     * <p>
      * This is necessary when LDAP doesn't support anonymous access.
      */
     public String getManagerDN() {
