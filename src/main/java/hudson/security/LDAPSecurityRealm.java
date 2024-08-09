@@ -78,7 +78,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -1483,7 +1483,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public SecurityRealm newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public SecurityRealm newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             if (!formData.has("configurations")) {
                 throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
             } else {
@@ -1514,7 +1514,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @RequirePOST
-        public FormValidation doValidate(StaplerRequest req) throws Exception {
+        public FormValidation doValidate(StaplerRequest2 req) throws Exception {
             if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
                 // require admin to test
                 return FormValidation.ok();
