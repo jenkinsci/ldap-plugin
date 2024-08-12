@@ -247,7 +247,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String server;
@@ -257,7 +257,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * How do I infer this?
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String rootDN;
@@ -266,7 +266,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * Allow the rootDN to be inferred? Default is false.
      * If true, allow rootDN to be blank.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient boolean inhibitInferRootDN;
@@ -277,7 +277,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * Something like "ou=people" but can be empty.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String userSearchBase;
@@ -289,7 +289,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String userSearch;
@@ -302,7 +302,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String groupSearchBase;
@@ -313,7 +313,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @since 1.5
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String groupSearchFilter;
@@ -326,14 +326,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated use {@link #groupMembershipStrategy}
      */
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", 
         justification = "This public field is exposed to the plugin's API")
     public transient String groupMembershipFilter;
 
     /**
      * @since 2.0
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public /*effectively final*/ transient LDAPGroupMembershipStrategy groupMembershipStrategy;
@@ -357,13 +357,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String managerDN;
 
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", 
         justification = "This public field is exposed to the plugin's API")
     private transient String managerPassword;
 
@@ -376,7 +376,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     public final boolean disableMailAddressResolver;
 
