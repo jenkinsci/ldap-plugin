@@ -36,6 +36,8 @@ import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import java.nio.charset.StandardCharsets;
+
+import jenkins.security.FIPS140;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -410,6 +412,9 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
+
+            if(FIPS140.useCompliantAlgorithms() && managerPassword.length() < 14)
+                return FormValidation.error(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
 
             Context ctx = null;
             try {
