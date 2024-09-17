@@ -320,16 +320,6 @@
   </dependencyManagement>
 
   <build>
-    <!-- TODO until https://github.com/jenkinsci/maven-hpi-plugin/pull/652 is released -->
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.jenkins-ci.tools</groupId>
-          <artifactId>maven-hpi-plugin</artifactId>
-          <version>3.58-rc1621.0cb_cd49b_b_c68</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
