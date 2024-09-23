@@ -24,9 +24,11 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.security.LDAPSecurityRealm;
+import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.security.FIPS140;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -157,33 +159,15 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void managerPasswordSizeInFipsMode() throws Exception {
+    public void managerPasswordSizeInFipsModeTest() throws Exception {
         final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
-        final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
         final String managerSecret = "secret";
 
-        LDAPConfiguration c = new LDAPConfiguration(server, rootDN, false, managerDN, Secret.fromString(managerSecret));
-
-        List<LDAPConfiguration> configurations = new ArrayList<>();
-        configurations.add(c);
-        LDAPSecurityRealm realm = new LDAPSecurityRealm(
-                configurations,
-                false,
-                null,
-                IdStrategy.CASE_INSENSITIVE,
-                IdStrategy.CASE_INSENSITIVE
-        );
-
-        r.jenkins.setSecurityRealm(realm);
-        final JenkinsRule.WebClient client = r.createWebClient();
-        r.submit(client.goTo("configureSecurity").getFormByName("config"));
-
-    }
-
-    @Test
-    public void managerPasswordSizeWithoutFipsMode() {
-
+        LDAPConfiguration.LDAPConfigurationDescriptor descriptor = new LDAPConfiguration.LDAPConfigurationDescriptor();
+        FormValidation result = descriptor.doCheckServer(server, managerDN, Secret.fromString(managerSecret), rootDN);
+        assertEquals("ERROR", result.kind.name());
+        assertEquals(result.getMessage(), Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
     }
 }
