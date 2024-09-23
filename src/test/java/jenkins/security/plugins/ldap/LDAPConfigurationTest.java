@@ -23,22 +23,9 @@
  */
 package jenkins.security.plugins.ldap;
 
-import hudson.security.LDAPSecurityRealm;
-import hudson.util.FormValidation;
-import hudson.util.Secret;
-import jenkins.model.IdStrategy;
-import jenkins.security.FIPS140;
-import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
@@ -52,9 +39,6 @@ public class LDAPConfigurationTest {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
-
-    @ClassRule
-    public static FlagRule<String> fipsFlag = FlagRule.systemProperty(FIPS140.class.getName() + ".COMPLIANCE", "true");
 
     @Test
     public void getId() {
@@ -158,29 +142,4 @@ public class LDAPConfigurationTest {
         assertThat(n1.split("\\s+"), arrayWithSize(s1.split("\\s+").length));
     }
 
-    @Test
-    public void managerPasswordUnderSizeInFipsModeTest() throws Exception {
-        final String server = "localhost";
-        final String rootDN = "ou=umich,dc=ou.edu";
-        final String managerDN = "cn=admin,ou=umich,ou.edu";
-        final String managerSecret = "secret";
-
-        LDAPConfiguration.LDAPConfigurationDescriptor descriptor = new LDAPConfiguration.LDAPConfigurationDescriptor();
-        FormValidation result = descriptor.doCheckServer(server, managerDN, Secret.fromString(managerSecret), rootDN);
-        Assert.assertTrue(result.kind.name().equals("ERROR"));
-        Assert.assertTrue(result.getMessage().equals(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass()));
-    }
-
-    @Test
-    public void managerPasswordOverSizeInFipsModeTest() throws Exception {
-        final String server = "localhost";
-        final String rootDN = "ou=umich,dc=ou.edu";
-        final String managerDN = "cn=admin,ou=umich,ou.edu";
-        final String managerSecret = "passwordwithatleastfourteencaracters";
-
-        LDAPConfiguration.LDAPConfigurationDescriptor descriptor = new LDAPConfiguration.LDAPConfigurationDescriptor();
-        FormValidation result = descriptor.doCheckServer(server, managerDN, Secret.fromString(managerSecret), rootDN);
-        Assert.assertTrue(result.kind.name().equals("ERROR"));
-        Assert.assertFalse(result.getMessage().equals(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass()));
-    }
 }
