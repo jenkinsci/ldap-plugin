@@ -159,7 +159,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void managerPasswordSizeInFipsModeTest() throws Exception {
+    public void managerPasswordUnderSizeInFipsModeTest() throws Exception {
         final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
@@ -167,7 +167,20 @@ public class LDAPConfigurationTest {
 
         LDAPConfiguration.LDAPConfigurationDescriptor descriptor = new LDAPConfiguration.LDAPConfigurationDescriptor();
         FormValidation result = descriptor.doCheckServer(server, managerDN, Secret.fromString(managerSecret), rootDN);
-        assertEquals("ERROR", result.kind.name());
-        assertEquals(result.getMessage(), Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
+        Assert.assertTrue(result.kind.name().equals("ERROR"));
+        Assert.assertTrue(result.getMessage().equals(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass()));
+    }
+
+    @Test
+    public void managerPasswordOverSizeInFipsModeTest() throws Exception {
+        final String server = "localhost";
+        final String rootDN = "ou=umich,dc=ou.edu";
+        final String managerDN = "cn=admin,ou=umich,ou.edu";
+        final String managerSecret = "passwordwithatleastfourteencaracters";
+
+        LDAPConfiguration.LDAPConfigurationDescriptor descriptor = new LDAPConfiguration.LDAPConfigurationDescriptor();
+        FormValidation result = descriptor.doCheckServer(server, managerDN, Secret.fromString(managerSecret), rootDN);
+        Assert.assertTrue(result.kind.name().equals("ERROR"));
+        Assert.assertFalse(result.getMessage().equals(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass()));
     }
 }
