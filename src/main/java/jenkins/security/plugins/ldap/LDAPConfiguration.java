@@ -413,7 +413,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
-            if(FIPS140.useCompliantAlgorithms() && managerPassword.length() < 14)
+            if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) && managerPassword.length() < 14)
                 return FormValidation.error(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
 
             Context ctx = null;
