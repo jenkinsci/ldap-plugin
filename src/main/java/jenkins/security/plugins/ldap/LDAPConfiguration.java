@@ -413,9 +413,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
-            if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) && managerPassword.length() < 14)
-                return FormValidation.error(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
-
             Context ctx = null;
             try {
                 Hashtable<String,Object> props = new Hashtable<>();
@@ -435,6 +432,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 props.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT));
 
                 ctx = new InitialDirContext(props);
+
+                if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) && managerPassword.length() < 14)
+                    return FormValidation.error(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
+
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
