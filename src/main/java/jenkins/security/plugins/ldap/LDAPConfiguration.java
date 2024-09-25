@@ -36,8 +36,6 @@ import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import java.nio.charset.StandardCharsets;
-
-import jenkins.security.FIPS140;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -432,10 +430,6 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
                 props.put("com.sun.jndi.ldap.read.timeout", Integer.toString(READ_TIMEOUT));
 
                 ctx = new InitialDirContext(props);
-
-                if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) && managerPassword.length() < 14)
-                    return FormValidation.error(Messages.LDAPSecurityRealm_AuthenticationFailedNotFipsCompliantPass());
-
                 return FormValidation.ok();   // connected
             } catch (NamingException e) {
                 // trouble-shoot
