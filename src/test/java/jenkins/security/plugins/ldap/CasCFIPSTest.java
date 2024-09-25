@@ -24,7 +24,7 @@ public class CasCFIPSTest {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(new EnvironmentVariables()
-            .set("LDAP_PASSWORD", "SECRET"))
+            .set("LDAP_PASSWORD", "SECRET_Password_123"))
             .around(new JenkinsConfiguredWithCodeRule());
     
     @Test
@@ -36,7 +36,7 @@ public class CasCFIPSTest {
         assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);
         final LDAPConfiguration configuration = securityRealm.getConfigurations().get(0);
         assertEquals("ldaps://ldap.acme.com", configuration.getServer());
-        assertEquals("SECRET", configuration.getManagerPassword());
+        assertEquals("SECRET_Password_123", configuration.getManagerPassword());
         assertEquals("manager", configuration.getManagerDN());
         assertEquals("(&(objectCategory=User)(sAMAccountName={0}))", configuration.getUserSearch());
         assertEquals("(&(cn={0})(objectclass=group))", configuration.getGroupSearchFilter());

@@ -152,6 +152,11 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
+        String managerPassword = Secret.toString(managerPasswordSecret);
+        if(StringUtils.isNotBlank(managerPassword) && !"undefined".equals(managerPassword) &&
+                FIPS140.useCompliantAlgorithms() && StringUtils.length(managerPassword) < 14) {
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
+        }
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
@@ -479,6 +484,14 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             } finally {
                 forceClose(ctx);
             }
+        }
+
+        @POST
+        public FormValidation doCheckManagerPasswordSecret(@QueryParameter String managerPasswordSecret) {
+            if(FIPS140.useCompliantAlgorithms() && StringUtils.length(managerPasswordSecret) < 14) {
+                return FormValidation.error(Messages.LDAPConfiguration_passwordTooShortFIPS());
+            }
+            return FormValidation.ok();
         }
 
         private void forceClose(Context ctx){

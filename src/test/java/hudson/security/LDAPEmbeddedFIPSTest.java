@@ -24,6 +24,7 @@
 
 package hudson.security;
 
+import hudson.util.FormValidation;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import jenkins.model.Jenkins;
 import hudson.tasks.MailAddressResolver;
@@ -35,6 +36,7 @@ import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.FlagRule;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.junit.Rule;
@@ -65,6 +67,8 @@ public class LDAPEmbeddedFIPSTest {
     public RuleChain chain = RuleChain.outerRule(ads).around(r);
     @Rule
     public LoggerRule log = new LoggerRule();
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @ClassRule
     public static FlagRule<String> fipsSystemPropertyRule =
@@ -122,5 +126,33 @@ public class LDAPEmbeddedFIPSTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void testPasswordCheck() {
+        //Test when password is null
+        LDAPConfiguration configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, null);
+        assertNotNull(configuration);
+
+        // Test with a short password
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Password is too short");
+        configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
+
+        //Test with a strong password
+        configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("ThisIsVeryStrongPassword"));
+        assertNotNull(configuration);
+    }
+
+    @Test
+    public void testPasswordCheckOnCheckServer(){
+        // Test with a short password
+        FormValidation shortPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret("short");
+        assertEquals(FormValidation.Kind.ERROR, shortPasswordValidation.kind);
+        assertThat(shortPasswordValidation.getMessage(), containsString("Password is too short"));
+
+        // Test with a strong password but server validation fails hence checking for 'Unknown host'
+        FormValidation strongPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret("ThisIsVeryStrongPassword");
+        assertEquals(FormValidation.Kind.OK, strongPasswordValidation.kind);
     }
 }
