@@ -39,6 +39,7 @@ import hudson.util.Scrambler;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
+import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
@@ -753,6 +754,9 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      */
     @Override
     protected UserDetails authenticate2(String username, String password) throws AuthenticationException {
+        if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(password) && password.length() < 14) {
+            throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException("When running in FIPS compliance mode, the password must be at least 14 characters long"));
+        }
         return updateUserDetails((UserDetails) getSecurityComponents().manager2.authenticate(
                 new UsernamePasswordAuthenticationToken(fixUsername(username), password)).getPrincipal(), null);
     }
