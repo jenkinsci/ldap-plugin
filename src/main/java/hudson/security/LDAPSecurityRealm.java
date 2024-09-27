@@ -993,7 +993,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 LOGGER.warning(message);
                 throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException(message));
             }
-
             AuthenticationException lastException = null;
             for (ManagerEntry delegate : delegates) {
                 try {
