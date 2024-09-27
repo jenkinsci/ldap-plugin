@@ -987,8 +987,11 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         try (SetContextClassLoader sccl = new SetContextClassLoader()) {
-            if(FIPS140.useCompliantAlgorithms() && (StringUtils.isBlank(authentication.getCredentials().toString()) || authentication.getCredentials().toString().length() < 14)) {
-                throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException("When running in FIPS compliance mode, the password must be at least 14 characters long"));
+            String password = authentication.getCredentials() instanceof String ? (String) authentication.getCredentials() : null;
+            if(FIPS140.useCompliantAlgorithms() && (StringUtils.isBlank(password) || password.length() < 14)) {
+                final String message =  "When running in FIPS compliance mode, the password must be at least 14 characters long";
+                LOGGER.warning(message);
+                throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException(message));
             }
             AuthenticationException lastException = null;
             for (ManagerEntry delegate : delegates) {
