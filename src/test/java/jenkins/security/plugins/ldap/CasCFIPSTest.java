@@ -1,6 +1,7 @@
 package jenkins.security.plugins.ldap;
 
 import hudson.security.LDAPSecurityRealm;
+import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import jenkins.model.IdStrategy;
@@ -15,7 +16,9 @@ import org.jvnet.hudson.test.FlagRule;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-// Based on https://github.com/jenkinsci/configuration-as-code-plugin/blob/7766b7ef6153e3e210f257d323244c1f1470a10f/integrations/src/test/java/io/jenkins/plugins/casc/LDAPTest.java
+/**
+ * Based on {@link jenkins.security.plugins.ldap.CasCTest}
+ */
 public class CasCFIPSTest {
 
     @ClassRule
@@ -24,9 +27,9 @@ public class CasCFIPSTest {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(new EnvironmentVariables()
-            .set("LDAP_PASSWORD", "SECRET_Password_123"))
+                    .set("LDAP_PASSWORD", "SECRET_Password_123"))
             .around(new JenkinsConfiguredWithCodeRule());
-    
+
     @Test
     @ConfiguredWithCode("casc_ldap_secure.yml")
     public void configure_ldap() {
@@ -47,19 +50,10 @@ public class CasCFIPSTest {
     /**
      * Expect an exception when LDAP url is not secure & FIPS is enabled
      */
-    //@Test(expected = Exception.class)
-    @ConfiguredWithCode("casc.yml")
+    @Test
+    @ConfiguredWithCode(value = "casc.yml", expected = ConfiguratorException.class)
     public void configure_ldap_for_invalid() {
-        try {
-            final LDAPSecurityRealm securityRealm = (LDAPSecurityRealm) Jenkins.get().getSecurityRealm();
-            assertEquals(1, securityRealm.getConfigurations().size());
-            final LDAPConfiguration configuration = securityRealm.getConfigurations().get(0);
-            assertEquals("ldaps://ldap.acme.com", configuration.getServer());
-
-        }catch (IllegalArgumentException e){
-            assertEquals("Invalid configuration", e.getMessage());
-            throw e;
-        }
-
+        // This test is expected to throw an ConfiguratorException while loading the configuration itself
+        // because the LDAP URL is not secure and FIPS is enabled. Hence, the code block is empty.
     }
 }
