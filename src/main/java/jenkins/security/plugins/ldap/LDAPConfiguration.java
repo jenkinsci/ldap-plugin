@@ -153,8 +153,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
-        if(StringUtils.isNotBlank(managerPassword) && !"undefined".equals(managerPassword) &&
-                FIPS140.useCompliantAlgorithms() && StringUtils.length(managerPassword) < 14) {
+        if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
+                !"undefined".equals(managerPassword) && StringUtils.length(managerPassword) < 14) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         this.server = server.trim();
@@ -430,12 +430,12 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
-            if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
-                return  FormValidation.error(Messages.LDAPConfiguration_InsecureServer(server));
-            }
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
+            if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
+                return  FormValidation.error(Messages.LDAPConfiguration_InsecureServer(server));
+            }
             Context ctx = null;
             try {
                 Hashtable<String,Object> props = new Hashtable<>();
@@ -488,6 +488,9 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
         @POST
         public FormValidation doCheckManagerPasswordSecret(@QueryParameter String managerPasswordSecret) {
+            if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                return FormValidation.ok();
+            }
             if(FIPS140.useCompliantAlgorithms() && StringUtils.length(managerPasswordSecret) < 14) {
                 return FormValidation.error(Messages.LDAPConfiguration_passwordTooShortFIPS());
             }
