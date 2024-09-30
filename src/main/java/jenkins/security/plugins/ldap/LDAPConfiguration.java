@@ -193,6 +193,18 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return buf.toString();
     }
 
+    private Object readResolve() {
+        if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
+        }
+        String managerPassword = Secret.toString(managerPasswordSecret);
+        if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
+                !"undefined".equals(managerPassword) && StringUtils.length(managerPassword) < 14) {
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
+        }
+        return this;
+    }
+
     /**
      * The root DN to connect to. Normally something like "dc=sun,dc=com"
      */
