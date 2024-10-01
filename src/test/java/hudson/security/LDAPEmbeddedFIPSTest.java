@@ -24,16 +24,11 @@
 
 package hudson.security;
 
-import hudson.util.Secret;
-import jenkins.security.plugins.ldap.LDAPConfiguration;
 import org.htmlunit.WebResponse;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RealJenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -43,16 +38,11 @@ import java.io.PrintStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class LDAPEmbeddedFIPSTest {
     static final String LDAP_SERVER_ERROR_MESSAGE = "LDAP server URL is not secure";
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @ClassRule
-    public static FlagRule<String> fipsSystemPropertyRule =
-            FlagRule.systemProperty("jenkins.security.FIPS140.COMPLIANCE", "true");
 
     @Rule
     public RealJenkinsRule r = new RealJenkinsRule().javaOptions("-Djenkins.security.FIPS140.COMPLIANCE=true")
@@ -70,21 +60,7 @@ public class LDAPEmbeddedFIPSTest {
         assertTrue(logs.contains(LDAP_SERVER_ERROR_MESSAGE));
     }
 
-    @Test
-    public void testPasswordCheck() {
-        //Test when password is null
-        LDAPConfiguration configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, null);
-        assertNotNull(configuration);
 
-        // Test with a short password
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Password is too short");
-        new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
-
-        //Test with a strong password
-        configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("ThisIsVeryStrongPassword"));
-        assertNotNull(configuration);
-    }
 
     @Test
     public void testLdapServerUrl() throws Throwable {
@@ -127,6 +103,7 @@ public class LDAPEmbeddedFIPSTest {
     public void testManagerPassword() throws Throwable {
         r.then(LDAPEmbeddedFIPSTest::_testManagerPassword);
     }
+
     public static void _testManagerPassword(JenkinsRule j) throws Exception {
         // Create and set the LDAP Security Realm configuration
         LDAPSecurityRealm ldapRealm = new LDAPSecurityRealm(

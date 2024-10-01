@@ -12,19 +12,20 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.jvnet.hudson.test.FlagRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Based on {@link jenkins.security.plugins.ldap.CasCTest}
  */
 public class CasCFIPSTest {
-
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
     @ClassRule
     public static FlagRule<String> fipsSystemPropertyRule =
             FlagRule.systemProperty("jenkins.security.FIPS140.COMPLIANCE", "true");
@@ -64,13 +65,26 @@ public class CasCFIPSTest {
     @Test
     public void testPasswordCheck(){
         // Test with a short password
-        FormValidation shortPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret("short");
+        FormValidation shortPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret(Secret.fromString("short"));
         assertEquals(FormValidation.Kind.ERROR, shortPasswordValidation.kind);
         assertThat(shortPasswordValidation.getMessage(), containsString("Password is too short"));
 
         // Test with a strong password but server validation fails hence checking for 'Unknown host'
-        FormValidation strongPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret("ThisIsVeryStrongPassword");
+        FormValidation strongPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret(Secret.fromString("ThisIsVeryStrongPassword"));
         assertEquals(FormValidation.Kind.OK, strongPasswordValidation.kind);
+
+        //Test when password is null
+        LDAPConfiguration configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, null);
+        assertNotNull(configuration);
+
+        // Test with a short password
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Password is too short");
+        new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
+
+        //Test with a strong password
+        configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("ThisIsVeryStrongPassword"));
+        assertNotNull(configuration);
     }
 
     @Test

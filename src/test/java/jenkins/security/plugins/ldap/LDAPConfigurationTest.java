@@ -26,11 +26,11 @@ package jenkins.security.plugins.ldap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Tests {@link LDAPConfiguration}.
@@ -143,36 +143,42 @@ public class LDAPConfigurationTest {
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_SecureUrl() {
         String secureUrl = "ldaps://secure.example.com";
         assertTrue(LDAPConfiguration.validateServerUrlIsSecure(secureUrl));
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_InsecureUrl() {
         String insecureUrl = "ldap://insecure.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(insecureUrl));
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_MixedUrls() {
         String mixedUrls = "ldaps://secure.example.com ldap://insecure.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(mixedUrls));
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_AllSecureUrls() {
         String allSecureUrls = "ldaps://secure1.example.com ldaps://secure2.example.com";
         assertTrue(LDAPConfiguration.validateServerUrlIsSecure(allSecureUrls));
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_AllInsecureUrls() {
         String allInsecureUrls = "ldap://insecure1.example.com ldap://insecure2.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(allInsecureUrls));
     }
 
     @Test
+    @WithoutJenkins
     public void testValidateServerUrlIsSecure_plainUrl() {
         String allInsecureUrls = "insecure1.example.com ";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(allInsecureUrls));
