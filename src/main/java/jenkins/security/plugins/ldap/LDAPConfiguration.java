@@ -154,7 +154,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
         if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
-                !"undefined".equals(managerPassword) && StringUtils.length(managerPassword) < 14) {
+                StringUtils.length(managerPassword) < 14) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         this.server = server.trim();
@@ -199,7 +199,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
         if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
-                !"undefined".equals(managerPassword) && StringUtils.length(managerPassword) < 14) {
+                StringUtils.length(managerPassword) < 14) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         return this;
