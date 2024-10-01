@@ -66,9 +66,7 @@ public class LDAPEmbeddedFIPSTest {
 
     @Rule
     public RealJenkinsRule r = new RealJenkinsRule().javaOptions("-Djenkins.security.FIPS140.COMPLIANCE=true")
-            .withDebugPort(5008)
-            .withDebugServer(true)
-            .withDebugSuspend(true);
+            .withDebugPort(5008);
 
     @Test
     @LocalData
