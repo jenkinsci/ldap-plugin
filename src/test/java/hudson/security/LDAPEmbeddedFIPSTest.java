@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2017 CloudBees,Inc.
+ * Copyright 2024 CloudBees,Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,29 @@
 
 package hudson.security;
 
-import com.sun.xml.bind.v2.TODO;
-import hudson.ExtensionList;
-import hudson.diagnosis.OldDataMonitor;
-import hudson.model.queue.Tasks;
-import hudson.util.FormValidation;
 import hudson.util.Secret;
-import jenkins.model.Jenkins;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
 import org.htmlunit.WebResponse;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
-import org.htmlunit.html.HtmlSelect;
-import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RealJenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-import java.util.Map;
-import java.util.logging.Level;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 
 public class LDAPEmbeddedFIPSTest {
-    @ClassRule
-    public static final LoggerRule log = new LoggerRule();
+    static final String LDAP_SERVER_ERROR_MESSAGE = "LDAP server URL is not secure";
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -71,18 +61,13 @@ public class LDAPEmbeddedFIPSTest {
     @Test
     @LocalData
     public void testBlowsUpOnStart() throws Throwable {
-        r.then(LDAPEmbeddedFIPSTest::verifyOldData);
-    }
-
-    static void verifyOldData(JenkinsRule j) throws Throwable {
-        OldDataMonitor monitor = ExtensionList.lookupSingleton(OldDataMonitor.class);
-        LDAPConfiguration.LDAPConfigurationDescriptor descriptor = Jenkins.get().getDescriptorByType(LDAPConfiguration.LDAPConfigurationDescriptor.class);
-        assertNotNull(descriptor);
-//        Map map =  monitor.getData();
-//        OldDataMonitor.VersionRange versionRange = monitor.getData().get(descriptor);
-//        assertNotNull(versionRange);
-//        assertThat(versionRange.extra, containsString("LDAP server URL is not secure:" ));
-        assertThat("FIPS message is logged", log, LoggerRule.recorded(Level.SEVERE, containsString("LDAP server URL is not secure:")));
+        // Create a stream to hold the log messages
+        ByteArrayOutputStream logStream = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(logStream));
+        r.startJenkins();
+        String logs = logStream.toString();
+        assertTrue(logs.contains(LDAP_SERVER_ERROR_MESSAGE));
     }
 
     @Test
@@ -94,7 +79,7 @@ public class LDAPEmbeddedFIPSTest {
         // Test with a short password
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Password is too short");
-        configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
+        new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
 
         //Test with a strong password
         configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("ThisIsVeryStrongPassword"));
@@ -102,15 +87,14 @@ public class LDAPEmbeddedFIPSTest {
     }
 
     @Test
-    public void testConfig() throws Throwable {
-        r.then(LDAPEmbeddedFIPSTest::_testConfig);
+    public void testLdapServerUrl() throws Throwable {
+        r.then(LDAPEmbeddedFIPSTest::_testLdapServerUrl);
     }
 
-    public static void _testConfig(JenkinsRule j) throws Exception {
-
+    public static void _testLdapServerUrl(JenkinsRule j) throws Exception {
         // Create and set the LDAP Security Realm configuration
         LDAPSecurityRealm ldapRealm = new LDAPSecurityRealm(
-                "ldap://ldap.example.com",              // LDAP Server URL
+                "ldaps://ldap.example.com",              // LDAP Server URL
                 "dc=example,dc=com",                    // Root DN
                 "ou=users,dc=example,dc=com",           // User search base
                 "uid={0}",                               // User search filter
@@ -119,42 +103,58 @@ public class LDAPEmbeddedFIPSTest {
                 null,                                    // Manager DN (optional)
                 false                                     // Manager password (optional)
         );
-        j.jenkins.setSecurityRealm(ldapRealm);
-
         // Set the LDAP security realm in Jenkins
-
-        //Jenkins.getInstance().save();
+        j.jenkins.setSecurityRealm(ldapRealm);
         try (JenkinsRule.WebClient wc = j.createWebClient()) {
             // Navigate to "Manage Jenkins"
             HtmlPage manageJenkinsPage = wc.goTo("manage");
-
             // Navigate to "Configure Global Security"
             HtmlPage securityPage = wc.goTo("configureSecurity");
-
             // Find the form for global security configuration
             HtmlForm securityForm = securityPage.getFormByName("config");
+            securityForm.getInputByName("_.server").setValue("ldap.example.com");
+            securityForm.getInputByName("_.server").blur();
+            wc.waitForBackgroundJavaScript(1000);
+            wc.setThrowExceptionOnFailingStatusCode(false);
+            HtmlPage page = j.submit(securityForm);
+            WebResponse webResponse = page.getWebResponse();
+            assertNotEquals(200, webResponse.getStatusCode());
+            assertThat(webResponse.getContentAsString(), containsString(LDAP_SERVER_ERROR_MESSAGE));
+        }
+    }
 
-            securityForm.getFormElements().forEach(element -> {
-                System.out.println("Element Name: " + element.getId());
-            });
-
-            // Loop through all form elements and print their names
-            securityForm.getInputsByName("").forEach(input -> {
-                System.out.println("Input Name: " + input.getNameAttribute());
-            });
-
-           /* // If you need to include other form elements (like selects, text areas, etc.):
-            securityForm.getAllElements().forEach(element -> {
-                if (element.getAttribute("name") != null) {
-                    System.out.println("Element Name: " + element.getAttribute("name"));
-                }
-            });
-            System.out.println("Old Value ==> "+ securityRealmSelect.getSelectedIndex());
-            // Select the LDAP option
-            securityRealmSelect.setSelectedAttribute("LDAP", true);
-
-            System.out.println("New Value ==> "+ securityRealmSelect.getSelectedIndex());*/
-
+    @Test
+    public void testManagerPassword() throws Throwable {
+        r.then(LDAPEmbeddedFIPSTest::_testManagerPassword);
+    }
+    public static void _testManagerPassword(JenkinsRule j) throws Exception {
+        // Create and set the LDAP Security Realm configuration
+        LDAPSecurityRealm ldapRealm = new LDAPSecurityRealm(
+                "ldaps://ldap.example.com",              // LDAP Server URL
+                "dc=example,dc=com",                    // Root DN
+                "ou=users,dc=example,dc=com",           // User search base
+                "uid={0}",                               // User search filter
+                null,                                    // Group search base (optional)
+                null,                                    // Group search filter (optional)
+                null,                                    // Manager DN (optional)
+                false                                     // Manager password (optional)
+        );
+        // Set the LDAP security realm in Jenkins
+        j.jenkins.setSecurityRealm(ldapRealm);
+        try (JenkinsRule.WebClient wc = j.createWebClient()) {
+            // Navigate to "Manage Jenkins"
+            HtmlPage manageJenkinsPage = wc.goTo("manage");
+            // Navigate to "Configure Global Security"
+            HtmlPage securityPage = wc.goTo("configureSecurity");
+            // Find the form for global security configuration
+            HtmlForm securityForm = securityPage.getFormByName("config");
+            wc.waitForBackgroundJavaScript(1000);
+            securityForm.getInputByName("_.managerPasswordSecret").setValueAttribute("short");
+            wc.setThrowExceptionOnFailingStatusCode(false);
+            HtmlPage page = j.submit(securityForm);
+            WebResponse webResponse = page.getWebResponse();
+            assertNotEquals(200, webResponse.getStatusCode());
+            assertThat(webResponse.getContentAsString(), containsString("Password is too short"));
         }
     }
 }
