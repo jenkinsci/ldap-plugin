@@ -35,6 +35,7 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import java.nio.charset.StandardCharsets;
 import jenkins.security.FIPS140;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -43,7 +44,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
-import org.springframework.security.authentication.*;
+import org.springframework.security.authentication.AnonymousAuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.RememberMeAuthenticationProvider;
 import org.springframework.security.ldap.DefaultSpringSecurityContextSource;
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
@@ -55,18 +60,31 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+
 import java.io.IOException;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static hudson.Util.*;
+import static hudson.Util.fixEmpty;
+import static hudson.Util.fixEmptyAndTrim;
+import static hudson.Util.fixNull;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -135,8 +153,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
-        if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
-                StringUtils.length(managerPassword) < 14) {
+        if(isPasswordCompliant(managerPassword)) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         this.server = server.trim();
@@ -180,8 +197,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
-        if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(managerPassword) &&
-                StringUtils.length(managerPassword) < 14) {
+        if(isPasswordCompliant(managerPassword)) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         return this;
@@ -485,9 +501,9 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
                 return FormValidation.ok();
             }
+            String managerPassword = Secret.toString(managerPasswordSecret);
 
-            if(FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(Secret.toString(managerPasswordSecret))
-                    && Secret.toString(managerPasswordSecret).length() < 14) {
+            if(LDAPConfiguration.isPasswordCompliant(managerPassword)) {
                 return FormValidation.error(Messages.LDAPConfiguration_passwordTooShortFIPS());
             }
             return FormValidation.ok();
@@ -688,4 +704,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return ldapTemplate;
     }
 
+    private static boolean isPasswordCompliant(String password){
+        return FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(password) &&
+                StringUtils.length(password) < 14;
+    }
 }
