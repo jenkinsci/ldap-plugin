@@ -36,6 +36,7 @@ import hudson.util.FormValidation;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import java.nio.charset.StandardCharsets;
+import jenkins.security.FIPS140;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -147,7 +148,14 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     private transient String id;
 
     @DataBoundConstructor
-    public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret) {
+    public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret){
+        if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
+        }
+        String managerPassword = Secret.toString(managerPasswordSecret);
+        if(isPasswordNonCompliant(managerPassword)) {
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
+        }
         this.server = server.trim();
         this.managerDN = fixEmpty(managerDN);
         this.managerPasswordSecret = managerPasswordSecret;
@@ -182,6 +190,17 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             buf.append(addPrefix(s));
         }
         return buf.toString();
+    }
+
+    private Object readResolve() {
+        if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
+        }
+        String managerPassword = Secret.toString(managerPasswordSecret);
+        if(isPasswordNonCompliant(managerPassword)) {
+            throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
+        }
+        return this;
     }
 
     /**
@@ -390,6 +409,20 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return getId().equals(id);
     }
 
+    /**
+     * Validates if the LDAP server URL is secure (uses ldaps).
+     * Returns FALSE if the server URL is not secure.
+     */
+    public static boolean validateServerUrlIsSecure(String server) {
+        String[] servers = server.split("\\s+");
+        for (String s : servers) {
+            if (!s.startsWith("ldaps://")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Extension
     public static final class LDAPConfigurationDescriptor extends Descriptor<LDAPConfiguration> {
         //For jelly usage
@@ -407,10 +440,12 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         public FormValidation doCheckServer(@QueryParameter String value, @QueryParameter String managerDN, @QueryParameter Secret managerPasswordSecret,@QueryParameter String rootDN) {
             String server = value;
             String managerPassword = Secret.toString(managerPasswordSecret);
-
             if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER))
                 return FormValidation.ok();
 
+            if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
+                return  FormValidation.error(Messages.LDAPConfiguration_InsecureServer(server));
+            }
             Context ctx = null;
             try {
                 Hashtable<String,Object> props = new Hashtable<>();
@@ -459,6 +494,19 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             } finally {
                 forceClose(ctx);
             }
+        }
+
+        @POST
+        public FormValidation doCheckManagerPasswordSecret(@QueryParameter Secret managerPasswordSecret) {
+            if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                return FormValidation.ok();
+            }
+            String managerPassword = Secret.toString(managerPasswordSecret);
+
+            if(LDAPConfiguration.isPasswordNonCompliant(managerPassword)) {
+                return FormValidation.error(Messages.LDAPConfiguration_passwordTooShortFIPS());
+            }
+            return FormValidation.ok();
         }
 
         private void forceClose(Context ctx){
@@ -656,4 +704,8 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return ldapTemplate;
     }
 
+    private static boolean isPasswordNonCompliant(String password){
+        return FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(password) &&
+                StringUtils.length(password) < 14;
+    }
 }
