@@ -39,6 +39,7 @@ import hudson.util.Scrambler;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
+import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
@@ -78,7 +79,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -247,7 +248,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * LDAP server name(s) separated by spaces, optionally with TCP port number, like "ldap.acme.org"
      * or "ldap.acme.org:389" and/or with protocol, like "ldap://ldap.acme.org".
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String server;
@@ -257,7 +258,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * How do I infer this?
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String rootDN;
@@ -266,7 +267,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * Allow the rootDN to be inferred? Default is false.
      * If true, allow rootDN to be blank.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient boolean inhibitInferRootDN;
@@ -277,7 +278,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * Something like "ou=people" but can be empty.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String userSearchBase;
@@ -289,7 +290,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String userSearch;
@@ -302,7 +303,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @see FilterBasedLdapUserSearch
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String groupSearchBase;
@@ -313,7 +314,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * @since 1.5
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String groupSearchFilter;
@@ -326,14 +327,14 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * @deprecated use {@link #groupMembershipStrategy}
      */
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", 
         justification = "This public field is exposed to the plugin's API")
     public transient String groupMembershipFilter;
 
     /**
      * @since 2.0
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public /*effectively final*/ transient LDAPGroupMembershipStrategy groupMembershipStrategy;
@@ -357,13 +358,13 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      *
      * This is necessary when LDAP doesn't support anonymous access.
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient String managerDN;
 
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", 
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", 
         justification = "This public field is exposed to the plugin's API")
     private transient String managerPassword;
 
@@ -376,7 +377,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
-    @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
         justification = "This public field is exposed to the plugin's API")
     public final boolean disableMailAddressResolver;
 
@@ -986,6 +987,12 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+            String password = authentication.getCredentials() instanceof String ? (String) authentication.getCredentials() : null;
+            if(FIPS140.useCompliantAlgorithms() && (StringUtils.isBlank(password) || password.length() < 14)) {
+                final String message =  "When running in FIPS compliance mode, the password must be at least 14 characters long";
+                LOGGER.warning(message);
+                throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException(message));
+            }
             AuthenticationException lastException = null;
             for (ManagerEntry delegate : delegates) {
                 try {
@@ -1483,7 +1490,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @Override
-        public SecurityRealm newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public SecurityRealm newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             if (!formData.has("configurations")) {
                 throw new Descriptor.FormException(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AtLeastOne(), "configurations");
             } else {
@@ -1514,7 +1521,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         @RequirePOST
-        public FormValidation doValidate(StaplerRequest req) throws Exception {
+        public FormValidation doValidate(StaplerRequest2 req) throws Exception {
             if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
                 // require admin to test
                 return FormValidation.ok();
