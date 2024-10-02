@@ -25,7 +25,6 @@
 package hudson.security;
 
 import org.htmlunit.FailingHttpStatusCodeException;
-import org.htmlunit.html.DomElement;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlInput;
@@ -666,14 +665,7 @@ public class LDAPEmbeddedTest {
             final HtmlInput testPassword = security.getElementByName("testPassword");
             testPassword.setValue("pass");
 
-            HtmlButton submitElement = null;
-            for (DomElement e : security.getElementsByTagName("button")) {
-                if ("submit".equals(e.getAttribute("type")) && "Test".equals(e.getTextContent())) {
-                    submitElement = (HtmlButton) e;
-                    break;
-                }
-            }
-
+            HtmlButton submitElement = security.querySelector("button[data-id=\"ok\"]");
             assertThat(submitElement, notNullValue());
             submitElement.click();
 
