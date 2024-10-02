@@ -153,7 +153,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
-        if(isPasswordCompliant(managerPassword)) {
+        if(isPasswordNonCompliant(managerPassword)) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         this.server = server.trim();
@@ -197,7 +197,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
         String managerPassword = Secret.toString(managerPasswordSecret);
-        if(isPasswordCompliant(managerPassword)) {
+        if(isPasswordNonCompliant(managerPassword)) {
             throw new IllegalArgumentException(Messages.LDAPConfiguration_passwordTooShortFIPS());
         }
         return this;
@@ -503,7 +503,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             }
             String managerPassword = Secret.toString(managerPasswordSecret);
 
-            if(LDAPConfiguration.isPasswordCompliant(managerPassword)) {
+            if(LDAPConfiguration.isPasswordNonCompliant(managerPassword)) {
                 return FormValidation.error(Messages.LDAPConfiguration_passwordTooShortFIPS());
             }
             return FormValidation.ok();
@@ -704,7 +704,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         return ldapTemplate;
     }
 
-    private static boolean isPasswordCompliant(String password){
+    private static boolean isPasswordNonCompliant(String password){
         return FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(password) &&
                 StringUtils.length(password) < 14;
     }
