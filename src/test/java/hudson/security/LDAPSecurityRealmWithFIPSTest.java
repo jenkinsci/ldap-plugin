@@ -32,11 +32,11 @@ public class LDAPSecurityRealmWithFIPSTest {
 
     @Test
     public void ldapAuthenticationWithFIPSTest() throws Exception {
-        final String server = "localhost";
+        final String server = "ldaps://localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
         final String managerDN = "cn=admin,ou=umich,ou.edu";
-        final String managerSecret = "secret";
+        final String managerSecret = "secretsecretsecret";
         final LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 server,
                 rootDN,
