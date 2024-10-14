@@ -303,7 +303,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.462.x</artifactId>
-        <version>3413.v0d896b_76a_30d</version>
+        <version>3482.vc10d4f6da_28a_</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
