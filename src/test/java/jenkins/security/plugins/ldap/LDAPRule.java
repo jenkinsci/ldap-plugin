@@ -59,7 +59,6 @@ import org.apache.directory.api.ldap.schema.manager.impl.DefaultSchemaManager;
 import org.apache.directory.api.util.exception.Exceptions;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.directory.server.core.DefaultDirectoryService;
-import org.apache.directory.server.core.api.CacheService;
 import org.apache.directory.server.core.api.CoreSession;
 import org.apache.directory.server.core.api.DirectoryService;
 import org.apache.directory.server.core.api.InstanceLayout;
@@ -266,9 +265,6 @@ public class LDAPRule implements TestRule, MethodRule {
         service = new DefaultDirectoryService();
         service.setInstanceId(currentTest.getDisplayName());
         service.setInstanceLayout(new InstanceLayout(workDir));
-        CacheService cacheService = new CacheService();
-        cacheService.initialize(service.getInstanceLayout(), "test");
-        service.setCacheService(cacheService);
 
         factory = new JdbmPartitionFactory();
 
