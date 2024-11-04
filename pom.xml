@@ -119,11 +119,11 @@
       <exclusions>
         <exclusion>
           <groupId>org.bouncycastle</groupId>
-          <artifactId>bcprov-jdk15on</artifactId>
+          <artifactId>bcpkix-jdk15on</artifactId>
         </exclusion>
-        <exclusion> <!-- core provides something else -->
-          <groupId>commons-codec</groupId>
-          <artifactId>commons-codec</artifactId>
+        <exclusion>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcprov-jdk15on</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -197,6 +197,10 @@
       <version>${apacheds.version}</version>
       <scope>test</scope>
       <exclusions>
+        <exclusion>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcpkix-jdk15on</artifactId>
+        </exclusion>
         <exclusion>
           <groupId>org.bouncycastle</groupId>
           <artifactId>bcprov-jdk15on</artifactId>
