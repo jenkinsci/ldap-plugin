@@ -40,7 +40,7 @@ public class PlanetExpressTest {
 
     @SuppressWarnings("rawtypes")
     @Rule
-    public GenericContainer container = new GenericContainer(TEST_IMAGE).withExposedPorts(389);
+    public GenericContainer container = new GenericContainer(TEST_IMAGE).withExposedPorts(10389);
 
     @Rule
     public RealJenkinsRule rr = new RealJenkinsRule();

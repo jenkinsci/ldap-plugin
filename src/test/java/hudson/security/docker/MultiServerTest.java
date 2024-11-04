@@ -38,7 +38,7 @@ public class MultiServerTest {
 
     @SuppressWarnings("rawtypes")
     @Rule
-    public GenericContainer container = new GenericContainer(PlanetExpressTest.TEST_IMAGE).withExposedPorts(389);
+    public GenericContainer container = new GenericContainer(PlanetExpressTest.TEST_IMAGE).withExposedPorts(10389);
 
     public JenkinsRule j = new JenkinsRule();
     public LDAPRule ads = new LDAPRule();
