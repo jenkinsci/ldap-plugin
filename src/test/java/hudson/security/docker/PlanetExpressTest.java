@@ -25,7 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 public class PlanetExpressTest {
 
     static final String TEST_IMAGE =
-            "rroemhild/test-openldap:1.1@sha256:ebecc2aa0c5afaadddcbd734698d7c356b0e1b1f9af0bf8bc1889ff275f2bcde";
+            "rroemhild/test-openldap:2.1@sha256:133952e806f6e88af4a7a24dc5714e27cdddb41fceeff5ff4f384ae1d836db26";
     static final String DN = "dc=planetexpress,dc=com";
     static final String MANAGER_DN = "cn=admin,dc=planetexpress,dc=com";
     static final String MANAGER_SECRET = "GoodNewsEveryone";
