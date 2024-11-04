@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommitsDisabled",
+    "schedule:daily"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "src/test/java/hudson/security/docker/PlanetExpressTest.java"
+      ],
+      "matchStrings": [
+        ".* TEST_IMAGE =\n\\s*\"(?<repo>.*?):(?<currentValue>.*?)@(?<currentDigest>sha256:.*?)\";\n"
+      ],
+      "depNameTemplate": "{{{repo}}}",
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "rebaseWhen": "conflicted"
+}
