@@ -46,7 +46,7 @@ import jenkins.security.plugins.ldap.LDAPConfiguration;
 import jenkins.security.plugins.ldap.LDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPExtendedTemplate;
 import jenkins.security.plugins.ldap.LdapEntryMapper;
-import jenkins.security.plugins.ldap.SetContextClassLoader;
+import jenkins.util.SetContextClassLoader;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.springframework.ldap.core.ContextSource;
@@ -986,7 +986,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+        try (SetContextClassLoader sccl = new SetContextClassLoader(LDAPAuthenticationManager.class)) {
             String password = authentication.getCredentials() instanceof String ? (String) authentication.getCredentials() : null;
             if(FIPS140.useCompliantAlgorithms() && (StringUtils.isBlank(password) || password.length() < 14)) {
                 final String message =  "When running in FIPS compliance mode, the password must be at least 14 characters long";
@@ -1173,7 +1173,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 return ((DelegatedLdapUserDetails) details).attributes;
             } else {
                 if (ldapUserSearch != null) {
-                    try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+                    try (SetContextClassLoader sccl = new SetContextClassLoader(DelegatedLdapUserDetails.class)) {
                         return ldapUserSearch.searchForUser(details.getUsername()).getAttributes();
                     } catch (UsernameNotFoundException x) {
                         // ignore
@@ -1276,7 +1276,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         @Override
         public DelegatedLdapUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
             username = fixUsername(username);
-            try (SetContextClassLoader sccl = new SetContextClassLoader()) {
+            try (SetContextClassLoader sccl = new SetContextClassLoader(LDAPUserDetailsService.class)) {
                 final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
                 if (securityRealm instanceof LDAPSecurityRealm
                         && (securityRealm.getSecurityComponents().userDetails2 == this

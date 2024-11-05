@@ -26,6 +26,7 @@ package jenkins.security.plugins.ldap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import jenkins.util.SetContextClassLoader;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -62,7 +63,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
      */
     public @CheckForNull <T> T searchForFirstEntry(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
-        try (SetContextClassLoader sccl = new SetContextClassLoader();
+        try (SetContextClassLoader sccl = new SetContextClassLoader(LDAPExtendedTemplate.class);
                 SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             return searchEnum.hasMore() ? searchEnum.next() : null;
         } catch (NamingException e) {
@@ -85,7 +86,7 @@ public class LDAPExtendedTemplate extends LdapTemplate {
     public @NonNull <T> List<? extends T> searchForAllEntries(@NonNull final String base, @NonNull final String filter,
             final Object[] filterArgs, final String[] attributeNames, @NonNull final LdapEntryMapper<T> mapper) {
         List<T> results = new ArrayList<>();
-        try (SetContextClassLoader sccl = new SetContextClassLoader();
+        try (SetContextClassLoader sccl = new SetContextClassLoader(LDAPExtendedTemplate.class);
                 SearchResultEnumeration<T> searchEnum = searchForAllEntriesEnum(base, filter, filterArgs, attributeNames, mapper)) {
             while (searchEnum.hasMore()) {
                 results.add(searchEnum.next());
