@@ -267,8 +267,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
      * Allow the rootDN to be inferred? Default is false.
      * If true, allow rootDN to be blank.
      */
-    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
-        justification = "This public field is exposed to the plugin's API")
     @Deprecated @Restricted(NoExternalUse.class)
     public transient boolean inhibitInferRootDN;
 
@@ -364,8 +362,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     public transient String managerDN;
 
     @Deprecated @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", 
-        justification = "This public field is exposed to the plugin's API")
     private transient String managerPassword;
 
     /**
@@ -377,8 +373,6 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
     /**
      * @since 1.2
      */
-    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
-        justification = "This public field is exposed to the plugin's API")
     public final boolean disableMailAddressResolver;
 
     private List<LDAPConfiguration> configurations;
