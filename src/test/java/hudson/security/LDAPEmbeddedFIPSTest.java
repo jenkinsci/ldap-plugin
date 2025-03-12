@@ -53,8 +53,7 @@ public class LDAPEmbeddedFIPSTest {
     public void testBlowsUpOnStart() throws Throwable {
         // Create a stream to hold the log messages
         ByteArrayOutputStream logStream = new ByteArrayOutputStream();
-        PrintStream originalOut = System.out;
-        System.setOut(new PrintStream(logStream));
+        System.setErr(new PrintStream(logStream));
         r.startJenkins();
         String logs = logStream.toString();
         assertTrue(logs.contains(LDAP_SERVER_ERROR_MESSAGE));
