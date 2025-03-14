@@ -28,7 +28,7 @@
     <apacheds.version>2.0.0.AM27</apacheds.version>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
   </properties>
 
   <scm>
@@ -258,9 +258,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.jsoup</groupId>
+      <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jsoup</artifactId>
-      <version>1.19.1</version>
       <scope>test</scope>
     </dependency>
     
@@ -288,7 +287,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4051.v78dce3ce8b_d6</version>
+        <version>4228.v0a_71308d905b_</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
