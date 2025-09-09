@@ -52,6 +52,10 @@
   </pluginRepositories>
 
   <dependencies>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
+    </dependency>
     <dependency> <!-- Repeat this from jenkins/core/pom.xml to avoid bundling Spring libraries already in core -->
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-web</artifactId>
