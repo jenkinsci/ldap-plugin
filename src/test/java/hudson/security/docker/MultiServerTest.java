@@ -1,7 +1,6 @@
 package hudson.security.docker;
 
 import hudson.model.User;
-import hudson.security.LDAPEmbeddedTest;
 import hudson.security.LDAPSecurityRealm;
 import hudson.tasks.MailAddressResolver;
 import hudson.tasks.Mailer;
@@ -17,42 +16,54 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Tests connecting to two different servers
  */
 @LDAPTestConfiguration
-public class MultiServerTest {
+@Testcontainers(disabledWithoutDocker = true)
+@WithJenkins
+class MultiServerTest {
 
-    @BeforeClass public static void requiresDocker() {
-        PlanetExpressTest.requiresDocker();
-    }
+    private static final String TEST_IMAGE =
+            "ghcr.io/rroemhild/docker-test-openldap:v2.5.0@sha256:3470e15c60119a1c0392cc162cdce71edfb42b55affdc69da574012f956317cd";
+    private static final String DN = "dc=planetexpress,dc=com";
+    private static final String MANAGER_DN = "cn=admin,dc=planetexpress,dc=com";
+    private static final String MANAGER_SECRET = "GoodNewsEveryone";
 
     @SuppressWarnings("rawtypes")
-    @Rule
-    public GenericContainer container = new GenericContainer(PlanetExpressTest.TEST_IMAGE).withExposedPorts(10389);
+    @Container
+    private final GenericContainer container = new GenericContainer(TEST_IMAGE).withExposedPorts(10389);
 
-    public JenkinsRule j = new JenkinsRule();
-    public LDAPRule ads = new LDAPRule();
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(ads).around(j);
+    @RegisterExtension
+    private final LDAPExtension ads = new LDAPExtension();
+
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     /**
-     * Same tests as {@link LDAPEmbeddedTest#userLookup()} and {@link PlanetExpressTest#login()} but both servers configured at the same time.
+     * Same tests as {@link hudson.security.LDAPEmbeddedTest#userLookup()} and {@link PlanetExpressTest#login()} but both servers configured at the same time.
      *
      * @throws Exception if so
      */
     @Test
     @LDAPSchema(ldif = "/hudson/security/sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup() throws Exception {
+    void userLookup() throws Exception {
         LDAPConfiguration adsConf = new LDAPConfiguration(
                 ads.getUrl(),
                 null,
@@ -69,10 +80,10 @@ public class MultiServerTest {
 
         LDAPConfiguration plExprs = new LDAPConfiguration(
                 container.getHost() + ":" + container.getFirstMappedPort(),
-                PlanetExpressTest.DN,
+                DN,
                 false,
-                PlanetExpressTest.MANAGER_DN,
-                Secret.fromString(PlanetExpressTest.MANAGER_SECRET));
+                MANAGER_DN,
+                Secret.fromString(MANAGER_SECRET));
         plExprs.setUserSearchBase(null);
         plExprs.setUserSearch(null);
         plExprs.setGroupSearchBase(null);
@@ -88,7 +99,7 @@ public class MultiServerTest {
                 IdStrategy.CASE_INSENSITIVE,
                 IdStrategy.CASE_INSENSITIVE);
 
-        j.jenkins.setSecurityRealm(realm);
+        r.jenkins.setSecurityRealm(realm);
         //j.configRoundtrip();
 
         //ads verification
@@ -102,20 +113,18 @@ public class MultiServerTest {
         assertThat(user.getProperty(Mailer.UserProperty.class).getAddress(), is("hnelson@royalnavy.mod.uk"));
 
         //Planet Express verification
-        String content = j.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
+        String content = r.createWebClient().login("fry", "fry").goTo("whoAmI").getBody().getTextContent();
         assertThat(content, containsString("Philip J. Fry"));
         user = User.get("fry", true, Collections.emptyMap());
         assertThat(user.getDisplayName(), is("Philip J. Fry"));
 
 
-        LdapUserDetails zoidberg = (LdapUserDetails) j.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
+        LdapUserDetails zoidberg = (LdapUserDetails) r.jenkins.getSecurityRealm().loadUserByUsername2("zoidberg");
         assertEquals("cn=John A. Zoidberg,ou=people,dc=planetexpress,dc=com", zoidberg.getDn());
 
-        user = j.jenkins.getUser("leela");
+        user = r.jenkins.getUser("leela");
         String leelaEmail = MailAddressResolver.resolve(user);
         assertEquals("leela@planetexpress.com", leelaEmail);
         assertThat(user.getDisplayName(), is("Turanga Leela"));
-
     }
-
 }

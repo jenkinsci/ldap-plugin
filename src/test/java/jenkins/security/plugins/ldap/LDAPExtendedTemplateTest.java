@@ -27,11 +27,11 @@ import hudson.security.LDAPSecurityRealm;
 import hudson.security.LDAPSecurityRealm.CacheConfiguration;
 import hudson.util.Secret;
 import jenkins.model.IdStrategy;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,17 +44,18 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 @LDAPTestConfiguration
-public class LDAPExtendedTemplateTest {
+@WithJenkins
+class LDAPExtendedTemplateTest {
 
-    public LDAPRule ads = new LDAPRule();
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(ads).around(r);
+    @RegisterExtension
+    private final LDAPExtension ads = new LDAPExtension();
+    private JenkinsRule r;
 
-    public LDAPExtendedTemplate template;
+    private LDAPExtendedTemplate template;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        r = rule;
         ads.loadSchema("sevenSeas", "o=sevenSeas", getClass().getResourceAsStream("/hudson/security/sevenSeas.ldif"));
         LDAPConfiguration conf = new LDAPConfiguration(
                 ads.getUrl(),
@@ -72,21 +73,21 @@ public class LDAPExtendedTemplateTest {
     }
 
     @Test
-    public void searchForFirstEntry() throws Exception {
+    void searchForFirstEntry() {
         String matchingDn = (String)template.searchForFirstEntry("", "(cn={0})", new String[]{"Horatio Hornblower"},
                 null, new DnEntryMapper());
         assertThat(matchingDn, is("cn=Horatio Hornblower,ou=people,o=sevenSeas"));
     }
 
     @Test
-    public void searchForFirstEntry_noMatch() throws Exception {
+    void searchForFirstEntry_noMatch() {
         String matchingDn = (String)template.searchForFirstEntry("", "(cn={0})", new String[]{"does not exist"}, null,
                 new DnEntryMapper());
         assertThat(matchingDn, nullValue());
     }
 
     @Test
-    public void searchForAllEntries() throws Exception {
+    void searchForAllEntries() {
         List<String> matchingEntries = template.searchForAllEntries("", "(memberOf={0})",
                 new String[]{"cn=HMS_Lydia,ou=crews,ou=groups,o=sevenSeas"}, null, new DnEntryMapper());
         assertThat(matchingEntries, containsInAnyOrder(
@@ -97,7 +98,7 @@ public class LDAPExtendedTemplateTest {
     }
 
     @Test
-    public void searchForAllEntries_noMatch() throws Exception {
+    void searchForAllEntries_noMatch() {
         List<String> matchingEntries = template.searchForAllEntries("", "(memberOf={0})",
                 new String[]{"does not exist"}, null, new DnEntryMapper());
         assertThat(matchingEntries, empty());

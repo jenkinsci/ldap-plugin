@@ -44,7 +44,11 @@ import jenkins.model.IdStrategy;
 import jenkins.security.SecurityListener;
 import jenkins.security.plugins.ldap.*;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.authentication.AccountExpiredException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
@@ -52,11 +56,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -69,21 +70,26 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @LDAPTestConfiguration
-public class LDAPEmbeddedTest {
-    public LDAPRule ads = new LDAPRule();
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(ads).around(r);
-    @Rule
-    public LoggerRule log = new LoggerRule();
+@WithJenkins
+class LDAPEmbeddedTest {
+
+    @RegisterExtension
+    private final LDAPExtension ads = new LDAPExtension();
+    private JenkinsRule r;
+
+    private final LogRecorder log = new LogRecorder();
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup_rolesFromGroupSearch() throws Exception {
+    void userLookup_rolesFromGroupSearch() {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -119,7 +125,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup_rolesFromUserRecord() throws Exception {
+    void userLookup_rolesFromUserRecord() {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -155,7 +161,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup_rolesFromGroupSearch_modern() throws Exception {
+    void userLookup_rolesFromGroupSearch_modern() {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -192,7 +198,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void userLookup_rolesFromUserRecord_modern() throws Exception {
+    void userLookup_rolesFromUserRecord_modern() {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -239,7 +245,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void groupLookup() throws Exception {
+    void groupLookup() {
         r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -267,7 +273,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void groupLookup_membersFromGroupSearch() throws Exception {
+    void groupLookup_membersFromGroupSearch() {
         r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -295,7 +301,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void groupLookup_membersFromUserRecord() throws Exception {
+    void groupLookup_membersFromUserRecord() {
         r.jenkins.setSecurityRealm(new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -323,7 +329,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void login() throws Exception {
+    void login() throws Exception {
         LDAPSecurityRealm realm =
                 new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
                         "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
@@ -343,7 +349,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void login2() throws Exception {
+    void login2() throws Exception {
         LDAPSecurityRealm realm =
                 new LDAPSecurityRealm(ads.getUrl(), "dc=com", "dc=planetexpress", null, "dc=planetexpress", null, null,
                         "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
@@ -363,7 +369,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void login3() throws Exception {
+    void login3() throws Exception {
         LDAPSecurityRealm realm =
                 new LDAPSecurityRealm(ads.getUrl(), "", "dc=planetexpress,dc=com", null, "dc=planetexpress,dc=com", null, null,
                         "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
@@ -380,11 +386,11 @@ public class LDAPEmbeddedTest {
         String leelaEmail = MailAddressResolver.resolve(r.jenkins.getUser("leela"));
         assertThat(leelaEmail, is("leela@planetexpress.com"));
     }
-    
+
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
     @Issue("JENKINS-67664")
-    public void fireAuthenticated() throws Exception {
+    void fireAuthenticated() throws Exception {
         LDAPSecurityRealm realm =
             new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
                 "uid=admin,ou=system", Secret.fromString("pass"), false, false, null,
@@ -413,7 +419,7 @@ public class LDAPEmbeddedTest {
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
     @Issue("JENKINS-2131")
-    public void fireFailedToAuthenticate() throws Exception {
+    void fireFailedToAuthenticate() throws Exception {
         log.record(SecurityListener.class, Level.FINE).capture(20);
         LDAPSecurityRealm realm =
             new LDAPSecurityRealm(ads.getUrl(), "dc=planetexpress,dc=com", null, null, null, null, null,
@@ -431,20 +437,15 @@ public class LDAPEmbeddedTest {
                 }
         });
 
-        try {
-            r.createWebClient().login("fry", "imposter");
-            fail("Should not be able to login");
-        } catch (FailingHttpStatusCodeException e) {
-            System.out.println("Got a bad login==good");
-        }
+        assertThrows(FailingHttpStatusCodeException.class, () -> r.createWebClient().login("fry", "imposter"), "Should not be able to login");
 
-        assertThat(log, LoggerRule.recorded(Level.FINE, containsString("failed to authenticate")));
+        assertThat(log, LogRecorder.recorded(Level.FINE, containsString("failed to authenticate")));
         assertThat(failedToAuthFired.get(), is(true));
     }
 
     @Test
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void validate() throws Exception {
+    void validate() {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
                 ads.getUrl(),
                 null,
@@ -626,7 +627,7 @@ public class LDAPEmbeddedTest {
     @Test
     @Issue("JENKINS-68748")
     @LDAPSchema(ldif = "sevenSeas", id = "sevenSeas", dn = "o=sevenSeas")
-    public void validateUI() throws Exception {
+    void validateUI() throws Exception {
         LDAPSecurityRealm realm = new LDAPSecurityRealm(
             ads.getUrl(),
             null,
@@ -705,7 +706,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "planetexpress", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void usingEnvironmentProperties() throws Exception {
+    void usingEnvironmentProperties() throws Exception {
         log.record(LDAPSecurityRealm.class, Level.WARNING).capture(10);
         LDAPConfiguration c = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
 
@@ -725,18 +726,14 @@ public class LDAPEmbeddedTest {
         r.jenkins.setSecurityRealm(realm);
         r.submit(r.createWebClient().goTo("configureSecurity").getFormByName("config"));
 
-        try {
-            r.createWebClient().login("fry", "fry");
-            fail("Should not be able to login");
-        } catch (FailingHttpStatusCodeException e) {
-            System.out.println("Got a bad login==good");
-        }
-        assertThat(log, LoggerRule.recorded(Level.WARNING, containsString("Failed communication with ldap server")));
+        assertThrows(FailingHttpStatusCodeException.class, () -> r.createWebClient().login("fry", "fry"), "Should not be able to login");
+
+        assertThat(log, LogRecorder.recorded(Level.WARNING, containsString("Failed communication with ldap server")));
     }
 
     @Test
     @LDAPSchema(ldif = "planetexpressExtGroups_withCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void extGroupWithOneCN() throws Exception {
+    void extGroupWithOneCN() throws Exception {
         LDAPConfiguration ldapConfiguration = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
         LDAPSecurityRealm realm =
               new LDAPSecurityRealm(Collections.singletonList(ldapConfiguration),false, null, null, null);
@@ -747,7 +744,7 @@ public class LDAPEmbeddedTest {
 
     @Test
     @LDAPSchema(ldif = "planetexpressExtGroups_withCn", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void extGroupWithMultipleCN() throws Exception {
+    void extGroupWithMultipleCN() throws Exception {
         log.record(LDAPSecurityRealm.class, Level.ALL).capture(10);
         LDAPConfiguration ldapConfiguration = new LDAPConfiguration(ads.getUrl(), "", false, "uid=admin,ou=system", Secret.fromString("pass"));
         LDAPSecurityRealm realm =
@@ -761,7 +758,7 @@ public class LDAPEmbeddedTest {
     @Test
     @Issue("JENKINS-55813")
     @LDAPSchema(ldif = "planetexpressWithPPolicy", id = "planetexpress", dn = "dc=planetexpress,dc=com")
-    public void userValidityAttributes() throws Exception {
+    void userValidityAttributes() throws Exception {
         LDAPConfiguration configuration = new LDAPConfiguration(ads.getUrl(), "dc=planetexpress,dc=com", false, "uid=admin,ou=system", Secret.fromString("pass"));
         LDAPSecurityRealm realm = new LDAPSecurityRealm(Collections.singletonList(configuration), false, null, null, null);
         r.jenkins.setSecurityRealm(realm);

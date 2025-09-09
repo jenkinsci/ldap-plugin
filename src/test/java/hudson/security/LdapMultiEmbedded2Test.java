@@ -7,17 +7,17 @@ import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.FromGroupSearchLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.FromUserRecordLDAPGroupMembershipStrategy;
 import jenkins.security.plugins.ldap.LDAPConfiguration;
-import jenkins.security.plugins.ldap.LDAPRule;
+import jenkins.security.plugins.ldap.LDAPExtension;
 import jenkins.security.plugins.ldap.LDAPTestConfiguration;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.Arrays;
@@ -28,25 +28,27 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests connecting to two different embedded servers using slightly different configurations.
  */
 @LDAPTestConfiguration
-public class LdapMultiEmbedded2Test {
-    public LDAPRule sevenSeas = new LDAPRule();
-    public LDAPRule planetExpress = new LDAPRule();
-    public JenkinsRule r = new JenkinsRule();
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(sevenSeas).around(planetExpress).around(r);
+@WithJenkins
+class LdapMultiEmbedded2Test {
+
+    @RegisterExtension
+    private final LDAPExtension sevenSeas = new LDAPExtension();
+    @RegisterExtension
+    private final LDAPExtension planetExpress = new LDAPExtension();
+    private JenkinsRule r;
+
     private LDAPConfiguration sevenSeasConf;
     private LDAPConfiguration planetExpressConf;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        r = rule;
         sevenSeas.loadSchema("sevenSeas", "o=sevenSeas", getClass().getResourceAsStream("/hudson/security/sevenSeas.ldif"));
         planetExpress.loadSchema("planetexpress", "dc=planetexpress,dc=com", getClass().getResourceAsStream("/hudson/security/planetexpressWithHNelson.ldif"));
 
@@ -84,7 +86,7 @@ public class LdapMultiEmbedded2Test {
     }
 
     @Test
-    public void lookUp() {
+    void lookUp() {
         //First server
         User user = User.get("hnelson", true, Collections.emptyMap());
         assertThat(user.getAuthorities(), allOf(hasItem("HMS_Victory"), hasItem("ROLE_HMS_VICTORY")));
@@ -106,7 +108,7 @@ public class LdapMultiEmbedded2Test {
     }
 
     @Test
-    public void login() throws Exception {
+    void login() {
         final AuthenticationManager manager = r.jenkins.getSecurityRealm().getSecurityComponents().manager2;
         //First Server
         Authentication auth = manager.authenticate(new UsernamePasswordAuthenticationToken("hnelson", "pass"));
@@ -121,12 +123,9 @@ public class LdapMultiEmbedded2Test {
         assertEquals(planetExpressConf.getId(), ((LDAPSecurityRealm.DelegatedLdapAuthentication)auth).getConfigurationId());
 
         //Exists on both servers with different passwords, trying passwd from server 2 should fail
-        try {
-            //Verified to work before the fix but shouldn't any longer
-            manager.authenticate(new UsernamePasswordAuthenticationToken("hnelson", "hnelson"));
-            fail("Should not be able to login with same username on server two");
-        } catch (BadCredentialsException e) {
-            System.out.println("Got a bad login==good");
-        }
+
+        //Verified to work before the fix but shouldn't any longer
+        assertThrows(BadCredentialsException.class, () -> manager.authenticate(new UsernamePasswordAuthenticationToken("hnelson", "hnelson")),
+                "Should not be able to login with same username on server two");
     }
 }

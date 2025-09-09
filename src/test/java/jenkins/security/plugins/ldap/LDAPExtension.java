@@ -71,17 +71,17 @@ import org.apache.directory.server.i18n.I18n;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.directory.server.protocol.shared.transport.Transport;
-import org.junit.rules.MethodRule;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * Starts an embedded LDAP server.
  */
-public class LDAPRule implements TestRule, MethodRule {
-    private static final Logger LOGGER = Logger.getLogger(LDAPRule.class.getName());
+public class LDAPExtension implements BeforeEachCallback, AfterEachCallback {
+
+    private static final Logger LOGGER = Logger.getLogger(LDAPExtension.class.getName());
+
     /**
      * The directory service
      */
@@ -102,9 +102,58 @@ public class LDAPRule implements TestRule, MethodRule {
      */
     private File workDir;
 
+    private Logger adsLogger;
+    private Level adsLevel;
+
     private LDAPTestConfiguration configuration;
     private LDAPSchema ldapSchema;
-    private Description currentTest;
+    private ExtensionContext currentTest;
+
+    @Override
+    public void beforeEach(ExtensionContext context) throws Exception {
+        currentTest = context;
+        configuration = context.getTestMethod().orElseThrow().getAnnotation(LDAPTestConfiguration.class);
+        if (configuration == null) {
+            configuration = context.getTestClass().orElseThrow().getAnnotation(LDAPTestConfiguration.class);
+        }
+        ldapSchema = context.getTestMethod().orElseThrow().getAnnotation(LDAPSchema.class);
+        if (ldapSchema == null) {
+            ldapSchema = context.getTestClass().orElseThrow().getAnnotation(LDAPSchema.class);
+        }
+        workDir = Files.createTempDirectory("ads-workdir").toFile();
+        adsLogger = Logger.getLogger("org.apache.directory");
+        adsLevel = adsLogger.getLevel();
+
+        if (configuration != null && !configuration.logStartup()) {
+            adsLogger.setLevel(Level.SEVERE);
+        }
+        LOGGER.log(Level.INFO, "Starting LDAP server");
+        initDirectoryService(workDir);
+
+        startServer();
+
+        adsLogger.setLevel(adsLevel);
+        LOGGER.log(Level.INFO, "LDAP server started");
+        if (configuration == null || configuration.ldapProtocol()) {
+            LOGGER.log(Level.INFO, "LDAP URL: {0}", getUrl());
+        }
+        if (configuration != null && configuration.ldapsProtocol()) {
+            LOGGER.log(Level.INFO, "LDAP URL: {0}", getUrlTls());
+        }
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) throws Exception {
+        if (configuration != null && !configuration.logStartup()) {
+            adsLogger.setLevel(Level.SEVERE);
+        }
+
+        stopServer();
+
+        termDirectoryService();
+        adsLogger.setLevel(adsLevel);
+        FileUtils.deleteDirectory(workDir);
+    }
 
     public int getPort() {
         if (server == null || !server.isStarted()) {
@@ -152,72 +201,6 @@ public class LDAPRule implements TestRule, MethodRule {
         } catch (URISyntaxException e) {
             throw new AssertionError(e);
         }
-    }
-
-    @Override
-    public Statement apply(Statement base, FrameworkMethod method, Object target) {
-        return this.apply(base,
-                Description.createTestDescription(
-                        method.getMethod().getDeclaringClass(),
-                        method.getName(),
-                        method.getAnnotations()
-                )
-        );
-    }
-
-    @Override
-    public Statement apply(final Statement base, final Description description) {
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                currentTest = description;
-                configuration = description.getAnnotation(LDAPTestConfiguration.class);
-                if (configuration == null) {
-                    configuration = description.getTestClass().getAnnotation(LDAPTestConfiguration.class);
-                }
-                ldapSchema = description.getAnnotation(LDAPSchema.class);
-                if (ldapSchema == null) {
-                    ldapSchema = description.getTestClass().getAnnotation(LDAPSchema.class);
-                }
-                workDir = Files.createTempDirectory("ads-workdir").toFile();
-                Logger adsLogger = Logger.getLogger("org.apache.directory");
-                Level adsLevel = adsLogger.getLevel();
-                try {
-                    if (configuration != null && !configuration.logStartup()) {
-                        adsLogger.setLevel(Level.SEVERE);
-                    }
-                    LOGGER.log(Level.INFO, "Starting LDAP server");
-                    initDirectoryService(workDir);
-                    try {
-                        startServer();
-                        try {
-                            adsLogger.setLevel(adsLevel);
-                            LOGGER.log(Level.INFO, "LDAP server started");
-                            if (configuration == null || configuration.ldapProtocol()) {
-                                LOGGER.log(Level.INFO, "LDAP URL: {0}", getUrl());
-                            }
-                            if (configuration != null && configuration.ldapsProtocol()) {
-                                LOGGER.log(Level.INFO, "LDAP URL: {0}", getUrlTls());
-                            }
-                            base.evaluate();
-                            if (configuration != null && !configuration.logStartup()) {
-                                adsLogger.setLevel(Level.SEVERE);
-                            }
-                        } finally {
-                            stopServer();
-                        }
-                    } finally {
-                        termDirectoryService();
-                    }
-                } finally {
-                    adsLogger.setLevel(adsLevel);
-                    currentTest = null;
-                    configuration = null;
-                    ldapSchema = null;
-                    FileUtils.deleteDirectory(workDir);
-                }
-            }
-        };
     }
 
     private void termDirectoryService() throws Exception {
@@ -309,8 +292,8 @@ public class LDAPRule implements TestRule, MethodRule {
             String resourceName = ldapSchema.ldif() + ".ldif";
             String schemaSource = resourceName.startsWith("/")
                     ? resourceName
-                    : currentTest.getTestClass().getName().replace('.', '/') + "/" + resourceName;
-            try (InputStream stream = currentTest.getTestClass().getResourceAsStream(resourceName)) {
+                    : currentTest.getTestClass().orElseThrow().getName().replace('.', '/') + "/" + resourceName;
+            try (InputStream stream = currentTest.getTestClass().orElseThrow().getResourceAsStream(resourceName)) {
                 LOGGER.log(Level.INFO, "Importing schema from {0}", schemaSource);
                 loadSchema(partition, stream);
             }
@@ -323,7 +306,7 @@ public class LDAPRule implements TestRule, MethodRule {
         loadSchema(addPartition(partitionId, partitionDn), ldifStream);
     }
 
-    private void loadSchema(Partition partition, InputStream ldifStream) throws LdapException, IOException {
+    private void loadSchema(Partition partition, InputStream ldifStream) throws LdapException {
         try {
             service.getAdminSession().lookup(partition.getSuffixDn());
         } catch (LdapException lnnfe) {
@@ -418,7 +401,7 @@ public class LDAPRule implements TestRule, MethodRule {
 
         List<Throwable> errors = schemaManager.getErrors();
 
-        if (errors.size() != 0) {
+        if (!errors.isEmpty()) {
             throw new Exception(I18n.err(I18n.ERR_317, Exceptions.printErrors(errors)));
         }
     }
@@ -461,7 +444,6 @@ public class LDAPRule implements TestRule, MethodRule {
         service.addPartition(partition);
         return partition;
     }
-
 
     /**
      * Add a new set of index on the given attributes
