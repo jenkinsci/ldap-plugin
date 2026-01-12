@@ -33,12 +33,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.htmlunit.FailingHttpStatusCodeException;
 import org.htmlunit.html.HtmlButton;
@@ -53,22 +48,28 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.ldap.LdapName;
 import jenkins.model.IdStrategy;
 import jenkins.security.plugins.ldap.*;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-public class LDAPSecurityRealmTest {
+@WithJenkins
+class LDAPSecurityRealmTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void attributesCache() {
+    void attributesCache() {
         LDAPSecurityRealm.LDAPUserDetailsService s = new LDAPSecurityRealm.LDAPUserDetailsService(
             username -> {
                 BasicAttributes ba = new BasicAttributes();
@@ -90,7 +91,7 @@ public class LDAPSecurityRealmTest {
 
     @LocalData
     @Test
-    public void compatAndConfig() throws Exception {
+    void compatAndConfig() throws Exception {
         check();
         r.configRoundtrip();
         check();
@@ -122,7 +123,7 @@ public class LDAPSecurityRealmTest {
     @Issue("JENKINS-8152")
     @WithoutJenkins
     @Test
-    public void providerUrl() throws Exception {
+    void providerUrl() {
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", null));
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", ""));
         assertEquals("ldap://example.com/", LDAPSecurityRealm.toProviderUrl("example.com", "   "));
@@ -136,7 +137,7 @@ public class LDAPSecurityRealmTest {
 
     @Issue("JENKINS-30588")
     @Test
-    public void groupMembershipAttribute() throws Exception {
+    void groupMembershipAttribute() throws Exception {
         final String previousValue = "previousValue";
         final String testValue = "testValue";
         final LDAPSecurityRealm realm = new LDAPSecurityRealm(
@@ -155,8 +156,8 @@ public class LDAPSecurityRealmTest {
                 null,
                 null,
                 null,
-                (IdStrategy) null,
-                (IdStrategy) null);
+                null,
+                null);
         r.jenkins.setSecurityRealm(realm);
         r.jenkins.getSecurityRealm().createSecurityComponents();
         final JenkinsRule.WebClient c = r.createWebClient();
@@ -172,10 +173,10 @@ public class LDAPSecurityRealmTest {
         final LDAPSecurityRealm changedRealm = ((LDAPSecurityRealm) r.jenkins.getSecurityRealm());
         final LDAPConfiguration conf = changedRealm.getConfigurations().get(0);
         final String changedValue = ((FromUserRecordLDAPGroupMembershipStrategy) conf.getGroupMembershipStrategy()).getAttributeName();
-        assertEquals("Value should be changed", testValue, changedValue);
+        assertEquals(testValue, changedValue, "Value should be changed");
     }
 
-    private HtmlButton getButtonByText(HtmlForm form, String text) throws Exception {
+    private HtmlButton getButtonByText(HtmlForm form, String text) {
         for (HtmlElement e : form.getElementsByTagName("button")) {
             if (e.getTextContent().contains(text)) {
                 return ((HtmlButton) e);
@@ -185,7 +186,7 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void configRoundTrip() throws Exception {
+    void configRoundTrip() throws Exception {
         final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
@@ -244,7 +245,7 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void configRoundTripTwo() throws Exception {
+    void configRoundTripTwo() throws Exception {
         TestConf[] confs = new TestConf[2];
         confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
@@ -286,7 +287,7 @@ public class LDAPSecurityRealmTest {
     }
 
     @Test
-    public void configRoundTwoThreeSameId() throws Exception {
+    void configRoundTwoThreeSameId() {
         TestConf[] confs = new TestConf[2];
         confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
@@ -296,39 +297,33 @@ public class LDAPSecurityRealmTest {
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
         }
+
+        assertThrows(IllegalArgumentException.class, () ->
+                new LDAPSecurityRealm(ldapConfigurations,
+                    true,
+                    null,
+                    IdStrategy.CASE_INSENSITIVE,
+                    IdStrategy.CASE_INSENSITIVE));
+
         try {
-            final LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
+            System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
+            LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
                     true,
                     null,
                     IdStrategy.CASE_INSENSITIVE,
                     IdStrategy.CASE_INSENSITIVE);
             r.jenkins.setSecurityRealm(realm);
-            fail("Should have thrown exception");
-        } catch (IllegalArgumentException e) {
-            //Expected
-            try {
-                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
-                LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
-                        true,
-                        null,
-                        IdStrategy.CASE_INSENSITIVE,
-                        IdStrategy.CASE_INSENSITIVE);
-                r.jenkins.setSecurityRealm(realm);
-            } finally {
-                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
-            }
+        } finally {
+            System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
         }
+
         final JenkinsRule.WebClient client = r.createWebClient();
-        try {
-            r.submit(client.goTo("configureSecurity").getFormByName("config"));
-            fail("Should not succeed");
-        } catch (FailingHttpStatusCodeException e) {
-            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
-        }
+        FailingHttpStatusCodeException e = assertThrows(FailingHttpStatusCodeException.class, () -> r.submit(client.goTo("configureSecurity").getFormByName("config")), "Should not succeed");
+        assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
     }
 
     @Test
-    public void configRoundTripThreeSameId() throws Exception {
+    void configRoundTripThreeSameId() {
         TestConf[] confs = new TestConf[3];
         confs[0] = new TestConf("ldap.example.com", "ou=example,dc=ou.com", "cn=users,ou=example,ou.com", "cn=admin,ou=example,ou.com", "secret1");
         confs[1] = new TestConf("ldap2.example.com", "ou=example2,dc=ou.com", "cn=users,ou=example2,ou.com", "cn=admin,ou=example2,ou.com", "secret2");
@@ -339,40 +334,32 @@ public class LDAPSecurityRealmTest {
             configuration.setUserSearchBase(conf.userSearchBase);
             ldapConfigurations.add(configuration);
         }
+        assertThrows(IllegalArgumentException.class, () ->
+                new LDAPSecurityRealm(ldapConfigurations,
+                    true,
+                    null,
+                    IdStrategy.CASE_INSENSITIVE,
+                    IdStrategy.CASE_INSENSITIVE));
+
         try {
+            System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
             LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
                     true,
                     null,
                     IdStrategy.CASE_INSENSITIVE,
                     IdStrategy.CASE_INSENSITIVE);
             r.jenkins.setSecurityRealm(realm);
-            fail("Should have thrown exception");
-        } catch (IllegalArgumentException e) {
-            //Expected
-            try {
-                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "true");
-                LDAPSecurityRealm realm = new LDAPSecurityRealm(ldapConfigurations,
-                        true,
-                        null,
-                        IdStrategy.CASE_INSENSITIVE,
-                        IdStrategy.CASE_INSENSITIVE);
-                r.jenkins.setSecurityRealm(realm);
-            } finally {
-                System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
-            }
+        } finally {
+            System.setProperty(LDAPSecurityRealm.class.getName() + "do a bad thing during testing", "");
+        }
 
-        }
         final JenkinsRule.WebClient client = r.createWebClient();
-        try {
-            r.submit(client.goTo("configureSecurity").getFormByName("config"));
-            fail("Should not succeed");
-        } catch (FailingHttpStatusCodeException e) {
-            assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
-        }
+        FailingHttpStatusCodeException e = assertThrows(FailingHttpStatusCodeException.class, () -> r.submit(client.goTo("configureSecurity").getFormByName("config")), "Should not succeed");
+        assertThat(e.getResponse().getContentAsString(), containsString(jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_NotSameServer()));
     }
 
     @Test
-    public void configRoundTripEnvironmentProperties() throws Exception {
+    void configRoundTripEnvironmentProperties() throws Exception {
         final String server = "localhost";
         final String rootDN = "ou=umich,dc=ou.edu";
         final String userSearchBase = "cn=users,ou=umich,ou.edu";
@@ -416,5 +403,4 @@ public class LDAPSecurityRealmTest {
         assertEquals(newConfig.getEnvironmentProperties()[0].getName(), c.getEnvironmentProperties()[0].getName());
         assertEquals(newConfig.getEnvironmentProperties()[0].getValue(), c.getEnvironmentProperties()[0].getValue());
     }
-
 }

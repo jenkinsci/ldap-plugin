@@ -5,43 +5,51 @@ import hudson.util.FormValidation;
 import hudson.util.Secret;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
+import io.jenkins.plugins.casc.misc.JenkinsConfiguredRule;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.RuleChain;
-import org.jvnet.hudson.test.FlagRule;
+import jenkins.security.FIPS140;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Based on {@link jenkins.security.plugins.ldap.CasCTest}
  */
-public class CasCFIPSTest {
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-    @ClassRule
-    public static FlagRule<String> fipsSystemPropertyRule =
-            FlagRule.systemProperty("jenkins.security.FIPS140.COMPLIANCE", "true");
+@WithJenkinsConfiguredWithCode
+class CasCFIPSTest {
 
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(new EnvironmentVariables()
-                    .set("LDAP_PASSWORD", "SECRET_Password_123"))
-            .around(new JenkinsConfiguredWithCodeRule());
+    private static String fipsFlag;
+
+    @BeforeAll
+    static void beforeAll() {
+        fipsFlag = System.setProperty(FIPS140.class.getName() + ".COMPLIANCE", "true");
+        System.setProperty("LDAP_PASSWORD", "SECRET");
+    }
+
+    @AfterAll
+    static void afterAll() {
+        if (fipsFlag != null) {
+            System.setProperty(FIPS140.class.getName() + ".COMPLIANCE", fipsFlag);
+        } else  {
+            System.clearProperty(FIPS140.class.getName() + ".COMPLIANCE");
+        }
+        System.clearProperty("LDAP_PASSWORD");
+    }
 
     @Test
     @ConfiguredWithCode("casc_ldap_secure.yml")
-    public void configure_ldap() {
+    void configure_ldap(JenkinsConfiguredWithCodeRule r) {
         final LDAPSecurityRealm securityRealm = (LDAPSecurityRealm) Jenkins.get().getSecurityRealm();
         assertEquals(1, securityRealm.getConfigurations().size());
-        assertTrue(securityRealm.getUserIdStrategy() instanceof IdStrategy.CaseInsensitive);
-        assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);
+        assertInstanceOf(IdStrategy.CaseInsensitive.class, securityRealm.getUserIdStrategy());
+        assertInstanceOf(IdStrategy.CaseSensitive.class, securityRealm.getGroupIdStrategy());
         final LDAPConfiguration configuration = securityRealm.getConfigurations().get(0);
         assertEquals("ldaps://ldap.acme.com", configuration.getServer());
         assertEquals("SECRET_Password_123", configuration.getManagerPassword());
@@ -57,13 +65,13 @@ public class CasCFIPSTest {
      */
     @Test
     @ConfiguredWithCode(value = "casc.yml", expected = ConfiguratorException.class)
-    public void configure_ldap_for_invalid() {
+    void configure_ldap_for_invalid(JenkinsConfiguredWithCodeRule r) {
         // This test is expected to throw an ConfiguratorException while loading the configuration itself
         // because the LDAP URL is not secure and FIPS is enabled. Hence, the code block is empty.
     }
 
     @Test
-    public void testPasswordCheck(){
+    void testPasswordCheck(JenkinsConfiguredWithCodeRule r) {
         // Test with a short password
         FormValidation shortPasswordValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckManagerPasswordSecret(Secret.fromString("short"));
         assertEquals(FormValidation.Kind.ERROR, shortPasswordValidation.kind);
@@ -77,18 +85,17 @@ public class CasCFIPSTest {
         LDAPConfiguration configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, null);
         assertNotNull(configuration);
 
-        // Test with a short password
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Password is too short");
-        new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString"));
+        Throwable exception = assertThrows(IllegalArgumentException.class, () -> new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("shortString")));
 
         //Test with a strong password
         configuration = new LDAPConfiguration("ldaps://ldap.example.com", "dc=example,dc=com", true, null, Secret.fromString("ThisIsVeryStrongPassword"));
         assertNotNull(configuration);
+
+        assertThat(exception.getMessage(), org.hamcrest.CoreMatchers.containsString("Password is too short"));
     }
 
     @Test
-    public void testInSecureServerUrl(){
+    void testInSecureServerUrl(JenkinsConfiguredWithCodeRule r) {
         // Test with an invalid server URL
         FormValidation invalidServerValidation = new LDAPConfiguration.LDAPConfigurationDescriptor().doCheckServer("invalid-url", "dc=example,dc=com", Secret.fromString("SomePwd"), null);
         assertEquals(FormValidation.Kind.ERROR, invalidServerValidation.kind);

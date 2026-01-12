@@ -25,18 +25,19 @@ package jenkins.security.plugins.ldap;
 
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.stream.Stream;
+
 import org.htmlunit.html.HtmlPage;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.core.userdetails.UserDetails;
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
 import hudson.security.GroupDetails;
 import hudson.security.LDAPSecurityRealm;
 import hudson.util.Secret;
@@ -51,36 +52,25 @@ import static org.hamcrest.Matchers.hasSize;
  * Tests {@link LDAPConfiguration} with DNs that are not URL safe.
  */
 @LDAPTestConfiguration
-@RunWith(JUnitParamsRunner.class)
-public class LDAPDNEscapingTest {
+@WithJenkins
+class LDAPDNEscapingTest {
 
-    @ClassRule
-    public static LDAPRule ads = new LDAPRule();
+    @RegisterExtension
+    private final LDAPExtension ads = new LDAPExtension();
+    private JenkinsRule r;
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
-
-
-    @BeforeClass
-    public static void setupLdap() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        r = rule;
         try (InputStream ldifIs = LDAPDNEscapingTest.class.getResourceAsStream("/jenkins/security/plugins/ldap/LDAPDNEscapingTest/dnWithSpaces.ldif")) {
             ads.loadSchema("planetexpress", "dc=planet express,dc=com", ldifIs);
-       }
+        }
     }
 
-    // here as eclipse can not run a single parameterized test as it does not support the custom JUnitParamsRunner
-    /*
-    @Test
-    public void testSpacesInDN() throws Exception {
-        testOrgEscaping("dc=planet express,dc=com", null, null);
-    }
-    */
-
-    @Test
+    @ParameterizedTest
+    @MethodSource("parameters")
     @Issue("JENKINS-12345")
-    @Parameters
-    public void testOrgEscaping(String rootDN, String userSearchBase, String groupSearchBase) throws Exception {
-
+    void testOrgEscaping(String rootDN, String userSearchBase, String groupSearchBase) throws Exception {
         LDAPConfiguration conf = new LDAPConfiguration(
                 ads.getUrl(),
                 rootDN,
@@ -116,15 +106,14 @@ public class LDAPDNEscapingTest {
                                           containsString("management"))); // groups are recognized
     }
 
-    @SuppressWarnings("unused")
-    public Object[] parametersForTestOrgEscaping() {
-        return new Object[] {
-                  // DN, user search base, group search base
-                  new Object[] { null, null, null },
-                  new Object[] { "dc=planet express,dc=com", null, null },
-                  new Object[] { null, "dc=planet express,dc=com", null },
-                  new Object[] { null, null, "dc=planet express,dc=com" },
-                  new Object[] { "dc=com", "dc=planet express", "dc=planet express" }
-                  };
+    static Stream<Arguments> parameters() {
+        return Stream.of(
+                // DN, user search base, group search base
+                Arguments.of(null, null, null),
+                Arguments.of("dc=planet express,dc=com", null, null),
+                Arguments.of(null, "dc=planet express,dc=com", null),
+                Arguments.of(null, null, "dc=planet express,dc=com"),
+                Arguments.of("dc=com", "dc=planet express", "dc=planet express")
+        );
     }
 }

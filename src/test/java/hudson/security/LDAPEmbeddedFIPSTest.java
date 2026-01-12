@@ -27,10 +27,10 @@ package hudson.security;
 import org.htmlunit.WebResponse;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.RealJenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import java.io.ByteArrayOutputStream;
@@ -38,35 +38,34 @@ import java.io.PrintStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LDAPEmbeddedFIPSTest {
-    static final String LDAP_SERVER_ERROR_MESSAGE = "LDAP server URL is not secure";
+class LDAPEmbeddedFIPSTest {
 
-    @Rule
-    public RealJenkinsRule r = new RealJenkinsRule().javaOptions("-Djenkins.security.FIPS140.COMPLIANCE=true")
+    private static final String LDAP_SERVER_ERROR_MESSAGE = "LDAP server URL is not secure";
+
+    @RegisterExtension
+    private final RealJenkinsExtension extension = new RealJenkinsExtension().javaOptions("-Djenkins.security.FIPS140.COMPLIANCE=true")
             .withDebugPort(5008);
 
     @Test
     @LocalData
-    public void testBlowsUpOnStart() throws Throwable {
+    void testBlowsUpOnStart() throws Throwable {
         // Create a stream to hold the log messages
         ByteArrayOutputStream logStream = new ByteArrayOutputStream();
         System.setErr(new PrintStream(logStream));
-        r.startJenkins();
+        extension.startJenkins();
         String logs = logStream.toString();
         assertTrue(logs.contains(LDAP_SERVER_ERROR_MESSAGE));
     }
 
-
-
     @Test
-    public void testLdapServerUrl() throws Throwable {
-        r.then(LDAPEmbeddedFIPSTest::_testLdapServerUrl);
+    void testLdapServerUrl() throws Throwable {
+        extension.then(LDAPEmbeddedFIPSTest::_testLdapServerUrl);
     }
 
-    public static void _testLdapServerUrl(JenkinsRule j) throws Exception {
+    private static void _testLdapServerUrl(JenkinsRule j) throws Exception {
         // Create and set the LDAP Security Realm configuration
         LDAPSecurityRealm ldapRealm = new LDAPSecurityRealm(
                 "ldaps://ldap.example.com",              // LDAP Server URL
@@ -99,11 +98,11 @@ public class LDAPEmbeddedFIPSTest {
     }
 
     @Test
-    public void testManagerPassword() throws Throwable {
-        r.then(LDAPEmbeddedFIPSTest::_testManagerPassword);
+    void testManagerPassword() throws Throwable {
+        extension.then(LDAPEmbeddedFIPSTest::_testManagerPassword);
     }
 
-    public static void _testManagerPassword(JenkinsRule j) throws Exception {
+    private static void _testManagerPassword(JenkinsRule j) throws Exception {
         // Create and set the LDAP Security Realm configuration
         LDAPSecurityRealm ldapRealm = new LDAPSecurityRealm(
                 "ldaps://ldap.example.com",              // LDAP Server URL

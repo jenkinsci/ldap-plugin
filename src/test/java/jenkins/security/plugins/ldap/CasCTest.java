@@ -3,30 +3,37 @@ package jenkins.security.plugins.ldap;
 import hudson.security.LDAPSecurityRealm;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 // Based on https://github.com/jenkinsci/configuration-as-code-plugin/blob/7766b7ef6153e3e210f257d323244c1f1470a10f/integrations/src/test/java/io/jenkins/plugins/casc/LDAPTest.java
-public class CasCTest {
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(new EnvironmentVariables()
-            .set("LDAP_PASSWORD", "SECRET"))
-            .around(new JenkinsConfiguredWithCodeRule());
-    
+@WithJenkinsConfiguredWithCode
+class CasCTest {
+
+    @BeforeAll
+    static void beforeAll() {
+        System.setProperty("LDAP_PASSWORD", "SECRET");
+    }
+
+    @AfterAll
+    static void afterAll() {
+        System.clearProperty("LDAP_PASSWORD");
+    }
+
     @Test
     @ConfiguredWithCode("casc.yml")
-    public void configure_ldap() {
+    void configure_ldap(JenkinsConfiguredWithCodeRule j) {
         final LDAPSecurityRealm securityRealm = (LDAPSecurityRealm) Jenkins.get().getSecurityRealm();
         assertEquals(1, securityRealm.getConfigurations().size());
-        assertTrue(securityRealm.getUserIdStrategy() instanceof IdStrategy.CaseInsensitive);
-        assertTrue(securityRealm.getGroupIdStrategy() instanceof IdStrategy.CaseSensitive);
+        assertInstanceOf(IdStrategy.CaseInsensitive.class, securityRealm.getUserIdStrategy());
+        assertInstanceOf(IdStrategy.CaseSensitive.class, securityRealm.getGroupIdStrategy());
         final LDAPConfiguration configuration = securityRealm.getConfigurations().get(0);
         assertEquals("ldap.acme.com", configuration.getServer());
         assertEquals("SECRET", configuration.getManagerPassword());

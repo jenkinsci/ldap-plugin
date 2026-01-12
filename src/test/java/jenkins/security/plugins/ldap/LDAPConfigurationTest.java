@@ -23,28 +23,32 @@
  */
 package jenkins.security.plugins.ldap;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests {@link LDAPConfiguration}.
  */
-public class LDAPConfigurationTest {
+@WithJenkins
+class LDAPConfigurationTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    @SuppressWarnings("unused")
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void getId() {
+    void getId() {
         LDAPConfiguration c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null);
         String id = c.getId();
         c = new LDAPConfiguration("ldap.example.com", "dc=example,dc=com", true, null, null); //Same so far
@@ -73,7 +77,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void generateId() {
+    void generateId() {
         String id1 = LDAPConfiguration.generateId("ldap.example.com ldap://ad.example.com ldaps://ad2.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
         String id2 = LDAPConfiguration.generateId("ldap://ldap.example.com ad.example.com ldaps://ad2.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", LDAPConfiguration.LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH);
         String id3 = LDAPConfiguration.generateId("ad.example.com ldaps://ad2.example.com ldap://ldap.example.com ", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
@@ -88,7 +92,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void generateIdJustOneServer() {
+    void generateIdJustOneServer() {
         String id1 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
         String id2 = LDAPConfiguration.generateId("ldap://ldap.example.com", "dc=example,dc=com", "cn=users,dc=example,dc=com", LDAPConfiguration.LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH);
         String id3 = LDAPConfiguration.generateId("ldap://ldap.example.com:389 ", "dc=example,dc=com", "cn=users,dc=example,dc=com", null);
@@ -103,7 +107,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void generateIdWithNormalizedUserSearchBase() {
+    void generateIdWithNormalizedUserSearchBase() {
         String id1 = LDAPConfiguration.generateId("ldap.example.com", "dc=example,dc=com", "dc=users", null);
         String id2 = LDAPConfiguration.generateId("ldap.example.com", "dc=com", "dc=users,dc=example", null);
         String id3 = LDAPConfiguration.generateId("ldap.example.com", null, "dc=users,dc=example,dc=com", null);
@@ -124,7 +128,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void normalizeServerSameButDifferent() {
+    void normalizeServerSameButDifferent() {
         String s1 = "ldap.example.com ldap://ad.example.com ldaps://ad2.example.com";
         String s2 = "ldap://ldap.example.com ad.example.com ldaps://ad2.example.com";
         assertNotEquals(s1, s2); //Duh
@@ -135,7 +139,7 @@ public class LDAPConfigurationTest {
     }
 
     @Test
-    public void normalizeServerSameButDifferentOrder() {
+    void normalizeServerSameButDifferentOrder() {
         String s1 = "ad2.example.com b.example.com ad.example.com";
         String s2 = "ad.example.com b.example.com ad2.example.com ";
         assertNotEquals(s1, s2); //Duh
@@ -147,42 +151,42 @@ public class LDAPConfigurationTest {
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_SecureUrl() {
+    void testValidateServerUrlIsSecure_SecureUrl() {
         String secureUrl = "ldaps://secure.example.com";
         assertTrue(LDAPConfiguration.validateServerUrlIsSecure(secureUrl));
     }
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_InsecureUrl() {
+    void testValidateServerUrlIsSecure_InsecureUrl() {
         String insecureUrl = "ldap://insecure.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(insecureUrl));
     }
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_MixedUrls() {
+    void testValidateServerUrlIsSecure_MixedUrls() {
         String mixedUrls = "ldaps://secure.example.com ldap://insecure.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(mixedUrls));
     }
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_AllSecureUrls() {
+    void testValidateServerUrlIsSecure_AllSecureUrls() {
         String allSecureUrls = "ldaps://secure1.example.com ldaps://secure2.example.com";
         assertTrue(LDAPConfiguration.validateServerUrlIsSecure(allSecureUrls));
     }
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_AllInsecureUrls() {
+    void testValidateServerUrlIsSecure_AllInsecureUrls() {
         String allInsecureUrls = "ldap://insecure1.example.com ldap://insecure2.example.com";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(allInsecureUrls));
     }
 
     @Test
     @WithoutJenkins
-    public void testValidateServerUrlIsSecure_plainUrl() {
+    void testValidateServerUrlIsSecure_plainUrl() {
         String allInsecureUrls = "insecure1.example.com ";
         assertFalse(LDAPConfiguration.validateServerUrlIsSecure(allInsecureUrls));
     }
