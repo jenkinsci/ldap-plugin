@@ -269,7 +269,7 @@
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
       <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>2006.v001a_2ca_6b_574</version>
+      <version>2031.veb_a_fdda_b_3ffd</version>
       <scope>test</scope>
     </dependency>
     
