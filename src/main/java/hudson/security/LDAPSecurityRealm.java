@@ -73,7 +73,7 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetailsImpl;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -780,10 +780,10 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         if (configuration != null) {
             displayNameAttributeName = configuration.getDisplayNameAttributeName();
             mailAddressAttributeName = configuration.getMailAddressAttributeName();
-            if (StringUtils.isEmpty(displayNameAttributeName)) {
+            if (displayNameAttributeName == null || displayNameAttributeName.isEmpty()) {
                 displayNameAttributeName = DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME;
             }
-            if (StringUtils.isEmpty(mailAddressAttributeName)) {
+            if (mailAddressAttributeName == null || mailAddressAttributeName.isEmpty()) {
                 mailAddressAttributeName = DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME;
             }
         } else {
@@ -794,7 +794,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         try {
             Attribute attribute = attributes.get(displayNameAttributeName);
             String displayName = attribute == null ? null : (String) attribute.get();
-            if (StringUtils.isNotBlank(displayName) && u.getId().equals(u.getFullName()) && !u.getFullName().equals(displayName)) {
+            if (displayName != null && !displayName.isBlank() && u.getId().equals(u.getFullName()) && !u.getFullName().equals(displayName)) {
                 u.setFullName(displayName);
             }
         } catch (NamingException e) {
@@ -804,7 +804,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             try {
                 Attribute attribute = attributes.get(mailAddressAttributeName);
                 String mailAddress = attribute == null ? null : (String) attribute.get();
-                if (StringUtils.isNotBlank(mailAddress)) {
+                if (mailAddress != null && !mailAddress.isBlank()) {
                     UserProperty existing = u.getProperty(UserProperty.class);
                     if (existing==null || !existing.hasExplicitlyConfiguredAddress())
                         u.addProperty(new Mailer.UserProperty(mailAddress));
@@ -982,7 +982,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         try (SetContextClassLoader sccl = new SetContextClassLoader(LDAPAuthenticationManager.class)) {
             String password = authentication.getCredentials() instanceof String ? (String) authentication.getCredentials() : null;
-            if(FIPS140.useCompliantAlgorithms() && (StringUtils.isBlank(password) || password.length() < 14)) {
+            if(FIPS140.useCompliantAlgorithms() && (password == null || password.isBlank() || password.length() < 14)) {
                 final String message =  "When running in FIPS compliance mode, the password must be at least 14 characters long";
                 LOGGER.warning(message);
                 throw new org.springframework.ldap.AuthenticationException(new javax.naming.AuthenticationException(message));
@@ -1445,7 +1445,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
         }
 
         public boolean isGeneratingPrefixRoles() {
-            return StringUtils.isNotBlank(rolePrefix) || convertToUpperCase;
+            return (rolePrefix != null && !rolePrefix.isBlank()) || convertToUpperCase;
         }
 
         public boolean _isConvertToUpperCase() {
@@ -1597,7 +1597,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 ok(response, "authentication",
                         jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationSuccessful());
             } catch (AuthenticationException e) {
-                if (StringUtils.isBlank(password)) {
+                if (password == null || password.isBlank()) {
                     warning(response, "authentication",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_AuthenticationFailedEmptyPass(user));
                 } else {
@@ -1759,7 +1759,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 LDAPConfiguration lookupConfiguration = realm.getConfigurationFor(lookUpDetails);
                 assert loginConfiguration == lookupConfiguration : "The lookup user details and login user details are not from the same server configuration";
                 // username
-                if (!StringUtils.equals(loginDetails.getUsername(), lookUpDetails.getUsername())) {
+                if (!Objects.equals(loginDetails.getUsername(), lookUpDetails.getUsername())) {
                     error(response, "consistency-username",
                             jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UsernameMismatch(
                                     loginDetails.getUsername(), lookUpDetails.getUsername()));
@@ -1789,7 +1789,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                 Attributes loginAttributes = DelegatedLdapUserDetails.getAttributes(loginDetails, null);
                 Attributes lookupAttributes = DelegatedLdapUserDetails.getAttributes(lookUpDetails, null);
                 // display name
-                if (StringUtils.isNotBlank(loginConfiguration.getDisplayNameAttributeName())) {
+                if (loginConfiguration.getDisplayNameAttributeName() != null && !loginConfiguration.getDisplayNameAttributeName().isBlank()) {
                     Attribute loginAttr = loginAttributes.get(loginConfiguration.getDisplayNameAttributeName());
                     Object loginValue;
                     try {
@@ -1812,7 +1812,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
                     }
                 }
                 // email address
-                if (!realm.disableMailAddressResolver && StringUtils.isNotBlank(loginConfiguration.getMailAddressAttributeName()))
+                if (!realm.disableMailAddressResolver && loginConfiguration.getMailAddressAttributeName() != null && !loginConfiguration.getMailAddressAttributeName().isBlank())
                 {
                     Attribute loginAttr = loginAttributes.get(loginConfiguration.getMailAddressAttributeName());
                     Object loginValue;
@@ -1894,7 +1894,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
         private boolean isAnyManagerBlank(LDAPSecurityRealm realm) {
             for (LDAPConfiguration configuration : realm.getConfigurations()) {
-                if (StringUtils.isBlank(configuration.getManagerDN())) {
+                if (configuration.getManagerDN() == null || configuration.getManagerDN().isBlank()) {
                     return true;
                 }
             }
@@ -1920,7 +1920,7 @@ public class LDAPSecurityRealm extends AbstractPasswordBasedSecurityRealm {
             } else {
                 try {
                     String mailAddress = (String) attribute.get();
-                    if (StringUtils.isNotBlank(mailAddress)) {
+                if (mailAddress != null && !mailAddress.isBlank()) {
                         ok(response, testId,
                                 jenkins.security.plugins.ldap.Messages.LDAPSecurityRealm_UserEmail(
                                         Util.escape(mailAddress)
