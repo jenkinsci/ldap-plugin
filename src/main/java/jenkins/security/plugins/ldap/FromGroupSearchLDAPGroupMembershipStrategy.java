@@ -37,7 +37,7 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
-import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
@@ -70,7 +70,7 @@ public class FromGroupSearchLDAPGroupMembershipStrategy extends LDAPGroupMembers
 
     @Override
     public void setAuthoritiesPopulator(LdapAuthoritiesPopulator authoritiesPopulator) {
-        if (authoritiesPopulator instanceof LDAPSecurityRealm.AuthoritiesPopulatorImpl && StringUtils.isNotBlank(filter)) {
+        if (authoritiesPopulator instanceof LDAPSecurityRealm.AuthoritiesPopulatorImpl && filter != null && !filter.isBlank()) {
             ((LDAPSecurityRealm.AuthoritiesPopulatorImpl) authoritiesPopulator).setGroupSearchFilter(filter);
         }
         super.setAuthoritiesPopulator(authoritiesPopulator);

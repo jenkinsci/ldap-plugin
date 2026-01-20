@@ -27,7 +27,7 @@ package jenkins.security.plugins.ldap;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.util.SetContextClassLoader;
-import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.ldap.core.ContextSource;
@@ -110,10 +110,10 @@ public class LDAPExtendedTemplate extends LdapTemplate {
 
     private String getDnSuffix(String base, String nameInNamespace) {
         StringBuilder suffix = new StringBuilder();
-        if (!StringUtils.isEmpty(base)) {
+        if (base != null && !base.isEmpty()) {
             suffix.append(",").append(base);
         }
-        if (!StringUtils.isEmpty(nameInNamespace)) {
+        if (nameInNamespace != null && !nameInNamespace.isEmpty()) {
             suffix.append(",").append(nameInNamespace);
         }
         return suffix.toString();

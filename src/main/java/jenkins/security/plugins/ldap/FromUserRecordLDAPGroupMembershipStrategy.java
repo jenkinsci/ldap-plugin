@@ -27,7 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.security.LDAPSecurityRealm;
 import java.util.Set;
-import org.apache.commons.lang.StringUtils;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
@@ -63,7 +63,7 @@ public class FromUserRecordLDAPGroupMembershipStrategy extends LDAPGroupMembersh
     }
 
     public String getAttributeName() {
-        return StringUtils.defaultIfEmpty(attributeName, "memberOf");
+        return attributeName == null || attributeName.isEmpty() ? "memberOf" : attributeName;
     }
 
     @Override

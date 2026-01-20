@@ -37,7 +37,7 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import java.nio.charset.StandardCharsets;
 import jenkins.security.FIPS140;
-import org.apache.commons.lang.StringUtils;
+import java.util.Objects;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -85,8 +85,7 @@ import java.util.regex.Pattern;
 import static hudson.Util.fixEmpty;
 import static hudson.Util.fixEmptyAndTrim;
 import static hudson.Util.fixNull;
-import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.apache.commons.lang.StringUtils.isNotBlank;
+
 
 /**
  * A configuration for one ldap connection
@@ -342,7 +341,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     public String getDisplayNameAttributeName() {
-        return StringUtils.defaultString(displayNameAttributeName, LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME);
+        return displayNameAttributeName == null ? LDAPSecurityRealm.DescriptorImpl.DEFAULT_DISPLAYNAME_ATTRIBUTE_NAME : displayNameAttributeName;
     }
 
     @DataBoundSetter
@@ -351,7 +350,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     public String getMailAddressAttributeName() {
-        return StringUtils.defaultString(mailAddressAttributeName, LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME);
+        return mailAddressAttributeName == null ? LDAPSecurityRealm.DescriptorImpl.DEFAULT_MAILADDRESS_ATTRIBUTE_NAME : mailAddressAttributeName;
     }
 
     @DataBoundSetter
@@ -399,7 +398,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     public String getId() {
-        if (StringUtils.isEmpty(this.id)) {
+        if (this.id == null || this.id.isEmpty()) {
             this.id = generateId();
         }
         return this.id;
@@ -449,10 +448,10 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             Context ctx = null;
             try {
                 Hashtable<String,Object> props = new Hashtable<>();
-                if(StringUtils.isNotBlank(managerDN)  && !"undefined".equals(managerDN)) {
+                if(managerDN != null && !managerDN.isBlank() && !"undefined".equals(managerDN)) {
                     props.put(Context.SECURITY_PRINCIPAL,managerDN);
                 }
-                if(StringUtils.isNotBlank(managerPassword) && !"undefined".equals(managerPassword)) {
+                if(managerPassword != null && !managerPassword.isBlank() && !"undefined".equals(managerPassword)) {
                     props.put(Context.SECURITY_CREDENTIALS,managerPassword);
                 }
                 // normal
@@ -581,12 +580,12 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         }
         digest.update(normalizeServer(serverUrl).getBytes(StandardCharsets.UTF_8));
         String userSearchBaseNormalized = normalizeUserSearchBase(rootDN, userSearchBase);
-        if (isNotBlank(userSearchBaseNormalized)) {
+        if (userSearchBaseNormalized != null && !userSearchBaseNormalized.isBlank()) {
             digest.update(userSearchBaseNormalized.getBytes(StandardCharsets.UTF_8));
         } else {
             digest.update(new byte[]{0});
         }
-        if (isNotBlank(userSearch)) {
+        if (userSearch != null && !userSearch.isBlank()) {
             digest.update(userSearch.getBytes(StandardCharsets.UTF_8));
         } else {
             digest.update(LDAPConfigurationDescriptor.DEFAULT_USER_SEARCH.getBytes(StandardCharsets.UTF_8));
@@ -595,13 +594,13 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     private static String normalizeUserSearchBase(String rootDN, String userSearchBase) {
-        if (isBlank(rootDN) && isBlank(userSearchBase)) {
+        if ((rootDN == null || rootDN.isBlank()) && (userSearchBase == null || userSearchBase.isBlank())) {
             return "";
         }
-        if (isBlank(rootDN)) {
+        if (rootDN == null || rootDN.isBlank()) {
             return userSearchBase;
         }
-        if (isBlank(userSearchBase)) {
+        if (userSearchBase == null || userSearchBase.isBlank()) {
             return rootDN;
         }
         rootDN = rootDN.trim();
@@ -614,7 +613,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
         String[] urls = Util.fixNull(server).split("\\s+");
         List<String> normalised = new ArrayList<>(urls.length);
         for (String url : urls) {
-            if (isBlank(url)) {
+            if (url == null || url.isBlank()) {
                 continue;
             }
             url = addPrefix(url);
@@ -629,7 +628,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
             }
         }
         Collections.sort(normalised);
-        return StringUtils.join(normalised, ' ');
+        return String.join(" ", normalised);
     }
 
     public static final class ApplicationContext {
@@ -705,7 +704,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
     }
 
     private static boolean isPasswordNonCompliant(String password){
-        return FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(password) &&
-                StringUtils.length(password) < 14;
+        return FIPS140.useCompliantAlgorithms() && password != null && !password.isBlank() &&
+                password.length() < 14;
     }
 }
