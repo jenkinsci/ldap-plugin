@@ -270,7 +270,7 @@
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
       <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>2006.v001a_2ca_6b_574</version>
+      <version>2037.v8e5349845172</version>
       <scope>test</scope>
     </dependency>
     
