@@ -148,6 +148,7 @@ public class LDAPConfiguration extends AbstractDescribableImpl<LDAPConfiguration
 
     @DataBoundConstructor
     public LDAPConfiguration(@NonNull String server, String rootDN, boolean inhibitInferRootDN, String managerDN, Secret managerPasswordSecret){
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         if(FIPS140.useCompliantAlgorithms() && !validateServerUrlIsSecure(server)){
             throw new IllegalArgumentException(Messages.LDAPConfiguration_InsecureServer(server));
         }
